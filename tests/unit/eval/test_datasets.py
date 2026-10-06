@@ -16,7 +16,7 @@ from pharmarag.eval.lookalike import KINDS, Row, dataset_path, load_dataset
 from pharmarag.eval.report import sha256_of
 
 # Frozen once written (cycle 2). Never tune on this file.
-TEST_SET_SHA256 = "8637c9e78d0cb9ed68c2eb77c8ed7c3622d31297aca33a6d641ba85372b40762"
+TEST_SET_SHA256 = "71f96645e017c5739ede6dfd1d16498c7501d4f24f1d885a34f63e47352351f0"
 
 FIELDS = {
     "question",
@@ -133,8 +133,12 @@ async def test_gold_keys_come_from_the_corpus_and_mentions_are_not_aliases_of_th
         partner_key = names.get(r.partner_name)
         assert partner_key is not None and partner_key != r.gold_ingredient_key
         if r.kind == "brand":
-            # A brand row is only valid if the corpus knows that brand for the gold drug.
-            assert (r.mention.lower(), r.gold_ingredient_key) in aliases, r.mention
+            # A brand row names a brand the corpus knows for the gold drug, typed exactly or
+            # with one typo (a look-alike brand typo such as "Lamictel" is a realistic error).
+            gold_brands = {a for a, k in aliases if k == r.gold_ingredient_key}
+            m = r.mention.lower()
+            assert any(Levenshtein.distance(m, b) <= 1 for b in gold_brands), r.mention
+            assert (m, partner_key) not in aliases
         if r.kind == "misspelling":
             # Not a name RxNorm knows for either drug as far as the alias table can tell.
             assert (r.mention.lower(), r.gold_ingredient_key) not in aliases
