@@ -5,8 +5,7 @@ Local dev cheat sheet. Entries marked *(planned)* come from the spec and will be
 ## Setup
 
 ```bash
-python3.12 -m venv .venv && source .venv/bin/activate   # (planned)
-pip install -e ".[dev]"                                   # (planned)
+uv sync                                                   # creates .venv with Python 3.12 + dev deps
 cp .env.example .env                                      # then set LLM_* vars
 ```
 
@@ -23,27 +22,31 @@ docker compose down -v                                     # also wipes the post
 ## Tests
 
 ```bash
-pytest                       # everything
-pytest tests/unit -q
-pytest tests/graph -q        # route tests with FakeLLM
-pytest tests/sql -q          # filter-leak and EXPLAIN plan tests (needs postgres)
-ruff check . && ruff format --check .
+uv run pytest -q             # everything (~400 tests, ~6 s)
+uv run pytest tests/unit -q
+uv run pytest tests/graph -q  # route tests with FakeLLM
+uv run pytest tests/sql -q    # filter-leak and EXPLAIN plan tests (needs postgres)
+uv run ruff check . && uv run ruff format --check .
 ```
 
 ## Ingest and eval
 
 ```bash
-python -m ingest.run --seed data/seed_ingredients.csv     # (planned)
-python -m eval.run lookalike                              # (planned) writes reports/
-python -m eval.run grounding                              # (planned)
-python -m eval.run latency                                # (planned)
+uv run python -m pharmarag.ingest.run --seed data/seed_ingredients.csv             # uses pins, ~3.5 min if unchanged
+uv run python -m pharmarag.ingest.run --seed data/seed_ingredients.csv --limit 10  # smoke run
+uv run python -m pharmarag.ingest.run --seed data/seed_ingredients.csv --repin     # re-select every label, ~22 min
+uv run python -m pharmarag.eval.run lookalike             # (planned) writes reports/
+uv run python -m pharmarag.eval.run grounding             # (planned)
+uv run python -m pharmarag.eval.run latency               # (planned)
 ```
 
 ## Postgres
 
 ```bash
-docker compose exec postgres psql -U postgres pharmarag
-alembic upgrade head
+# Local dev uses the Homebrew Postgres (pgvector installed). Dev DB: pharmarag_dev
+psql postgresql://postgres:postgres@localhost:5432/pharmarag_dev
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/pharmarag_dev uv run alembic upgrade head
+# Tests create and drop their own pharmarag_test_* databases
 ```
 
 ```sql
