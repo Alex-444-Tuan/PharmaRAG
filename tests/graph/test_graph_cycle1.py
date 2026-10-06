@@ -1,13 +1,18 @@
-"""End-to-end graph runs with FakeLLM and FakeEmbedder over real PostgreSQL."""
+"""End-to-end graph runs with FakeLLM and FakeEmbedder over real PostgreSQL.
+
+These started in cycle 1 as the baseline pipeline. With no resolver in `Deps` the graph still
+runs it (the AT-1 baseline); the full-graph routes are in test_graph_routes.py.
+"""
 
 import json
 
 import pytest
 
 from pharmarag.graph.run import run_ask
-from pharmarag.graph.state import Flags
+from pharmarag.graph.state import Flags, Resolution
 from pharmarag.llm.errors import TRUNCATION_MARKER, LLMRefusalError
 from pharmarag.retrieval.scope import FilterRequiredError
+from tests.graph.fakes import FakeResolver
 
 pytestmark = pytest.mark.pg
 
@@ -52,13 +57,15 @@ async def test_happy_path_runs_end_to_end(make_fake_llm, make_deps, make_graph, 
     assert meta["corpus_version"] == "corpus-abc123"
     assert meta["retrieval_attempts"] == 1 and meta["generation_attempts"] == 1
     assert meta["removed_sentences"] == 0 and meta["latency_ms"] >= 0
-    # Cycle 1 has neither a resolver nor a verifier, and the response says so.
+    # Deps has neither a resolver nor a verifier, and the response says so.
     assert meta["verified"] is False and meta["resolver"] is False
-    # Every node recorded its time (NFR-5), including the two parallel branches.
+    # Every node that ran recorded its time (NFR-5), including the three parallel branches.
     assert set(out["debug"]["timings_ms"]) == {
         "analyze",
+        "resolve",
         "retrieve_dense",
         "retrieve_lexical",
+        "fetch_rx_facts",
         "fuse_grade",
         "answer",
         "finalize",
@@ -85,19 +92,19 @@ async def test_declined_path_skips_retrieval_and_writer(
     assert out["meta"]["retrieval_attempts"] == 0 and out["meta"]["generation_attempts"] == 0
 
 
-async def test_weak_evidence_goes_to_finalize_without_calling_the_writer(
+async def test_weak_evidence_on_both_attempts_never_calls_the_writer(
     make_fake_llm, make_deps, make_graph, pg_conn
 ):
-    # Empty corpus: nothing retrieved, evidence_ok is False.
-    llm = make_fake_llm([analysis()])
+    # Empty corpus: nothing retrieved, evidence_ok is False, the one rewrite finds nothing too.
+    llm = make_fake_llm([analysis(), json.dumps({"search_query": "dose of the drug"})])
     deps = make_deps(llm)
     out = await run_ask(make_graph(deps), deps, question=QUESTION, debug=True)
     assert out["status"] == "insufficient_evidence"
     assert out["answer"] == []
-    assert len(llm.calls) == 1
+    assert len(llm.calls) == 2  # analyze and rewrite_query; the writer was never called
     assert "answer" not in out["debug"]["timings_ms"]
     assert out["meta"]["corpus_version"] == "unknown"
-    assert out["meta"]["retrieval_attempts"] == 1
+    assert out["meta"]["retrieval_attempts"] == 2
 
 
 async def test_writer_insufficient_becomes_insufficient_evidence(
@@ -126,11 +133,11 @@ async def test_uncited_sentence_is_removed_and_counted(
     assert removed["text"] == "It is a popular medicine." and removed["reason"] == "no_citation"
 
 
-async def test_cycle1_forces_resolver_flag_off_so_mentions_are_never_extracted(
+async def test_without_a_resolver_the_flag_is_forced_off_and_mentions_are_never_extracted(
     make_fake_llm, make_deps, make_graph, corpus
 ):
     llm = make_fake_llm([analysis(mentions=["hydroxyzine"]), "Taken four times daily. [c1]"])
-    deps = make_deps(llm)  # resolver_available defaults to False
+    deps = make_deps(llm)  # resolver=None
     out = await run_ask(
         make_graph(deps), deps, question=QUESTION, flags=Flags(resolver=True), debug=True
     )
@@ -138,13 +145,16 @@ async def test_cycle1_forces_resolver_flag_off_so_mentions_are_never_extracted(
     assert out["debug"]["mentions"] == []
 
 
-async def test_mention_without_resolver_never_reaches_unfiltered_ranking(
+async def test_resolver_that_returns_no_key_for_a_mention_never_reaches_unfiltered_ranking(
     make_fake_llm, make_deps, make_graph, corpus
 ):
-    # FR-3 fail-closed: if someone enables the resolver flag without wiring a `resolve` node,
-    # retrieval refuses to rank rather than searching the whole corpus.
+    # FR-3 fail-closed: a resolver bug that marks a mention resolved without an ingredient_key
+    # must stop retrieval, not widen it to the whole corpus.
+    buggy = FakeResolver(
+        {"hydroxyzine": Resolution(mention="hydroxyzine", status="resolved", name="hydroxyzine")}
+    )
     llm = make_fake_llm([analysis(mentions=["hydroxyzine"])])
-    deps = make_deps(llm, resolver_available=True)
+    deps = make_deps(llm, resolver=buggy)
     with pytest.raises(FilterRequiredError):
         await run_ask(make_graph(deps), deps, question=QUESTION)
 

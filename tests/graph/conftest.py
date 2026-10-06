@@ -1,8 +1,11 @@
 import pytest
+from langgraph.types import RetryPolicy
 
+from pharmarag.app.settings import Thresholds
 from pharmarag.db import create_pool
 from pharmarag.graph.build import build_graph
 from pharmarag.graph.deps import Deps
+from pharmarag.llm.errors import LLMUnavailableError
 from tests.graph.seed import HYDRALAZINE, HYDROXYZINE, seed_label, set_corpus_version
 
 
@@ -14,23 +17,45 @@ async def pool(pg_url):
 
 
 @pytest.fixture
-def make_deps(pool, settings, thresholds, fake_embedder):
+def graph_thresholds(thresholds) -> Thresholds:
+    """The frozen thresholds, with the grading values the route tests depend on pinned.
+
+    The yaml values are tuned on dev sets and move. These tests use word-overlap fake
+    embeddings, so they pin the grader to values their fixtures were written for.
+    """
+    retrieval = thresholds.retrieval.model_copy(update={"dense_min": 0.5, "overlap_min": 2})
+    grounding = thresholds.grounding.model_copy(update={"support_ratio_min": 0.8})
+    return thresholds.model_copy(update={"retrieval": retrieval, "grounding": grounding})
+
+
+@pytest.fixture
+def make_deps(pool, settings, graph_thresholds, fake_embedder):
     def _make(llm, **kw) -> Deps:
         return Deps(
             llm=llm,
             embedder=fake_embedder,
             pool=pool,
             settings=settings,
-            thresholds=thresholds,
+            thresholds=graph_thresholds,
             **kw,
         )
 
     return _make
 
 
+FAST_RETRY = RetryPolicy(
+    initial_interval=0.0, jitter=False, max_attempts=3, retry_on=LLMUnavailableError
+)
+
+
 @pytest.fixture
 def make_graph():
-    return build_graph
+    """build_graph with the production retry policy's shape but no backoff sleep."""
+
+    def _make(deps: Deps):
+        return build_graph(deps, llm_retry=FAST_RETRY)
+
+    return _make
 
 
 @pytest.fixture

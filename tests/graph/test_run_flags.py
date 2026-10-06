@@ -5,6 +5,7 @@ import pytest
 from pharmarag.graph.deps import Deps
 from pharmarag.graph.run import effective_flags
 from pharmarag.graph.state import Flags
+from tests.graph.fakes import FakeResolver, FakeVerifier
 
 
 @pytest.fixture
@@ -16,8 +17,8 @@ def make(settings, thresholds, fake_embedder, make_fake_llm):
             pool=None,
             settings=settings.model_copy(update={"eval_mode": eval_mode}),
             thresholds=thresholds,
-            resolver_available=resolver,
-            verifier_available=verifier,
+            resolver=FakeResolver({}) if resolver else None,
+            verifier=FakeVerifier([[]]) if verifier else None,
         )
 
     return _make
@@ -46,3 +47,12 @@ def test_stage_missing_from_this_build_is_off_whatever_is_requested(make):
         assert effective_flags(Flags(), deps) == OFF
     deps = make(eval_mode=False, resolver=True, verifier=False)
     assert effective_flags(Flags(), deps) == Flags(resolver=True, verifier=False)
+
+
+def test_availability_is_derived_from_the_stages_not_stored(make):
+    deps = make(eval_mode=True, resolver=True, verifier=False)
+    assert deps.resolver_available is True and deps.verifier_available is False
+    deps.verifier = FakeVerifier([[]])
+    assert deps.verifier_available is True  # follows the stage, cannot drift from it
+    deps.resolver = None
+    assert deps.resolver_available is False

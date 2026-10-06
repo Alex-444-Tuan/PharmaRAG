@@ -12,7 +12,8 @@ def effective_flags(requested: Flags, deps: Deps) -> Flags:
 
     1. Outside EVAL_MODE the requested flags are ignored: both stages are on. This is enforced
        here and not only in the API, so no caller can run a production request unverified.
-    2. A stage this build does not have is switched off (see `Deps`).
+    2. A stage this build does not have (`Deps.resolver` or `Deps.verifier` is None) is switched
+       off, so the request runs as the AT-1 / AT-2 baseline and says so in `meta`.
     """
     if not deps.settings.eval_mode:
         requested = Flags()
@@ -20,6 +21,27 @@ def effective_flags(requested: Flags, deps: Deps) -> Flags:
         resolver=requested.resolver and deps.resolver_available,
         verifier=requested.verifier and deps.verifier_available,
     )
+
+
+def initial_state(
+    question: str,
+    *,
+    flags: Flags,
+    pinned_rxcuis: list[str] | None = None,
+    request_id: str | None = None,
+) -> RAGState:
+    return {
+        "question": question,
+        "flags": flags,
+        "pinned_rxcuis": pinned_rxcuis or [],
+        "request_id": request_id or uuid.uuid4().hex,
+        "search_query": question,
+        "retrieval_attempt": 1,
+        "generation_attempt": 1,
+        "hits": [],
+        "rx_facts": [],
+        "timings": {},
+    }
 
 
 async def run_ask(
@@ -34,18 +56,7 @@ async def run_ask(
 ) -> dict:
     t0 = time.perf_counter()
     flags = effective_flags(flags or Flags(), deps)
-    state: RAGState = {
-        "question": question,
-        "flags": flags,
-        "pinned_rxcuis": pinned_rxcuis or [],
-        "request_id": request_id or uuid.uuid4().hex,
-        "search_query": question,
-        "retrieval_attempt": 1,
-        "generation_attempt": 1,
-        "hits": [],
-        "rx_facts": [],
-        "timings": {},
-    }
+    state = initial_state(question, flags=flags, pinned_rxcuis=pinned_rxcuis, request_id=request_id)
     final = await graph.ainvoke(
         state, config={"recursion_limit": deps.thresholds.graph.recursion_limit}
     )
@@ -57,8 +68,11 @@ async def run_ask(
             "flags": flags.model_dump(),
             "intent": final.get("intent"),
             "mentions": final.get("mentions", []),
+            "ingredient_keys": final.get("ingredient_keys", []),
+            "resolutions": [r.model_dump() for r in final.get("resolutions", [])],
             "sections": final.get("sections", []),
             "search_query": final.get("search_query"),
+            "support_ratio": final.get("support_ratio"),
             "timings_ms": final.get("timings", {}),
             "removed_sentences": [s.model_dump() for s in final.get("removed_sentences", [])],
         }

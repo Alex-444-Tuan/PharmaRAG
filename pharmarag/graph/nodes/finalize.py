@@ -61,7 +61,12 @@ def _source_entries(shown: list[Sentence], evidence: list[Chunk], facts: list[Fa
 
 
 def _drug_entry(r: Resolution) -> dict:
-    """`rxcui` is the single ingredient RxCUI, or None for a fixed-dose combination."""
+    """`rxcui` is the single ingredient RxCUI, or None for a fixed-dose combination.
+
+    `match` says how the mention was matched (exact, brand, salt, approximate, pinned). The
+    response opens with it because a valid name for the wrong drug cannot be detected (spec
+    section 7, "Known limit").
+    """
     rxcuis = r.ingredient_rxcuis or (r.ingredient_key.split("+") if r.ingredient_key else [])
     return {
         "mention": r.mention,
@@ -70,6 +75,21 @@ def _drug_entry(r: Resolution) -> dict:
         "ingredient_key": r.ingredient_key,
         "match": r.match,
     }
+
+
+def _candidates(resolutions: list[Resolution]) -> tuple[str | None, list[dict]]:
+    """The first ambiguous mention and its up-to-3 candidates, for `needs_clarification`.
+
+    SPEC: section 10 gives one `candidates` list. With several ambiguous mentions only the first
+    is asked about; the client resends with its pin and gets asked about the next one.
+    """
+    for r in resolutions:
+        if r.status == "ambiguous":
+            return r.mention, [
+                {"ingredient_key": c.ingredient_key, "name": c.name, "score": c.score}
+                for c in r.candidates[:3]
+            ]
+    return None, []
 
 
 async def _corpus_version(deps: Deps) -> str:
@@ -99,8 +119,16 @@ async def finalize(state: RAGState, deps: Deps) -> dict:
     removed = [*state.get("removed_sentences", []), *removed_now]
 
     evidence = state.get("evidence", [])
-    facts = state.get("rx_facts", [])
-    drugs = [_drug_entry(r) for r in state.get("resolutions", []) if r.status == "resolved"]
+    # Facts from earlier retrieval attempts reuse the ids r1, r2, ...; only the final attempt's
+    # facts could have been cited.
+    attempt = state.get("retrieval_attempt", 1)
+    facts = [f for f in state.get("rx_facts", []) if f.retrieval_attempt == attempt]
+    # A `not_covered` drug is listed too: the client says "X is not in the corpus" by name.
+    drugs = [
+        _drug_entry(r)
+        for r in state.get("resolutions", [])
+        if r.status in ("resolved", "not_covered") and r.name
+    ]
     answer = [
         {
             "text": s.text,
@@ -131,4 +159,8 @@ async def finalize(state: RAGState, deps: Deps) -> dict:
             "resolver": flags.resolver,
         },
     }
+    if status == "needs_clarification":
+        mention, candidates = _candidates(state.get("resolutions", []))
+        response["candidates"] = candidates
+        response["ambiguous_mention"] = mention
     return {"status": status, "response": response, "removed_sentences": removed}

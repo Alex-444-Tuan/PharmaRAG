@@ -8,6 +8,7 @@ from pharmarag.app.main import create_app, get_runtime
 from pharmarag.app.runtime import Runtime
 from pharmarag.graph.deps import Deps
 from pharmarag.llm.errors import LLMUnavailableError
+from tests.graph.fakes import FakeResolver, FakeVerifier
 
 
 class StubGraph:
@@ -49,8 +50,8 @@ def make_client(settings, thresholds, fake_embedder, make_fake_llm):
             pool=None,
             settings=s,
             thresholds=thresholds,
-            resolver_available=stages,
-            verifier_available=stages,
+            resolver=FakeResolver({}) if stages else None,
+            verifier=FakeVerifier([[]]) if stages else None,
         )
         graph = graph or StubGraph()
         app = create_app(s)
