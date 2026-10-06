@@ -11,10 +11,11 @@ from typing import Protocol
 
 from psycopg_pool import AsyncConnectionPool
 
-# The mention is normalised without punctuation ("insulin aspart, human" is typed or normalised
-# to "insulin aspart human"), but some aliases keep it. Step 2 therefore also compares the alias
-# with the same punctuation turned into spaces. The alias table is a few thousand rows, so the
-# scan costs about a millisecond; a functional index would serve a much larger table.
+# SPEC: the spec says "exact match in the local drug_alias table". The normalised mention has no
+# punctuation ("insulin aspart, human" becomes "insulin aspart human"), but some aliases keep
+# it. Step 2 therefore also compares the alias with the same punctuation turned into spaces.
+# The alias table is a few thousand rows, so the scan costs about a millisecond; a functional
+# index would serve a much larger table.
 _PUNCTUATION = r"[\s,;:()\[\]{}/\\\"'*]+"
 
 # Lower is stronger. An alias string can appear under several term types; the strongest wins.

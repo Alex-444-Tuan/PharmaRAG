@@ -46,7 +46,7 @@ CACHE_TTL_S = 24 * 3600
 CACHE_VERSION = 1
 # RxNav can return many rows for one term. Mapping each to its ingredient costs a request, so
 # only the best few distinct concepts are mapped (rank order).
-MAX_APPROX_CONCEPTS = 10
+MAX_APPROX_CONCEPTS = 10  # SPEC: the spec says maxEntries=10 and nothing about mapping them
 
 Step = Literal["empty", "local_exact", "rxnav_exact", "approximate"]
 
@@ -153,6 +153,11 @@ class CascadeResolver:
         pins = [p.strip() for p in pinned_rxcuis or [] if p and p.strip()]
         return list(await asyncio.gather(*(self._resolve_one(m, pins) for m in mentions)))
 
+    async def cascade(self, mention: str) -> Cascaded:
+        """Steps 1 to 7 only, uncached: the scored candidates before the gate. For tuning tools
+        that apply many gate settings to one set of candidates."""
+        return await self._cascade(mention, normalize(mention))
+
     # --- one mention ----------------------------------------------------------------------
 
     async def _resolve_one(self, mention: str, pins: list[str]) -> Outcome:
@@ -220,6 +225,9 @@ class CascadeResolver:
 
     @staticmethod
     def _match_for(tty: str) -> MatchKind:
+        # SPEC: section 7 names IN, PIN and BN. Other term types (SBD and BPCK are branded
+        # products, MIN is a multi-ingredient concept, SCD and the rest are generic clinical
+        # drugs) are grouped with the closest of the five `match` values.
         if tty == "PIN":
             return "salt"
         if tty in _BRAND_TTYS:
@@ -249,6 +257,11 @@ class CascadeResolver:
         return out
 
     async def _rxnav_exact(self, norm: str, names: dict[str, set[str]]) -> list[Scored]:
+        # SPEC: step 3 stops on any hit of `rxcui.json?search=2`, and the match is labelled by the
+        # hit's term type (IN: exact, PIN: salt, BN/SBD: brand). RxNav's string table holds many
+        # misspellings ("hydroxyzin" is a hit for hydroxyzine), so such a hit is labelled `exact`
+        # although the user misspelled it. Section 10's example shows `approximate` for it. The
+        # spec's own rule ("steps 2 and 3 stop the cascade on a hit") is what is implemented.
         assert self._rx is not None
         rxcuis = await self._rx.find_rxcuis(norm)
         if not rxcuis:
@@ -353,6 +366,9 @@ class CascadeResolver:
     # --- steps 8 and 9, and pins ---------------------------------------------------------------
 
     async def _finish(self, mention: str, c: Cascaded, pins: list[str]) -> Resolution:
+        # SPEC: section 7 says only that a pinned ingredient in the candidate set resolves with
+        # match="pinned". The candidate set here is every scored candidate, including ones below
+        # the gate's floor, and a pin beats the gate (it is the user's answer to the clarification).
         pinned = [s for s in c.scored if _pin_matches(s.key, pins)] if pins else []
         if pinned:
             winner = min(pinned, key=lambda s: (-s.score, _key_order(s.key)))

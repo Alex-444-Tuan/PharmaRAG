@@ -72,6 +72,7 @@ def decide(scores: Sequence[KeyScore], th: ResolverThresholds, *, exact: bool = 
     if _r(top.score) >= th.resolved_min and not contested:
         return Verdict("resolved", top, ())
 
-    # A clarification only offers drugs that are plausible matches in their own right.
+    # SPEC: section 7 says "up to 3 candidates" without a floor. Candidates below ambiguous_min
+    # are not offered: a clarification that lists a drug the name does not resemble is noise.
     options = [s for s in ranked if _r(s.score) >= th.ambiguous_min]
     return Verdict("ambiguous", top, tuple(options[: th.max_candidates]))

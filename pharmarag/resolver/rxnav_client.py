@@ -123,6 +123,7 @@ class RxNavClient:
     async def _json(self, path: str, **params: str) -> dict[str, Any]:
         """GET `path`. {} for a 4xx other than 429 (RxNav says "no such thing"), never raises
         anything but `RxNavUnavailable`."""
+        # SPEC: the circuit breaker is not in the spec. See the module docstring for why.
         if self.breaker_open:
             raise RxNavUnavailable("RxNav circuit breaker open")
         try:
@@ -164,6 +165,7 @@ class RxNavClient:
         The response has one row per source vocabulary, so the same rxcui repeats. Rows are
         de-duplicated by rxcui, in rank order. RxNav's scores are ignored (spec section 7).
         """
+        # SPEC: "restricted to active concepts" is read as RxNav's `option=1` (active concepts).
         body = await self._json(
             "/approximateTerm.json", term=term, maxEntries=str(max_entries), option="1"
         )

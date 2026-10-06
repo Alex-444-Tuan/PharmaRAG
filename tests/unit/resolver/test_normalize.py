@@ -33,6 +33,11 @@ def test_salt_words_are_kept_so_a_salt_match_stays_possible():
     assert normalize("amlodipine besylate") == "amlodipine besylate"
 
 
+def test_a_spelled_out_salt_is_kept_and_hcl_is_expanded_to_it():
+    assert normalize("hydroxyzine hydrochloride") == "hydroxyzine hydrochloride"
+    assert normalize("hydroxyzine HCl") == normalize("hydroxyzine hydrochloride")
+
+
 def test_collapse_keeps_form_words():
     # Some brands carry a form word; the alias table is tried with this form too.
     assert collapse("Glucotrol  XL") == "glucotrol xl"
