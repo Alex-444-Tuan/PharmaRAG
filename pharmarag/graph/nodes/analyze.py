@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from pharmarag.graph.deps import Deps
 from pharmarag.graph.state import Flags, Intent, RAGState
 from pharmarag.llm.base import Message
+from pharmarag.llm.errors import LLMRefusalError
 from pharmarag.sections import SECTIONS
 
 _SECTION_LIST = "\n".join(f"- {code}: {name}" for code, name in SECTIONS.items())
@@ -74,11 +75,16 @@ def normalise_analysis(a: Analysis, question: str, flags: Flags) -> dict:
 async def analyze(state: RAGState, deps: Deps) -> dict:
     question = state["question"]
     flags = state.get("flags") or Flags()
-    result = await deps.llm.structured(
-        _messages(question),
-        Analysis,
-        system=SYSTEM_PROMPT,
-        temperature=deps.settings.llm_temperature,
-        max_tokens=deps.settings.llm_max_tokens,
-    )
+    try:
+        result = await deps.llm.structured(
+            _messages(question),
+            Analysis,
+            system=SYSTEM_PROMPT,
+            temperature=deps.settings.llm_temperature,
+            max_tokens=deps.settings.llm_max_tokens,
+        )
+    except LLMRefusalError:
+        # The provider declined to even analyse this question. Treat it as out of scope: the
+        # request ends as `declined` and nothing is retrieved or written.
+        return {"intent": "out_of_scope", "mentions": [], "sections": [], "search_query": question}
     return normalise_analysis(result, question, flags)

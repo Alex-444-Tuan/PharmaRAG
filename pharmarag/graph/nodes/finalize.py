@@ -6,7 +6,16 @@ on a request that has the verifier switched off (the AT-2 baseline).
 """
 
 from pharmarag.graph.deps import Deps
-from pharmarag.graph.state import Chunk, Fact, Flags, RAGState, Sentence, Status
+from pharmarag.graph.state import (
+    Chunk,
+    Fact,
+    Flags,
+    RAGState,
+    Resolution,
+    Sentence,
+    Status,
+)
+from pharmarag.sections import SECTIONS
 
 NOTICE = "From FDA drug labels via DailyMed. Not medical advice."
 DAILYMED_URL = "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid={setid}"
@@ -38,7 +47,9 @@ def _source_entries(shown: list[Sentence], evidence: list[Chunk], facts: list[Fa
                     "id": c.id,
                     "setid": str(c.setid),
                     "spl_version": c.spl_version,
-                    "section": c.section_title,
+                    # Raw SPL titles vary ("12 CLINICAL PHARMACOLOGY"); the LOINC map gives
+                    # one stable display name.
+                    "section": SECTIONS.get(c.section_loinc, c.section_title),
                     "effective_date": c.effective_date.isoformat() if c.effective_date else None,
                     "url": DAILYMED_URL.format(setid=c.setid),
                 }
@@ -47,6 +58,18 @@ def _source_entries(shown: list[Sentence], evidence: list[Chunk], facts: list[Fa
             f = by_fact[cid]
             out.append({"id": f.id, "rxcui": f.rxcui, "text": f.text})
     return out
+
+
+def _drug_entry(r: Resolution) -> dict:
+    """`rxcui` is the single ingredient RxCUI, or None for a fixed-dose combination."""
+    rxcuis = r.ingredient_rxcuis or (r.ingredient_key.split("+") if r.ingredient_key else [])
+    return {
+        "mention": r.mention,
+        "name": r.name,
+        "rxcui": rxcuis[0] if len(rxcuis) == 1 else None,
+        "ingredient_key": r.ingredient_key,
+        "match": r.match,
+    }
 
 
 async def _corpus_version(deps: Deps) -> str:
@@ -77,11 +100,7 @@ async def finalize(state: RAGState, deps: Deps) -> dict:
 
     evidence = state.get("evidence", [])
     facts = state.get("rx_facts", [])
-    drugs = [
-        {"mention": r.mention, "name": r.name, "rxcui": r.ingredient_key, "match": r.match}
-        for r in state.get("resolutions", [])
-        if r.status == "resolved"
-    ]
+    drugs = [_drug_entry(r) for r in state.get("resolutions", []) if r.status == "resolved"]
     answer = [
         {
             "text": s.text,
@@ -106,6 +125,10 @@ async def finalize(state: RAGState, deps: Deps) -> dict:
             if "sentences" in state
             else 0,
             "removed_sentences": len(removed),
+            # What this request actually ran with, after eval-mode gating and after dropping
+            # stages this build does not have. Lets a client tell a verified answer from not.
+            "verified": flags.verifier,
+            "resolver": flags.resolver,
         },
     }
     return {"status": status, "response": response, "removed_sentences": removed}

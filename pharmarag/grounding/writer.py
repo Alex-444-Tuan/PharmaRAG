@@ -12,6 +12,8 @@ from dataclasses import dataclass, field
 
 from pharmarag.graph.state import Chunk, Fact, Sentence
 from pharmarag.llm.base import LLMClient, Message
+from pharmarag.llm.errors import TRUNCATION_MARKER
+from pharmarag.sections import SECTIONS
 
 INSUFFICIENT = "INSUFFICIENT"
 
@@ -40,6 +42,10 @@ Rules:
 _TAG = re.compile(r"</?\s*(?:question|evidence|facts?|chunk)\b[^>]*>", re.IGNORECASE)
 
 _CITATION_TAIL = re.compile(r"((?:\s*\[[^\[\]]*\])+)\s*[.;]?\s*$")
+_CITE = r"\[\s*[cCrR]\d+(?:\s*,\s*[cCrR]\d+)*\s*\]"
+# A citation group ends a sentence when a period or semicolon follows it and more text comes
+# after, or when the next word starts with something other than a lowercase letter.
+_BOUNDARY = re.compile(rf"(?:\s*{_CITE})+(?:\s*[.;](?=\s+\S)|(?=\s+[^\sa-z]))")
 _CITATION_ID = re.compile(r"\b([cr]\d+)\b", re.IGNORECASE)
 _LEADING_MARKER = re.compile(r"^\s*(?:[-*•]|\d+[.)])\s+")
 
@@ -50,7 +56,7 @@ def _clean(text: str) -> str:
 
 def _block_header(c: Chunk) -> str:
     sub = f" > {c.subsection_title}" if c.subsection_title else ""
-    return f"[{c.id}] {c.section_title}{sub}"
+    return f"[{c.id}] {SECTIONS.get(c.section_loinc, c.section_title)}{sub}"
 
 
 def build_messages(
@@ -71,43 +77,70 @@ class WriterResult:
     sentences: list[Sentence] = field(default_factory=list)
     insufficient: bool = False
     raw: str = ""
+    truncated: bool = False
+
+
+def _split_line(line: str) -> list[str]:
+    """Split one line into sentences at each citation group that ends a sentence.
+
+    "A [c1]. B [c2]." and "A. [c1] B. [c2]" both give two segments, each keeping its own
+    citations. A citation group followed by a lowercase word ("take 5 mg [c1] daily") is
+    mid-sentence and does not split.
+    """
+    segments: list[str] = []
+    start = 0
+    for m in _BOUNDARY.finditer(line):
+        segments.append(line[start : m.end()])
+        start = m.end()
+    segments.append(line[start:])
+    return segments
 
 
 def parse_writer_output(
     text: str, evidence: Sequence[Chunk], facts: Sequence[Fact]
 ) -> WriterResult:
-    """Parse the writer's reply, one sentence per line.
+    """Parse the writer's reply, one sentence per line (a line may hold several).
 
-    A line's trailing bracket groups are its citations. Ids not in `evidence` or `facts` are
-    dropped. A line left with no valid citation is `unsupported` with reason `no_citation`.
-    A reply that is only INSUFFICIENT, or that has no sentences, is `insufficient`.
+    A sentence's trailing bracket groups are its citations. Ids not in `evidence` or `facts`
+    are dropped. A sentence left with no valid citation is `unsupported` with reason
+    `no_citation`. A reply that is only INSUFFICIENT, or that has no sentences, is
+    `insufficient`. If the provider marked the reply as cut at max_tokens, the last line is
+    dropped, because it may be incomplete (and a cut-off dose is worse than a missing one).
     """
     valid = {c.id for c in evidence} | {f.id for f in facts}
+    truncated = TRUNCATION_MARKER in text
+    if truncated:
+        text = text.split(TRUNCATION_MARKER)[0]
+    lines = [ln for ln in text.splitlines() if ln.strip()]
+    if truncated and lines:
+        lines.pop()
     sentences: list[Sentence] = []
-    for line in text.splitlines():
+    for line in lines:
         line = _LEADING_MARKER.sub("", line).strip()
-        if not line:
-            continue
         if line.strip(" .").upper() == INSUFFICIENT:
             continue
-        citations: list[str] = []
-        body = line
-        m = _CITATION_TAIL.search(line)
-        if m:
-            body = line[: m.start()].strip()
-            for cid in _CITATION_ID.findall(m.group(1)):
-                cid = cid.lower()
-                if cid in valid and cid not in citations:
-                    citations.append(cid)
-        if not body:
-            continue
-        if citations:
-            sentences.append(Sentence(text=body, citations=citations))
-        else:
-            sentences.append(
-                Sentence(text=body, citations=[], verdict="unsupported", reason="no_citation")
-            )
-    return WriterResult(sentences=sentences, insufficient=not sentences, raw=text)
+        for segment in _split_line(line):
+            segment = segment.strip()
+            citations: list[str] = []
+            body = segment
+            m = _CITATION_TAIL.search(segment)
+            if m:
+                body = segment[: m.start()].strip()
+                for cid in _CITATION_ID.findall(m.group(1)):
+                    cid = cid.lower()
+                    if cid in valid and cid not in citations:
+                        citations.append(cid)
+            if not body:
+                continue
+            if citations:
+                sentences.append(Sentence(text=body, citations=citations))
+            else:
+                sentences.append(
+                    Sentence(text=body, citations=[], verdict="unsupported", reason="no_citation")
+                )
+    return WriterResult(
+        sentences=sentences, insufficient=not sentences, raw=text, truncated=truncated
+    )
 
 
 async def write_answer(

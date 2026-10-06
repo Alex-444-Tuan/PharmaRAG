@@ -45,7 +45,8 @@ def fuse(
        label) goes first. Then chunk id, for determinism.
     4. Top `evidence_top_k`, or `evidence_top_k_per_drug` per drug when there are several keys.
     5. evidence_ok: at least one chunk, and either the best dense score is >= dense_min or at
-       least `overlap_min` evidence chunks were returned by both branches.
+       least `overlap_min` evidence chunks were returned by both branches. With several
+       drugs every drug must pass this on its own.
     """
     current = [h for h in hits if h.retrieval_attempt == attempt]
     scores = _rrf(current, thresholds.rrf_k)
@@ -88,13 +89,28 @@ def fuse(
     ]
 
     # SPEC: section 8 step 5 does not say whether "best dense score" ranges over all dense hits
-    # or only the kept evidence, nor whether the multi-drug case is graded per drug. Simplest
-    # reading: best over all current-attempt dense hits, one global verdict.
-    best_dense = max((h.score for h in current if h.source == "dense"), default=0.0)
-    dense_ids = {h.chunk_id for h in current if h.source == "dense"}
-    lexical_ids = {h.chunk_id for h in current if h.source == "lexical"}
-    overlap = sum(1 for c in evidence if c.chunk_id in dense_ids and c.chunk_id in lexical_ids)
-    ok = bool(evidence) and (
-        best_dense >= thresholds.dense_min or overlap >= thresholds.overlap_min
-    )
+    # or only the kept evidence. Simplest reading: best over the current-attempt dense hits.
+    # With several drugs the rule is applied to each drug on its own (section 8, "Multi-drug
+    # questions": evidence for both drugs is guaranteed), so one strong drug cannot vouch for a
+    # drug that retrieved nothing.
+    groups: list[str | None] = list(ingredient_keys) if len(ingredient_keys) > 1 else [None]
+    ok = all(_grade(evidence, current, key, thresholds) for key in groups)
     return evidence, ok
+
+
+def _grade(
+    evidence: Sequence[Chunk],
+    current: Sequence[Hit],
+    key: str | None,
+    thresholds: RetrievalThresholds,
+) -> bool:
+    """The evidence_ok rule for one drug (`key`), or for the whole request (`key` is None)."""
+    chunks = [c for c in evidence if key is None or c.ingredient_key == key]
+    hits = [h for h in current if key is None or h.ingredient_key == key]
+    if not chunks:
+        return False
+    best_dense = max((h.score for h in hits if h.source == "dense"), default=0.0)
+    dense_ids = {h.chunk_id for h in hits if h.source == "dense"}
+    lexical_ids = {h.chunk_id for h in hits if h.source == "lexical"}
+    overlap = sum(1 for c in chunks if c.chunk_id in dense_ids and c.chunk_id in lexical_ids)
+    return best_dense >= thresholds.dense_min or overlap >= thresholds.overlap_min

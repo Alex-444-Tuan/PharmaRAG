@@ -7,6 +7,7 @@ sentences leave this node as "unverified" (or "unsupported" for lines with no ci
 from pharmarag.graph.deps import Deps
 from pharmarag.graph.state import RAGState
 from pharmarag.grounding.writer import write_answer
+from pharmarag.llm.errors import LLMRefusalError
 
 
 async def answer(state: RAGState, deps: Deps) -> dict:
@@ -14,12 +15,16 @@ async def answer(state: RAGState, deps: Deps) -> dict:
     facts = [f for f in state.get("rx_facts", []) if f.retrieval_attempt == attempt][
         : deps.thresholds.retrieval.max_facts
     ]
-    result = await write_answer(
-        deps.llm,
-        state["question"],
-        state.get("evidence", []),
-        facts,
-        temperature=deps.settings.llm_temperature,
-        max_tokens=deps.settings.llm_max_tokens,
-    )
+    try:
+        result = await write_answer(
+            deps.llm,
+            state["question"],
+            state.get("evidence", []),
+            facts,
+            temperature=deps.settings.llm_temperature,
+            max_tokens=deps.settings.llm_max_tokens,
+        )
+    except LLMRefusalError:
+        # No sentences means `insufficient_evidence` in finalize; nothing unverified leaks.
+        return {"sentences": []}
     return {"sentences": result.sentences}

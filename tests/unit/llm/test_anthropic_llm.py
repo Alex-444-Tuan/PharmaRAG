@@ -1,6 +1,7 @@
 """AnthropicLLM against a stub SDK client. No network."""
 
 import json
+import logging
 from types import SimpleNamespace
 
 import anthropic
@@ -11,7 +12,12 @@ from pydantic import BaseModel
 from pharmarag.app.settings import Settings
 from pharmarag.llm.anthropic import AnthropicLLM
 from pharmarag.llm.base import FakeLLM
-from pharmarag.llm.errors import LLMOutputError, LLMUnavailableError
+from pharmarag.llm.errors import (
+    TRUNCATION_MARKER,
+    LLMOutputError,
+    LLMRefusalError,
+    LLMUnavailableError,
+)
 from pharmarag.llm.factory import get_llm
 
 MSGS = [{"role": "user", "content": "hi"}]
@@ -24,11 +30,18 @@ def _response(text: str, stop_reason: str = "end_turn"):
 
 
 class StubMessages:
-    def __init__(self, response=None, error: Exception | None = None, pieces=()):
+    def __init__(
+        self,
+        response=None,
+        error: Exception | None = None,
+        pieces=(),
+        stream_stop: str = "end_turn",
+    ):
         self.calls: list[dict] = []
         self._response = response
         self._error = error
         self._pieces = pieces
+        self._stream_stop = stream_stop
 
     async def create(self, **kw):
         self.calls.append(kw)
@@ -38,15 +51,20 @@ class StubMessages:
 
     def stream(self, **kw):
         self.calls.append(kw)
-        pieces = self._pieces
+        pieces, error, stop = self._pieces, self._error, self._stream_stop
 
         class _Ctx:
             async def __aenter__(self_inner):
                 async def gen():
                     for p in pieces:
                         yield p
+                    if error:
+                        raise error
 
-                return SimpleNamespace(text_stream=gen())
+                async def final():
+                    return SimpleNamespace(stop_reason=stop)
+
+                return SimpleNamespace(text_stream=gen(), get_final_message=final)
 
             async def __aexit__(self_inner, *a):
                 return False
@@ -115,10 +133,52 @@ async def test_structured_truncated_raises_output_error():
         await llm.structured(MSGS, Out)
 
 
-async def test_refusal_raises_output_error():
+async def test_refusal_raises_refusal_error_in_complete_structured_and_stream():
     llm, _ = _llm("claude-sonnet-5-5", response=_response("", "refusal"))
-    with pytest.raises(LLMOutputError):
+    with pytest.raises(LLMRefusalError):
         await llm.complete(MSGS)
+    with pytest.raises(LLMRefusalError):
+        await llm.structured(MSGS, Out)
+    llm, _ = _llm("claude-sonnet-5-5", pieces=["a"], stream_stop="refusal")
+    with pytest.raises(LLMRefusalError):
+        [p async for p in llm.stream(MSGS)]
+    assert issubclass(LLMRefusalError, LLMOutputError)
+
+
+async def test_complete_marks_truncation_and_logs_warning(caplog):
+    llm, _ = _llm("claude-sonnet-5-5", response=_response("A. [c1]\nB is cut", "max_tokens"))
+    with caplog.at_level(logging.WARNING, logger="pharmarag.llm.anthropic"):
+        out = await llm.complete(MSGS, max_tokens=12)
+    assert out == "A. [c1]\nB is cut" + TRUNCATION_MARKER
+    assert "truncated at max_tokens" in caplog.text
+    llm, _ = _llm("claude-sonnet-5-5", response=_response("fine", "end_turn"))
+    assert await llm.complete(MSGS) == "fine"
+
+
+async def test_stream_marks_truncation():
+    llm, _ = _llm("claude-sonnet-5-5", pieces=["a ", "b"], stream_stop="max_tokens")
+    assert "".join([p async for p in llm.stream(MSGS)]) == "a b" + TRUNCATION_MARKER
+
+
+async def test_stream_maps_5xx_429_and_connection_errors_to_unavailable():
+    req = httpx2.Request("POST", "https://x")
+    errors = [
+        anthropic.InternalServerError("x", response=httpx2.Response(503, request=req), body=None),
+        anthropic.RateLimitError("x", response=httpx2.Response(429, request=req), body=None),
+        anthropic.APIConnectionError(request=req),
+    ]
+    for err in errors:
+        llm, _ = _llm("claude-sonnet-5-5", pieces=["a "], error=err)
+        with pytest.raises(LLMUnavailableError):
+            [p async for p in llm.stream(MSGS)]
+
+
+async def test_stream_4xx_is_not_mapped():
+    req = httpx2.Request("POST", "https://x")
+    err = anthropic.BadRequestError("x", response=httpx2.Response(400, request=req), body=None)
+    llm, _ = _llm("claude-sonnet-5-5", error=err)
+    with pytest.raises(anthropic.BadRequestError):
+        [p async for p in llm.stream(MSGS)]
 
 
 async def test_connection_error_maps_to_unavailable():

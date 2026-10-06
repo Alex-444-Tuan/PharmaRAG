@@ -6,6 +6,7 @@ import pytest
 
 from pharmarag.graph.run import run_ask
 from pharmarag.graph.state import Flags
+from pharmarag.llm.errors import TRUNCATION_MARKER, LLMRefusalError
 from pharmarag.retrieval.scope import FilterRequiredError
 
 pytestmark = pytest.mark.pg
@@ -51,6 +52,8 @@ async def test_happy_path_runs_end_to_end(make_fake_llm, make_deps, make_graph, 
     assert meta["corpus_version"] == "corpus-abc123"
     assert meta["retrieval_attempts"] == 1 and meta["generation_attempts"] == 1
     assert meta["removed_sentences"] == 0 and meta["latency_ms"] >= 0
+    # Cycle 1 has neither a resolver nor a verifier, and the response says so.
+    assert meta["verified"] is False and meta["resolver"] is False
     # Every node recorded its time (NFR-5), including the two parallel branches.
     assert set(out["debug"]["timings_ms"]) == {
         "analyze",
@@ -155,3 +158,38 @@ async def test_hits_from_two_branches_are_fused_not_duplicated(
     prompt = llm.calls[1]["messages"][0]["content"]
     ids = [line.split("]")[0] for line in prompt.splitlines() if line.startswith("[c")]
     assert len(ids) == len(set(ids)) >= 2  # each chunk once, even if both branches found it
+
+
+def _refuse(messages, system):
+    raise LLMRefusalError("declined by provider")
+
+
+async def test_refusal_during_analyze_ends_as_declined_without_retrieval(
+    make_fake_llm, make_deps, make_graph, corpus
+):
+    llm = make_fake_llm([_refuse])
+    deps = make_deps(llm)
+    out = await run_ask(make_graph(deps), deps, question=QUESTION, debug=True)
+    assert out["status"] == "declined"
+    assert out["answer"] == []
+    assert set(out["debug"]["timings_ms"]) == {"analyze", "finalize"}
+
+
+async def test_refusal_during_writing_ends_as_insufficient_evidence(
+    make_fake_llm, make_deps, make_graph, corpus
+):
+    llm = make_fake_llm([analysis(), _refuse])
+    deps = make_deps(llm)
+    out = await run_ask(make_graph(deps), deps, question=QUESTION)
+    assert out["status"] == "insufficient_evidence"
+    assert out["answer"] == [] and out["sources"] == []
+
+
+async def test_truncated_writer_reply_drops_the_cut_off_line_end_to_end(
+    make_fake_llm, make_deps, make_graph, corpus
+):
+    reply = "Hydroxyzine is taken four times daily. [c1]\nThe maximum is 5" + TRUNCATION_MARKER
+    llm = make_fake_llm([analysis(), reply])
+    deps = make_deps(llm)
+    out = await run_ask(make_graph(deps), deps, question=QUESTION)
+    assert [s["text"] for s in out["answer"]] == ["Hydroxyzine is taken four times daily."]

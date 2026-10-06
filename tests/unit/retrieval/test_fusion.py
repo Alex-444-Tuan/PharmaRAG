@@ -135,6 +135,36 @@ def test_per_drug_top_k_guarantees_both_drugs(thresholds):
     assert ok
 
 
+def test_multi_drug_evidence_not_ok_when_one_drug_has_no_hits(thresholds):
+    strong_a = [hit(i, "dense", i, score=0.9, key="1") for i in range(1, 4)]
+    evidence, ok = fuse(
+        strong_a, attempt=1, ingredient_keys=["1", "2"], thresholds=thresholds.retrieval
+    )
+    assert {c.ingredient_key for c in evidence} == {"1"}
+    assert not ok  # drug "2" retrieved nothing, drug "1" cannot vouch for it
+    _, ok = fuse(strong_a, attempt=1, ingredient_keys=["1"], thresholds=thresholds.retrieval)
+    assert ok
+
+
+def test_multi_drug_each_drug_must_pass_the_score_or_overlap_rule_itself(thresholds):
+    a = [hit(i, "dense", i, score=0.9, key="1") for i in range(1, 3)]
+    weak_b = [hit(100, "dense", 1, score=0.2, key="2")]
+    keys = ["1", "2"]
+    _, ok = fuse(a + weak_b, attempt=1, ingredient_keys=keys, thresholds=thresholds.retrieval)
+    assert not ok  # B has a chunk but a weak dense score and no overlap
+    overlap_b = [
+        hit(100, "dense", 1, score=0.2, key="2"),
+        hit(101, "dense", 2, score=0.2, key="2"),
+        hit(100, "lexical", 1, key="2"),
+        hit(101, "lexical", 2, key="2"),
+    ]
+    _, ok = fuse(a + overlap_b, attempt=1, ingredient_keys=keys, thresholds=thresholds.retrieval)
+    assert ok  # B passes through the overlap rule
+    strong_b = [hit(100, "dense", 1, score=0.6, key="2")]
+    _, ok = fuse(a + strong_b, attempt=1, ingredient_keys=keys, thresholds=thresholds.retrieval)
+    assert ok
+
+
 def test_per_drug_cap_is_five(thresholds):
     hits = [hit(i, "dense", i, key="2") for i in range(1, 9)]
     evidence, _ = fuse(hits, attempt=1, ingredient_keys=["1", "2"], thresholds=thresholds.retrieval)

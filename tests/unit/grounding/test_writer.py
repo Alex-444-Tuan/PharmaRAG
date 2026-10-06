@@ -7,6 +7,7 @@ from pharmarag.grounding.writer import (
     parse_writer_output,
     write_answer,
 )
+from pharmarag.llm.errors import TRUNCATION_MARKER
 
 
 def chunk(i: int, text: str = "Take 10 mg daily.", **kw) -> Chunk:
@@ -133,6 +134,69 @@ def test_parse_strips_bullets_and_blank_lines_and_ignores_stray_insufficient_lin
     )
     assert [s.text for s in r.sentences] == ["Take 10 mg.", "Avoid CYP3A4 inhibitors."]
     assert not r.insufficient
+
+
+def test_two_cited_sentences_on_one_line_become_two_sentences():
+    r = parse_writer_output(
+        "The dose is 10 mg. [c1] Avoid CYP3A4 inhibitors. [c2]", EVIDENCE, FACTS
+    )
+    assert [(s.text, s.citations) for s in r.sentences] == [
+        ("The dose is 10 mg.", ["c1"]),
+        ("Avoid CYP3A4 inhibitors.", ["c2"]),
+    ]
+
+
+def test_two_sentences_with_citation_before_the_period():
+    r = parse_writer_output("A is true [c1]. B is true [c2][r1].", EVIDENCE, FACTS)
+    assert [(s.text, s.citations) for s in r.sentences] == [
+        ("A is true", ["c1"]),
+        ("B is true", ["c2", "r1"]),
+    ]
+
+
+def test_second_sentence_on_a_line_without_citation_is_flagged_not_merged():
+    r = parse_writer_output("A is true [c1]. B is true.", EVIDENCE, FACTS)
+    first, second = r.sentences
+    assert first.citations == ["c1"] and first.verdict == "unverified"
+    assert second.text == "B is true." and second.citations == []
+    assert second.verdict == "unsupported" and second.reason == "no_citation"
+
+
+def test_mid_sentence_citation_does_not_split():
+    r = parse_writer_output("Take 5 mg [c1] daily with food. [c2]", EVIDENCE, FACTS)
+    assert len(r.sentences) == 1
+    assert r.sentences[0].text == "Take 5 mg [c1] daily with food."
+    assert r.sentences[0].citations == ["c2"]
+
+
+def test_truncated_reply_drops_the_incomplete_last_line():
+    raw = (
+        "The dose is 10 mg. [c1]\nAvoid CYP3A4 inhibitors. [c2]\nThe maximum is 5"
+        + TRUNCATION_MARKER
+    )
+    r = parse_writer_output(raw, EVIDENCE, FACTS)
+    assert r.truncated
+    assert [s.text for s in r.sentences] == ["The dose is 10 mg.", "Avoid CYP3A4 inhibitors."]
+    assert "TRUNCATED" not in " ".join(s.text for s in r.sentences)
+
+
+def test_truncated_single_line_becomes_insufficient():
+    r = parse_writer_output("The maximum dose is" + TRUNCATION_MARKER, EVIDENCE, FACTS)
+    assert r.truncated and r.insufficient and r.sentences == []
+
+
+def test_reply_not_truncated_keeps_every_line():
+    r = parse_writer_output("The dose is 10 mg. [c1]\nB. [c2]", EVIDENCE, FACTS)
+    assert not r.truncated and len(r.sentences) == 2
+
+
+def test_block_header_uses_canonical_section_name_not_raw_label_title():
+    c = chunk(1).model_copy(
+        update={"section_title": "12 CLINICAL PHARMACOLOGY", "section_loinc": "34090-1"}
+    )
+    body = build_messages("q", [c], [])[0]["content"]
+    assert "[c1] Clinical pharmacology\n" in body
+    assert "CLINICAL PHARMACOLOGY" not in body
 
 
 async def test_write_answer_calls_llm_with_system_prompt_and_limits(make_fake_llm):

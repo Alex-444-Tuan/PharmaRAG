@@ -5,15 +5,24 @@ schema-constrained by the server. We never regex free text.
 """
 
 import json
+import logging
 import re
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Iterator, Sequence
+from contextlib import contextmanager
 from typing import Any, TypeVar
 
 import anthropic
 from pydantic import BaseModel, ValidationError
 
 from pharmarag.llm.base import Message
-from pharmarag.llm.errors import LLMOutputError, LLMUnavailableError
+from pharmarag.llm.errors import (
+    TRUNCATION_MARKER,
+    LLMOutputError,
+    LLMRefusalError,
+    LLMUnavailableError,
+)
+
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -28,6 +37,20 @@ _NO_THINKING = re.compile(r"claude-sonnet-5-5")
 
 def _supports_sampling(model_id: str) -> bool:
     return _NO_SAMPLING.match(model_id) is None
+
+
+@contextmanager
+def _map_errors() -> Iterator[None]:
+    """Transient failures (connection, 429, 5xx) become LLMUnavailableError. 4xx is a bug and
+    propagates unchanged."""
+    try:
+        yield
+    except (anthropic.APIConnectionError, anthropic.RateLimitError) as exc:
+        raise LLMUnavailableError(f"{type(exc).__name__}: {exc}") from exc
+    except anthropic.APIStatusError as exc:
+        if exc.status_code >= 500:
+            raise LLMUnavailableError(f"{type(exc).__name__}: {exc}") from exc
+        raise
 
 
 class AnthropicLLM:
@@ -67,25 +90,17 @@ class AnthropicLLM:
             kw["thinking"] = {"type": "between_tools"}
         return kw
 
-    @staticmethod
-    def _unavailable(exc: Exception) -> LLMUnavailableError:
-        return LLMUnavailableError(f"{type(exc).__name__}: {exc}")
-
-    @staticmethod
-    def _text(response: Any) -> str:
-        if response.stop_reason == "refusal":
-            raise LLMOutputError("model refused the request")
-        return "".join(b.text for b in response.content if b.type == "text")
-
-    async def _create(self, kw: dict[str, Any]) -> Any:
-        try:
-            return await self._client.messages.create(**kw)
-        except (anthropic.APIConnectionError, anthropic.RateLimitError) as exc:
-            raise self._unavailable(exc) from exc
-        except anthropic.APIStatusError as exc:
-            if exc.status_code >= 500:
-                raise self._unavailable(exc) from exc
-            raise
+    def _check_stop(self, stop_reason: str | None, max_tokens: int) -> bool:
+        """Raise on refusal. Return True (and log) when the output was cut at max_tokens."""
+        if stop_reason == "refusal":
+            raise LLMRefusalError("model refused the request")
+        if stop_reason == "max_tokens":
+            logger.warning(
+                "LLM output truncated at max_tokens",
+                extra={"model": self.model_id, "max_tokens": max_tokens},
+            )
+            return True
+        return False
 
     async def complete(
         self,
@@ -95,8 +110,12 @@ class AnthropicLLM:
         temperature: float = 0.0,
         max_tokens: int = 500,
     ) -> str:
-        response = await self._create(self._kwargs(messages, system, temperature, max_tokens))
-        return self._text(response)
+        kw = self._kwargs(messages, system, temperature, max_tokens)
+        with _map_errors():
+            response = await self._client.messages.create(**kw)
+        truncated = self._check_stop(response.stop_reason, max_tokens)
+        text = "".join(b.text for b in response.content if b.type == "text")
+        return text + TRUNCATION_MARKER if truncated else text
 
     async def stream(
         self,
@@ -107,12 +126,13 @@ class AnthropicLLM:
         max_tokens: int = 500,
     ) -> AsyncIterator[str]:
         kw = self._kwargs(messages, system, temperature, max_tokens)
-        try:
+        with _map_errors():
             async with self._client.messages.stream(**kw) as stream:
                 async for piece in stream.text_stream:
                     yield piece
-        except (anthropic.APIConnectionError, anthropic.RateLimitError) as exc:
-            raise self._unavailable(exc) from exc
+                final = await stream.get_final_message()
+        if self._check_stop(final.stop_reason, max_tokens):
+            yield TRUNCATION_MARKER
 
     async def structured(
         self,
@@ -127,10 +147,11 @@ class AnthropicLLM:
         kw["output_config"] = {
             "format": {"type": "json_schema", "schema": anthropic.transform_schema(schema)}
         }
-        response = await self._create(kw)
-        if response.stop_reason == "max_tokens":
+        with _map_errors():
+            response = await self._client.messages.create(**kw)
+        if self._check_stop(response.stop_reason, max_tokens):
             raise LLMOutputError("structured output truncated at max_tokens")
-        text = self._text(response)
+        text = "".join(b.text for b in response.content if b.type == "text")
         try:
             return schema.model_validate(json.loads(text))
         except (ValueError, ValidationError) as exc:

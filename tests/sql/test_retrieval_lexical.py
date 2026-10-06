@@ -80,14 +80,59 @@ async def test_section_filter_on_both_paths(pg_conn, two_drugs):
         assert [h.section_loinc for h in hits] == ["34070-3"]
 
 
-async def test_websearch_syntax_is_safe_for_arbitrary_user_text(pg_conn, two_drugs):
-    # websearch_to_tsquery never raises on punctuation or stray operators.
+async def test_query_syntax_is_safe_for_arbitrary_user_text(pg_conn, two_drugs):
+    # Operators and quotes in the question never reach to_tsquery, so nothing raises.
     hits = await lexical_search(
         pg_conn,
-        'what is the "dosage" -- & | ( ! hydroxyzine ::',
+        'what is the "dosage" -- & | ( ! hydroxyzine :: \') <-> :*',
         ingredient_key="1",
         sections=None,
         top_k=20,
         attempt=1,
     )
     assert hits
+
+
+async def test_query_term_absent_from_chunk_still_matches_with_or_semantics(pg_conn, two_drugs):
+    # No chunk contains "maximum" or "zzzunseen"; an AND query (websearch_to_tsquery) finds none.
+    q = "maximum dosage hydroxyzine anxiety zzzunseen"
+    for key in ("1", None):
+        hits = await lexical_search(
+            pg_conn, q, ingredient_key=key, sections=None, top_k=20, attempt=1
+        )
+        assert hits, f"key={key}"
+        assert hits[0].text.startswith("Hydroxyzine dosage for anxiety")
+
+
+async def test_chunks_matching_more_terms_rank_higher(pg_conn, fake_embedder):
+    await seed_label(
+        pg_conn,
+        fake_embedder,
+        key="1",
+        name="x",
+        chunks=[
+            ("34068-7", "alpha only here"),
+            ("34070-3", "alpha beta gamma together"),
+            ("34073-7", "alpha beta in this one"),
+        ],
+    )
+    hits = await lexical_search(
+        pg_conn, "alpha beta gamma delta", ingredient_key="1", sections=None, top_k=20, attempt=1
+    )
+    assert hits[0].text == "alpha beta gamma together"
+    assert len(hits) == 3
+
+
+async def test_query_without_word_tokens_returns_nothing(pg_conn, two_drugs):
+    for q in ("", "   ", "?!-- ::"):
+        hits = await lexical_search(
+            pg_conn, q, ingredient_key=None, sections=None, top_k=20, attempt=1
+        )
+        assert hits == []
+
+
+async def test_stop_word_only_query_returns_nothing_without_error(pg_conn, two_drugs):
+    hits = await lexical_search(
+        pg_conn, "the of and", ingredient_key="1", sections=None, top_k=20, attempt=1
+    )
+    assert hits == []

@@ -8,7 +8,14 @@ from pharmarag.graph.state import Flags, RAGState
 
 
 def effective_flags(requested: Flags, deps: Deps) -> Flags:
-    """Switch a stage off when this build has no implementation of it (see `Deps`)."""
+    """The flags a request really runs with.
+
+    1. Outside EVAL_MODE the requested flags are ignored: both stages are on. This is enforced
+       here and not only in the API, so no caller can run a production request unverified.
+    2. A stage this build does not have is switched off (see `Deps`).
+    """
+    if not deps.settings.eval_mode:
+        requested = Flags()
     return Flags(
         resolver=requested.resolver and deps.resolver_available,
         verifier=requested.verifier and deps.verifier_available,
