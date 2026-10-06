@@ -16,7 +16,6 @@ from pharmarag.ingest.dailymed import (
     MARKETING_CATEGORY_BLA,
     MARKETING_CATEGORY_NDA,
     DailyMedClient,
-    LabelRef,
 )
 from pharmarag.ingest.load import (
     LabelRow,
@@ -42,8 +41,8 @@ CORE_SECTIONS = {"34067-9": "Indications and usage", "34068-7": "Dosage and admi
 MIN_SECTIONS = 3
 # At most this many label XMLs are downloaded per seed before giving up.
 MAX_FETCHES = 12
-# At most this many candidates per tier get their ingredient set resolved.
-MAX_CHECKS = 60
+# At most this many candidates get their ingredient set resolved (the pool holds up to 300).
+MAX_CHECKS = 200
 
 
 def usability_problem(parsed: ParsedLabel) -> str | None:
@@ -102,21 +101,31 @@ class Ingestor:
         self.pins = pins or Pins()
         self.repin = repin
 
-    async def _evaluate(self, refs: list[LabelRef], category: str) -> AsyncIterator[_Evaluated]:
-        """Yield one tier's candidates best first, resolving each ingredient set on demand.
+    async def _candidates(self, ing: Ingredient) -> AsyncIterator[_Evaluated]:
+        """Every prescription label for the ingredient, best first, resolved on demand.
 
-        Ranking is `select.rank` (latest date, then lowest SETID; the tier is constant here).
-        Resolving lazily matters: a candidate costs RxNav calls, and the first usable
-        single-ingredient label usually ends the search.
+        The NDA list, the BLA list and the full list are merged (a setid keeps its NDA or BLA
+        category) and ranked once with `select.rank`, because the base-form rule outranks the
+        tier. Resolving the ingredient set lazily matters: a candidate costs RxNav calls, and
+        the first usable single-ingredient label usually ends the search.
 
         SPEC: the list API gives DailyMed's publication date, not the SPL effective date, so
         it stands in for "latest effective date" when ranking. The label's own effective
         date is stored once it is parsed.
         """
-        unresolved = [
-            Candidate(r.setid, r.spl_version, category, r.published_date, "", r.title) for r in refs
-        ]
-        for cand in rank(unresolved)[: self.max_checks]:
+        pool: dict[str, Candidate] = {}
+        for code, category in ((MARKETING_CATEGORY_NDA, "NDA"), (MARKETING_CATEGORY_BLA, "BLA")):
+            refs = await self.dailymed.list_labels(ing.rxcui, marketing_category_code=code)
+            for r in refs:
+                pool[r.setid] = Candidate(
+                    r.setid, r.spl_version, category, r.published_date, "", r.title
+                )
+        for r in await self.dailymed.list_labels(ing.rxcui):
+            pool.setdefault(
+                r.setid,
+                Candidate(r.setid, r.spl_version, "OTHER", r.published_date, "", r.title),
+            )
+        for cand in rank(pool.values())[: self.max_checks]:
             product_rxcuis = self.mappings.get(cand.setid)
             if not product_rxcuis:
                 log.debug("setid %s is not in the RxNorm mapping file; skipped", cand.setid)
@@ -126,18 +135,6 @@ class Ingestor:
                 yield _Evaluated(
                     replace(cand, ingredient_key=key), sorted(product_rxcuis), ingredients
                 )
-
-    async def _candidates(self, ing: Ingredient) -> AsyncIterator[_Evaluated]:
-        """NDA labels, then BLA, then every other prescription label, each best first."""
-        seen: set[str] = set()
-        for code, category in ((MARKETING_CATEGORY_NDA, "NDA"), (MARKETING_CATEGORY_BLA, "BLA")):
-            refs = await self.dailymed.list_labels(ing.rxcui, marketing_category_code=code)
-            seen.update(r.setid for r in refs)
-            async for ev in self._evaluate(refs, category):
-                yield ev
-        everything = await self.dailymed.list_labels(ing.rxcui)
-        async for ev in self._evaluate([r for r in everything if r.setid not in seen], "OTHER"):
-            yield ev
 
     async def _fetch_usable(self, setid: str) -> ParsedLabel | None:
         """Download, parse and check one label. None means "not usable" (reason is logged)."""

@@ -624,3 +624,78 @@ async def test_chunk_count_is_the_number_of_chunks_written(pg_conn, router, worl
     [(n,)] = await rows(pg_conn, "SELECT count(*) FROM chunk")
     assert first.chunks == n
     assert (second.chunks, second.status) == (0, "unchanged")
+
+
+async def test_anda_immediate_release_tablet_is_chosen_over_nda_er_only_and_epidural_labels(
+    pg_conn, router, world
+):
+    mock_rxnav(router, ingredient=("2599", "clonidine"), products={"1": [("2599", "clonidine")]})
+    nda_er = "bbbbbbbb-0000-0000-0000-00000000000b"
+    nda_epidural = "cccccccc-0000-0000-0000-00000000000c"
+    world.lists[MARKETING_CATEGORY_NDA] = [
+        ref(nda_epidural, "Sep 01, 2026", title="DURACLON (CLONIDINE) INJECTION, SOLUTION [MYLAN]"),
+        ref(
+            nda_er, "Sep 02, 2026", title="KAPVAY (CLONIDINE) TABLET, EXTENDED RELEASE [CONCORDIA]"
+        ),
+    ]
+    world.lists[None] = [
+        ref(nda_epidural, "Sep 01, 2026", title="DURACLON (CLONIDINE) INJECTION, SOLUTION [MYLAN]"),
+        ref(
+            nda_er, "Sep 02, 2026", title="KAPVAY (CLONIDINE) TABLET, EXTENDED RELEASE [CONCORDIA]"
+        ),
+        ref(CLONIDINE, "Jan 01, 2020", 5, title="CLONIDINE HYDROCHLORIDE TABLET [ALEMBIC]"),
+    ]
+    world.xml[CLONIDINE] = (FIXTURES / "clonidine_old.xml").read_bytes()
+    mappings = {nda_er: {"1"}, nda_epidural: {"1"}, CLONIDINE: {"1"}}
+
+    result = await make_ingestor(pg_conn, mappings).ingest_seed("clonidine")
+
+    assert world.fetched == [CLONIDINE]  # the NDA labels were never even downloaded
+    assert result.setids == [CLONIDINE]
+    assert await rows(pg_conn, "SELECT marketing_category FROM label") == [("ANDA",)]
+
+
+async def test_manufacturer_anda_tablet_is_chosen_over_a_repackagers_nda_tablet(
+    pg_conn, router, world
+):
+    mock_rxnav(router, ingredient=("2599", "clonidine"), products={"1": [("2599", "clonidine")]})
+    florida = "ffffffff-0000-0000-0000-00000000000f"
+    florida_title = "CLONIDINE HYDROCHLORIDE TABLET [STATE OF FLORIDA DOH CENTRAL PHARMACY]"
+    world.lists[MARKETING_CATEGORY_NDA] = [ref(florida, "Sep 01, 2026", title=florida_title)]
+    world.lists[None] = [
+        ref(florida, "Sep 01, 2026", title=florida_title),
+        ref(CLONIDINE, "Jan 01, 2015", 5, title="CLONIDINE HYDROCHLORIDE TABLET [ALEMBIC]"),
+    ]
+    world.xml[CLONIDINE] = (FIXTURES / "clonidine_old.xml").read_bytes()
+    world.xml[florida] = (FIXTURES / "clonidine_old.xml").read_bytes()
+
+    result = await make_ingestor(pg_conn, {florida: {"1"}, CLONIDINE: {"1"}}).ingest_seed(
+        "clonidine"
+    )
+
+    assert world.fetched == [CLONIDINE]
+    assert result.setids == [CLONIDINE]
+
+
+async def test_default_check_limit_reaches_a_single_ingredient_label_behind_many_combinations(
+    pg_conn, router, world
+):
+    """Naloxone: dozens of buprenorphine/naloxone labels rank ahead of the single-ingredient one."""
+    mock_rxnav(
+        router,
+        ingredient=("7242", "naloxone"),
+        products={
+            "1": [("1819", "buprenorphine"), ("7242", "naloxone")],
+            "2": [("7242", "naloxone")],
+        },
+    )
+    combos = [f"cccccccc-0000-0000-0000-{i:012d}" for i in range(80)]
+    world.lists[None] = [
+        ref(c, "Sep 01, 2026", title="BUPRENORPHINE AND NALOXONE TABLET [HIKMA]") for c in combos
+    ] + [ref(CLONIDINE, "Jan 01, 2020", 5, title="NALOXONE HYDROCHLORIDE INJECTION [HOSPIRA]")]
+    world.xml[CLONIDINE] = (FIXTURES / "clonidine_old.xml").read_bytes()
+    mappings = {c: {"1"} for c in combos} | {CLONIDINE: {"2"}}
+
+    result = await make_ingestor(pg_conn, mappings).ingest_seed("naloxone")
+
+    assert result.setids == [CLONIDINE]

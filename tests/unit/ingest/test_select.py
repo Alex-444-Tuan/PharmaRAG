@@ -157,6 +157,15 @@ def test_labeler_is_the_last_bracketed_text_of_the_title():
         "Preferred Pharmaceuticals Inc.",
         "Physicians Total Care, Inc.",
         "Coupler LLC",
+        "Aphena Pharma Solutions - Tennessee, LLC",
+        "RedPharm Drug, Inc.",
+        "Unit Dose Solutions, Inc.",
+        "STAT RX USA LLC",
+        "HAWAII REPACK, INC.",
+        "Carilion Materials Management",
+        "Avera McKennan Hospital",
+        "Gensco Laboratories LLC",
+        "STATE OF FLORIDA DOH CENTRAL PHARMACY",
         "ST MARY'S MEDICAL PARK PHARMACY",
         "Golden State Medical Supply, Inc.",
     ],
@@ -172,11 +181,11 @@ def test_manufacturers_are_not_repackagers(labeler):
     assert not is_repackager(labeler)
 
 
-def test_repackager_loses_to_the_manufacturer_even_when_newer_but_nda_tier_still_wins():
+def test_repackager_loses_to_every_manufacturer_even_when_newer_or_filed_as_nda():
     maker = titled("b", "NORVASC (AMLODIPINE) TABLET [PFIZER]", d=date(2020, 1, 1))
     repack = titled("a", "NORVASC (AMLODIPINE) TABLET [REMEDYREPACK INC.]", d=date(2026, 1, 1))
     generic = titled("c", "AMLODIPINE TABLET [TEVA]", category="ANDA", d=date(2026, 6, 1))
-    assert rank([repack, generic, maker]) == [maker, repack, generic]
+    assert rank([repack, generic, maker]) == [maker, generic, repack]
 
 
 @pytest.mark.parametrize(
@@ -219,7 +228,7 @@ def test_extended_release_and_liquid_forms_are_niche(title):
     assert not is_base_form(title)
 
 
-def test_base_form_beats_niche_form_inside_a_tier_even_if_older():
+def test_base_form_beats_niche_form_even_if_older():
     base = titled("b", "GLUCOTROL (GLIPIZIDE) TABLET [PFIZER]", d=date(2019, 1, 1))
     niche = titled(
         "a", "GLUCOTROLXL (GLIPIZIDE) TABLET, EXTENDED RELEASE [PFIZER]", d=date(2026, 1, 1)
@@ -227,12 +236,73 @@ def test_base_form_beats_niche_form_inside_a_tier_even_if_older():
     assert rank([niche, base]) == [base, niche]
 
 
-def test_repackager_rule_outranks_form_rule_and_form_rule_outranks_date():
-    repack_base = titled("1", "X TABLET [BRYANT RANCH PREPACK]", d=date(2026, 1, 1))
-    maker_niche = titled("2", "X TABLET, EXTENDED RELEASE [TEVA]", d=date(2026, 1, 1))
-    maker_base_old = titled("3", "X TABLET [TEVA]", d=date(2010, 1, 1))
-    ranked = rank([repack_base, maker_niche, maker_base_old])
-    assert [c.setid for c in ranked] == ["3", "2", "1"]
+def test_precedence_is_form_then_repackager_then_tier_then_date_then_setid():
+    ranked = rank(
+        [
+            titled("1", "X TABLET [BRYANT RANCH PREPACK]", "NDA", date(2026, 1, 1)),
+            titled("2", "X TABLET, EXTENDED RELEASE [TEVA]", "NDA", date(2026, 1, 1)),
+            titled("3", "X TABLET [TEVA]", "ANDA", date(2010, 1, 1)),
+            titled("4", "X TABLET [TEVA]", "NDA", date(2010, 1, 1)),
+            titled("5", "X TABLET [TEVA]", "NDA", date(2020, 1, 1)),
+            titled("6", "X TABLET [TEVA]", "NDA", date(2020, 1, 1)),
+        ]
+    )
+    # base forms first. Among them manufacturers come before the repackager: NDA (newest, then
+    # lowest setid) before ANDA. The repackager's NDA label is next to last, and the
+    # extended-release label is last even though it is an NDA from a manufacturer.
+    assert [c.setid for c in ranked] == ["5", "6", "4", "3", "1", "2"]
+
+
+def test_manufacturer_anda_tablet_beats_a_repackagers_nda_tablet():
+    """State of Florida DOH Central Pharmacy relabels clonidine; DailyMed files it as NDA."""
+    florida = titled(
+        "f",
+        "CLONIDINE HYDROCHLORIDE TABLET [STATE OF FLORIDA DOH CENTRAL PHARMACY]",
+        "NDA",
+        date(2026, 1, 1),
+    )
+    teva = titled("t", "CLONIDINE HYDROCHLORIDE TABLET [TEVA]", "ANDA", date(2015, 1, 1))
+    assert rank([florida, teva]) == [teva, florida]
+    assert select_labels([florida, teva]) == [teva]
+
+
+def test_anda_immediate_release_tablet_beats_nda_er_only_and_nda_epidural_injection():
+    """The clonidine, bupropion and glipizide cases from the first smoke run."""
+    anda_tablet = titled("a", "CLONIDINE HYDROCHLORIDE TABLET [TEVA]", "ANDA", date(2020, 1, 1))
+    nda_er = titled("b", "KAPVAY (CLONIDINE) TABLET, EXTENDED RELEASE [CONCORDIA]", "NDA")
+    nda_epidural = titled("c", "DURACLON (CLONIDINE) INJECTION, SOLUTION [MYLAN]", "NDA")
+    nda_solution = titled("d", "QLONILIK (CLONIDINE) SOLUTION [CMP PHARMA]", "NDA")
+    ranked = rank([nda_epidural, nda_er, nda_solution, anda_tablet])
+    assert ranked[0] == anda_tablet
+    assert select_labels([nda_epidural, nda_er, nda_solution, anda_tablet]) == [anda_tablet]
+
+
+def test_nda_immediate_release_tablet_still_beats_an_anda_tablet():
+    nda = titled("n", "CATAPRES (CLONIDINE) TABLET [BOEHRINGER]", "NDA", date(2010, 1, 1))
+    anda = titled("a", "CLONIDINE TABLET [TEVA]", "ANDA", date(2026, 1, 1))
+    assert rank([anda, nda])[0] == nda
+
+
+def test_injection_is_base_only_when_the_ingredient_has_no_oral_label():
+    injection = titled("i", "HEPARIN SODIUM INJECTION, SOLUTION [PFIZER]", "NDA")
+    er = titled("e", "HEPARIN X TABLET, EXTENDED RELEASE [PFIZER]", "NDA", date(2026, 1, 1))
+    liquid = titled("l", "HEPARIN X SOLUTION [PFIZER]", "NDA", date(2026, 6, 1))
+    # injection-only ingredient: the injection is base and beats the newer niche oral forms
+    assert rank([er, liquid, injection])[0] == injection
+    # an oral tablet exists: it wins, and the injection falls back among the others
+    tablet = titled("t", "HEPARIN X TABLET [TEVA]", "ANDA", date(2000, 1, 1))
+    ranked = rank([injection, er, liquid, tablet])
+    assert ranked[0] == tablet
+    # the injection is no longer base, so it ties with the niche forms and loses on date
+    assert ranked[-1] == injection
+
+
+def test_has_oral_base_is_judged_within_each_ingredient_group():
+    inj_single = Candidate("i", 1, "NDA", None, "1", "X INJECTION [PFIZER]")
+    er_single = Candidate("e", 1, "NDA", date(2026, 1, 1), "1", "X TABLET, EXTENDED RELEASE [A]")
+    oral_combo = Candidate("c", 1, "ANDA", None, "1+2", "X AND Y TABLET [B]")
+    groups = group_by_key([er_single, oral_combo, inj_single])
+    assert groups["1"] == [inj_single, er_single]  # the oral combination does not demote it
 
 
 def test_an_ingredient_that_only_has_niche_forms_still_gets_a_label():
