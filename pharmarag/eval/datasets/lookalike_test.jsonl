@@ -1,0 +1,15 @@
+{"question": "What is the recommended dose of lamotragine for epilepsy?", "mention": "lamotragine", "gold_ingredient_key": "28439", "gold_name": "lamotrigine", "partner_name": "lamivudine", "kind": "misspelling"}
+{"question": "How is lamivadine dosed for HIV infection?", "mention": "lamivadine", "gold_ingredient_key": "68244", "gold_name": "lamivudine", "partner_name": "lamotrigine", "kind": "misspelling"}
+{"question": "What is the usual starting dose of fluoxitine for depression?", "mention": "fluoxitine", "gold_ingredient_key": "4493", "gold_name": "fluoxetine", "partner_name": "paroxetine", "kind": "misspelling"}
+{"question": "What are the withdrawal warnings for paroxitin?", "mention": "paroxitin", "gold_ingredient_key": "32937", "gold_name": "paroxetine", "partner_name": "fluoxetine", "kind": "misspelling"}
+{"question": "What is the maximum dose of alprazolm for panic disorder?", "mention": "alprazolm", "gold_ingredient_key": "596", "gold_name": "alprazolam", "partner_name": "lorazepam", "kind": "misspelling"}
+{"question": "What monitoring does the label require for azathiaprene?", "mention": "azathiaprene", "gold_ingredient_key": "1256", "gold_name": "azathioprine", "partner_name": "azacitidine", "kind": "misspelling"}
+{"question": "What is the dose of sumatriptin for an acute migraine?", "mention": "sumatriptin", "gold_ingredient_key": "37418", "gold_name": "sumatriptan", "partner_name": "sitagliptin", "kind": "misspelling"}
+{"question": "What are the contraindications for clomiphine?", "mention": "clomiphine", "gold_ingredient_key": "2596", "gold_name": "clomiphene", "partner_name": "clomipramine", "kind": "misspelling"}
+{"question": "What are the common side effects of Lamictal?", "mention": "Lamictal", "gold_ingredient_key": "28439", "gold_name": "lamotrigine", "partner_name": "terbinafine", "kind": "brand"}
+{"question": "What is the usual adult dose of Cozaar for hypertension?", "mention": "Cozaar", "gold_ingredient_key": "52175", "gold_name": "losartan", "partner_name": "simvastatin", "kind": "brand"}
+{"question": "Are there any drug interactions listed for Paxil?", "mention": "Paxil", "gold_ingredient_key": "32937", "gold_name": "paroxetine", "partner_name": "clopidogrel", "kind": "brand"}
+{"question": "Which patients should not take Tegretol?", "mention": "Tegretol", "gold_ingredient_key": "2002", "gold_name": "carbamazepine", "partner_name": "metoprolol", "kind": "brand"}
+{"question": "How is tiagabine dosed for spasticity?", "mention": "tiagabine", "gold_ingredient_key": "31914", "gold_name": "tiagabine", "partner_name": "tizanidine", "kind": "correct_partner"}
+{"question": "What are the warnings for quinidine in patients with heart disease?", "mention": "quinidine", "gold_ingredient_key": "9068", "gold_name": "quinidine", "partner_name": "quinine", "kind": "correct_partner"}
+{"question": "What are the adverse reactions of azacitidine?", "mention": "azacitidine", "gold_ingredient_key": "1251", "gold_name": "azacitidine", "partner_name": "azathioprine", "kind": "correct_partner"}

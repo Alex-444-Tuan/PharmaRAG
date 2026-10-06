@@ -27,6 +27,14 @@ async def test_exact_matches_any_of_the_forms_and_ignores_empty_ones(store):
     assert await store.exact({"vistari"}) == []  # exact means exact
 
 
+async def test_exact_ignores_punctuation_in_the_stored_alias(store):
+    # The normaliser turns "insulin aspart, human" into "insulin aspart human".
+    rows = await store.exact({"insulin aspart human"})
+    assert [(r.alias, r.ingredient_key) for r in rows] == [("insulin aspart, human", "51428")]
+    # A hyphen is not punctuation here: brand and suffix names keep it.
+    assert await store.exact({"toprol xl"}) == []
+
+
 async def test_trigram_returns_the_nearest_aliases_first(store):
     rows = await store.trigram("klonipin", min_similarity=0.4, k=5)
     assert rows and rows[0].alias == "klonopin"

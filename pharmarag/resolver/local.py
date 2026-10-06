@@ -11,6 +11,12 @@ from typing import Protocol
 
 from psycopg_pool import AsyncConnectionPool
 
+# The mention is normalised without punctuation ("insulin aspart, human" is typed or normalised
+# to "insulin aspart human"), but some aliases keep it. Step 2 therefore also compares the alias
+# with the same punctuation turned into spaces. The alias table is a few thousand rows, so the
+# scan costs about a millisecond; a functional index would serve a much larger table.
+_PUNCTUATION = r"[\s,;:()\[\]{}/\\\"'*]+"
+
 # Lower is stronger. An alias string can appear under several term types; the strongest wins.
 TTY_ORDER = {"IN": 0, "SY": 1, "PIN": 2, "BN": 3}
 
@@ -59,8 +65,10 @@ class PgLocalStore:
         async with self._pool.connection() as conn:
             cur = await conn.execute(
                 "SELECT alias, alias_tty, source_rxcui, ingredient_key FROM drug_alias "
-                "WHERE alias = ANY(%s::text[]) ORDER BY alias, source_rxcui",
-                (forms,),
+                "WHERE alias = ANY(%s::text[]) "
+                "OR btrim(regexp_replace(alias, %s, ' ', 'g')) = ANY(%s::text[]) "
+                "ORDER BY alias, source_rxcui",
+                (forms, _PUNCTUATION, forms),
             )
             return [AliasRow(*r) for r in await cur.fetchall()]
 

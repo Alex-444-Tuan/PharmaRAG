@@ -74,6 +74,7 @@ INGREDIENTS = [
     ("5454", "glipizide"),
     ("4815", "glyburide"),
     ("4603", "furosemide"),
+    ("51428", "insulin aspart, human"),
     ("39993", "zolpidem"),
 ]
 NO_LABEL = {"39993"}
