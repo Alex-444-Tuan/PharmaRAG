@@ -129,12 +129,52 @@ async def test_rxnav_exact_hit_on_a_salt_concept_is_a_salt_match(resolver, rx):
     assert (r.match, r.ingredient_key, r.product_hint) == ("salt", HYDROXYZINE, "777")
 
 
-async def test_rxnav_exact_hit_known_to_the_alias_table_needs_no_extra_calls(resolver, rx):
-    # "hydroxyzin" is a string RxNav knows; 5553 is in the alias table as an IN.
+async def test_a_misspelling_in_rxnavs_string_table_is_approximate_whether_rxnav_is_up_or_down(
+    resolver, rx, make
+):
+    # "hydroxyzin" is a string RxNav stores for hydroxyzine, so step 3 hits. It is still the
+    # user's misspelling: `exact` is only for a mention that equals one of the drug's names.
     rx.exact["hydroxyzin"] = [HYDROXYZINE]
-    r = (await one(resolver, "hydroxyzin")).resolution
-    assert (r.status, r.match, r.ingredient_key) == ("resolved", "exact", HYDROXYZINE)
+    up = await one(resolver, "hydroxyzin")
+    assert (up.resolution.status, up.resolution.match) == ("resolved", "approximate")
+    assert up.resolution.ingredient_key == HYDROXYZINE
+    assert up.resolution.score == round(JaroWinkler.similarity("hydroxyzin", "hydroxyzine"), 4)
+    assert up.step == "rxnav_exact"  # stop-on-hit is kept: step 4 was not asked
     assert rx.names_called == ["find_rxcuis"]
+
+    rx.down = True  # a fresh cache: the answer above must not be replayed
+    down = await one(make(cache=InMemoryCache()), "hydroxyzin")
+    assert (down.resolution.status, down.resolution.match) == ("resolved", "approximate")
+    assert down.resolution.ingredient_key == HYDROXYZINE
+    assert down.resolution.degraded
+
+
+async def test_an_rxnav_hit_on_a_concept_the_alias_table_lacks_uses_the_concept_name(resolver, rx):
+    rx.exact["hydroxyzin"] = ["777"]
+    rx.concepts["777"] = Concept("777", "hydroxyzine", "IN")  # the name is not what was typed
+    rx.ingredient_map["777"] = [Ingredient(HYDROXYZINE, "hydroxyzine")]
+    r = (await one(resolver, "hydroxyzin")).resolution
+    assert (r.match, r.ingredient_key) == ("approximate", HYDROXYZINE)
+
+
+async def test_an_rxnav_hit_that_is_weakly_similar_does_not_bypass_the_gate(resolver, rx):
+    # A string RxNav stores for something the name does not resemble: scored, then gated.
+    rx.exact["flurb"] = [HYDRALAZINE]
+    r = (await one(resolver, "flurb")).resolution
+    assert r.status == "unknown"
+
+
+async def test_an_rxnav_hit_on_two_ingredients_is_ambiguous_not_exact(resolver, rx):
+    rx.exact["prednisolon"] = [PREDNISOLONE, PREDNISONE]
+    r = (await one(resolver, "prednisolon")).resolution
+    assert r.status == "ambiguous"
+    assert {c.ingredient_key for c in r.candidates} == {PREDNISOLONE, PREDNISONE}
+
+
+async def test_scores_reach_the_gate_unrounded(resolver):
+    c = await resolver.cascade("hydralzine")
+    assert c.scored[0].score == JaroWinkler.similarity("hydralzine", "hydralazine")
+    assert c.scored[0].score != round(c.scored[0].score, 4)  # the gate sees all the digits
 
 
 async def test_an_exact_name_shared_by_two_ingredients_is_ambiguous(pool, pg_conn, make):
@@ -314,6 +354,14 @@ async def test_a_pin_never_overrides_a_clear_resolution_to_another_drug(resolver
     assert (r.match, r.ingredient_key) == ("exact", HYDRALAZINE)
 
 
+async def test_a_pin_for_a_candidate_the_user_could_not_have_been_offered_is_ignored(resolver, rx):
+    # hydralazine is a trigram/RxNav candidate for "flurb" but scores below ambiguous_min: it was
+    # never on offer, so a pin for it must not turn a rejected name into a resolution.
+    rx.approx["flurb"] = [ApproxCandidate(HYDRALAZINE, 1, "hydralazine")]
+    r = (await one(resolver, "flurb", pinned_rxcuis=[HYDRALAZINE])).resolution
+    assert r.status == "unknown"
+
+
 async def test_a_pin_still_goes_through_the_coverage_check(resolver, rx):
     rx.approx["zolpidim"] = [ApproxCandidate("39993", 1, "zolpidem")]
     r = (await one(resolver, "zolpidim", pinned_rxcuis=["39993"])).resolution
@@ -358,6 +406,7 @@ async def test_rxnav_down_falls_back_to_the_alias_table_and_marks_the_result_deg
     rx.down = True
     out = await one(resolver, "klonipin")
     assert out.degraded
+    assert out.resolution.degraded  # contract v2
     assert (out.resolution.status, out.resolution.ingredient_key) == ("resolved", "2598")
     assert out.resolution.match == "approximate"
 
@@ -367,6 +416,7 @@ async def test_rxnav_down_exact_alias_still_works_and_is_not_degraded(resolver, 
     out = await one(resolver, "Vistaril")
     assert (out.resolution.status, out.resolution.match) == ("resolved", "brand")
     assert not out.degraded
+    assert not out.resolution.degraded
     assert rx.calls == []
 
 
@@ -374,7 +424,7 @@ async def test_rxnav_down_does_not_raise_for_unknown_names(resolver, rx):
     rx.down = True
     out = await one(resolver, "xyzzy")
     assert out.resolution.status == "unknown"
-    assert out.degraded
+    assert out.degraded and out.resolution.degraded
 
 
 async def test_a_failure_after_a_successful_call_discards_the_rxnav_candidates(

@@ -55,6 +55,19 @@ async def ensure_mappings(dailymed: DailyMedClient, path: Path, refresh: bool) -
     return path
 
 
+def select_names(names: list[str], limit: int | None, only: list[str] | None) -> list[str]:
+    """The seed names to ingest. `only` keeps just those names (case-insensitive) in seed order
+    and fails on a name that is not in the seed, so a typo cannot silently skip an ingredient.
+    `limit` then keeps the first N of what is left."""
+    if only:
+        wanted = {n.strip().lower() for n in only if n.strip()}
+        unknown = wanted - {n.lower() for n in names}
+        if unknown:
+            raise ValueError(f"not in the seed list: {sorted(unknown)}")
+        names = [n for n in names if n.lower() in wanted]
+    return names[:limit] if limit is not None else names
+
+
 async def run(
     seed: Path,
     limit: int | None,
@@ -62,12 +75,11 @@ async def run(
     refresh: bool,
     pins_path: Path = DEFAULT_PINS,
     repin: bool = False,
+    only: list[str] | None = None,
 ) -> Counter[str]:
     settings = get_settings()
     started = time.monotonic()
-    names = [n for n, _ in read_seed(seed)]
-    if limit is not None:
-        names = names[:limit]
+    names = select_names([n for n, _ in read_seed(seed)], limit, only)
 
     dailymed = DailyMedClient(settings.dailymed_base_url)
     # SPEC: settings.rxnav_timeout_s (2 s) is the request-time budget. RxNav answers some bulk
@@ -123,6 +135,11 @@ def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="python -m pharmarag.ingest.run", description=__doc__)
     parser.add_argument("--seed", type=Path, required=True, help="CSV with name,lookalike_group")
     parser.add_argument("--limit", type=int, default=None, help="only the first N seed rows")
+    parser.add_argument(
+        "--only",
+        default=None,
+        help="comma-separated seed names to ingest (for re-pinning a few ingredients)",
+    )
     parser.add_argument("--mappings", type=Path, default=DEFAULT_MAPPINGS)
     parser.add_argument("--refresh-mappings", action="store_true")
     parser.add_argument("--pins", type=Path, default=DEFAULT_PINS, help="pinned labels CSV")
@@ -135,7 +152,15 @@ def main(argv: list[str] | None = None) -> None:
     )
     logging.getLogger("httpx").setLevel(logging.WARNING)
     asyncio.run(
-        run(args.seed, args.limit, args.mappings, args.refresh_mappings, args.pins, args.repin)
+        run(
+            args.seed,
+            args.limit,
+            args.mappings,
+            args.refresh_mappings,
+            args.pins,
+            args.repin,
+            args.only.split(",") if args.only else None,
+        )
     )
 
 

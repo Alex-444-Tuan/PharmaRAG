@@ -9,10 +9,11 @@ in the client, so the retry also covers the cascade's several calls and a node p
 double-retry on top of it. Three attempts, exponential backoff, on timeouts, connection errors,
 HTTP 429 and 5xx. When the attempts run out the client raises `RxNavUnavailable`.
 
-A circuit breaker sits on top: after one exhausted retry the client fails fast for
-`breaker_s` seconds. Without it every request during an outage would wait three 2 s
-timeouts per call before falling back, which breaks the latency target (NFR-1) for as long
-as RxNav is down.
+A circuit breaker sits on top: after 3 calls in a row that exhausted their retries the client
+fails fast for `breaker_s` seconds; any answer resets the count. Without it every request
+during an outage would wait three 2 s timeouts per call before falling back, which breaks the
+latency target (NFR-1) for as long as RxNav is down. One exhausted call alone does not trip
+it: a single slow reply must not switch RxNav off for 30 s.
 """
 
 from __future__ import annotations
@@ -35,6 +36,9 @@ DEFAULT_MAX_RPS = 15.0
 ATTEMPTS = 3
 BACKOFF_S = 0.25
 BREAKER_S = 30.0
+# The breaker opens after this many calls in a row that exhausted their retries. One bad call
+# (a slow reply, a blip) must not switch RxNav off for everyone for 30 s.
+BREAKER_THRESHOLD = 3
 _MEMO_SIZE = 4096
 
 
@@ -68,6 +72,9 @@ class RelatedConcepts:
 
     ingredient: Ingredient | None = None
     brands: list[Concept] = field(default_factory=list)  # BN
+    branded_drugs: list[Concept] = field(
+        default_factory=list
+    )  # SBD, e.g. "x 5 MG Oral Tablet [Brand]"
     dose_forms: list[Concept] = field(default_factory=list)  # DF
     strengths: list[Concept] = field(default_factory=list)  # SCDC
 
@@ -97,6 +104,7 @@ class RxNavClient:
         attempts: int = ATTEMPTS,
         backoff_s: float = BACKOFF_S,
         breaker_s: float = BREAKER_S,
+        breaker_threshold: int = BREAKER_THRESHOLD,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self._base = base_url.rstrip("/")
@@ -107,6 +115,8 @@ class RxNavClient:
         self._backoff_s = backoff_s
         self._breaker_s = breaker_s
         self._clock = clock
+        self._breaker_threshold = breaker_threshold
+        self._failures = 0  # consecutive calls that exhausted their retries
         self._down_until = 0.0
         # rxcui -> ingredients. A concept's ingredients never change within a process
         # lifetime that matters, and the cascade asks for the same few concepts over and over.
@@ -135,9 +145,12 @@ class RxNavClient:
                 before_request=self._limiter.wait,
                 params=params or None,
             )
-            return resp.json()
+            body = resp.json()
         except httpx.HTTPStatusError as e:
             if e.response.status_code < 500 and e.response.status_code != 429:
+                # RxNav answered, so it is up: a 404 is "no such thing". A 400 usually means
+                # this client sent a malformed request, which is a bug worth seeing.
+                self._failures = 0
                 log.warning(
                     "rxnav %s answered HTTP %s; treating as no result", path, e.response.status_code
                 )
@@ -145,10 +158,16 @@ class RxNavClient:
             self._trip(path, e)
         except (httpx.TransportError, ValueError) as e:  # ValueError: body was not JSON
             self._trip(path, e)
+        else:
+            self._failures = 0
+            return body
         raise AssertionError("unreachable")  # pragma: no cover
 
     def _trip(self, path: str, error: Exception) -> None:
-        self._down_until = self._clock() + self._breaker_s
+        self._failures += 1
+        if self._failures >= self._breaker_threshold:
+            self._down_until = self._clock() + self._breaker_s
+            self._failures = 0
         log.warning("rxnav unavailable (%s): %s: %s", path, type(error).__name__, error)
         raise RxNavUnavailable(f"{path}: {type(error).__name__}") from error
 
@@ -213,7 +232,9 @@ class RxNavClient:
 
     async def related(self, rxcui: str) -> RelatedConcepts:
         """Brands, dose forms and strengths of one ingredient in a single request."""
-        body = await self._json(f"/rxcui/{rxcui}/related.json", tty="IN+BN+DF+SCDC")
+        # The tty list is space-separated: httpx sends a space as "+", which RxNav reads as a
+        # separator. A literal "+" in the value would be sent as %2B, and RxNav answers HTTP 400.
+        body = await self._json(f"/rxcui/{rxcui}/related.json", tty="IN BN DF SCDC SBD")
         out = RelatedConcepts()
         for group in (body.get("relatedGroup") or {}).get("conceptGroup") or []:
             tty = group.get("tty")
@@ -229,6 +250,8 @@ class RxNavClient:
                 out.dose_forms = concepts
             elif tty == "SCDC":
                 out.strengths = concepts
+            elif tty == "SBD":
+                out.branded_drugs = concepts
         return out
 
     async def _related_concepts(self, rxcui: str, tty: str) -> list[dict[str, Any]]:

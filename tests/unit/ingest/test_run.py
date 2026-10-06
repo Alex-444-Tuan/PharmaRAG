@@ -3,10 +3,11 @@
 import os
 import time
 
+import pytest
 import respx
 
 from pharmarag.ingest.dailymed import RXNORM_MAPPINGS_URL, DailyMedClient
-from pharmarag.ingest.run import MAPPINGS_MAX_AGE_S, ensure_mappings, read_seed
+from pharmarag.ingest.run import MAPPINGS_MAX_AGE_S, ensure_mappings, read_seed, select_names
 
 
 def test_read_seed_returns_name_and_group_and_skips_blank_names(tmp_path):
@@ -46,3 +47,21 @@ async def test_stale_mapping_file_is_downloaded_again(tmp_path):
     await ensure_mappings(DailyMedClient("https://dm.test/v2"), dest, refresh=False)
 
     assert route.call_count == 1 and dest.read_bytes() == b"new"
+
+
+NAMES = ["Hydroxyzine", "clonidine", "insulin glargine", "warfarin"]
+
+
+def test_select_names_without_a_filter_keeps_everything():
+    assert select_names(NAMES, None, None) == NAMES
+    assert select_names(NAMES, 2, None) == NAMES[:2]
+
+
+def test_select_names_only_keeps_the_named_seeds_in_seed_order_ignoring_case():
+    assert select_names(NAMES, None, ["WARFARIN", " hydroxyzine "]) == ["Hydroxyzine", "warfarin"]
+    assert select_names(NAMES, 1, ["warfarin", "clonidine"]) == ["clonidine"]  # limit applies after
+
+
+def test_select_names_only_rejects_a_name_that_is_not_in_the_seed():
+    with pytest.raises(ValueError, match="hydroxizine"):
+        select_names(NAMES, None, ["hydroxizine"])

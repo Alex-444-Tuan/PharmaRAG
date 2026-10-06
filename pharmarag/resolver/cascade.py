@@ -10,14 +10,20 @@ Steps 2 and 3 stop on a hit: a correctly spelled name is never "corrected". Step
 run when 2 and 3 miss, and their candidates are scored together.
 
 When RxNav is unavailable after the client's retries, steps 3 and 4 are skipped and the cascade
-runs on the local alias table alone (NFR-4). The result is marked degraded in `Outcome` and in
-the logs. `Resolution` itself has no field for it (see the report: contract change request).
+runs on the local alias table alone (NFR-4). The result has `Resolution.degraded=True`.
+
+`exact`, `brand` and `salt` mean the normalised mention equals one of that ingredient's names
+(spec section 7, "Known limit"). Step 3 can stop on a hit that is only a misspelling stored in
+RxNav's string table ("hydroxyzin"); that hit is scored like any approximate candidate and
+labelled `approximate`.
 
 SPEC: step 10 says to cache the result. What is cached here is the result of steps 1 to 7 (the
 scored candidates), not of the gate and coverage. Coverage then follows the corpus, not the
-24 h cache (a label ingested an hour ago is found), and a threshold change takes effect without
-a flush. Results from the local alias table alone are not cached either: a Postgres primary-key
-lookup costs what a Redis round trip costs, and the cache entry could only go stale.
+24 h cache (a label ingested an hour ago is found), and a change to the gate thresholds
+(resolved_min, margin, ambiguous_min, max_candidates) takes effect without a flush. A change to
+trigram_min or trigram_k does not: they decide which candidates were cached. Results from the
+local alias table alone are not cached: a Postgres primary-key lookup costs what a Redis round
+trip costs, and the cache entry could only go stale.
 """
 
 from __future__ import annotations
@@ -122,6 +128,19 @@ def _pin_matches(key: str, pins: Collection[str]) -> bool:
     )
 
 
+@dataclass(frozen=True)
+class _Hit:
+    key: str
+    match: MatchKind  # by term type
+    rxcui: str
+    name: str  # the name of the hit itself: an alias, or the RxNav concept name
+
+
+def _same_name(name: str, norm: str) -> bool:
+    """Whether `name` is the normalised mention (compared normalised and as plain lowercase)."""
+    return bool(name) and norm in (normalize(name), " ".join(name.lower().split()))
+
+
 def _jw(a: str, b: str) -> float:
     return float(JaroWinkler.similarity(a, b))
 
@@ -201,9 +220,9 @@ class CascadeResolver:
         if self._rx is not None:
             try:
                 # Step 3.
-                hits = await self._rxnav_exact(norm, names)
-                if hits:
-                    return Cascaded(norm, True, hits, "rxnav_exact")
+                hit = await self._rxnav_hit(norm, names)
+                if hit is not None:
+                    return hit
                 # Step 4.
                 candidates |= await self._rxnav_approximate(norm, names)
             except RxNavUnavailable:
@@ -256,41 +275,51 @@ class CascadeResolver:
             )
         return out
 
-    async def _rxnav_exact(self, norm: str, names: dict[str, set[str]]) -> list[Scored]:
-        # SPEC: step 3 stops on any hit of `rxcui.json?search=2`, and the match is labelled by the
-        # hit's term type (IN: exact, PIN: salt, BN/SBD: brand). RxNav's string table holds many
-        # misspellings ("hydroxyzin" is a hit for hydroxyzine), so such a hit is labelled `exact`
-        # although the user misspelled it. Section 10's example shows `approximate` for it. The
-        # spec's own rule ("steps 2 and 3 stop the cascade on a hit") is what is implemented.
+    async def _rxnav_hit(self, norm: str, names: dict[str, set[str]]) -> Cascaded | None:
+        """Step 3. Stops the cascade on any hit of `rxcui.json?search=2`.
+
+        SPEC: the hit is `exact`, `brand` or `salt` only if `norm` equals the hit's own name (an
+        alias row, or the RxNav concept name). RxNav's string table holds many misspellings, so
+        "hydroxyzin" is a hit for hydroxyzine; labelling it `exact` would tell the user their
+        misspelling was an exact name. Such a hit still stops the cascade (spec: a correctly
+        spelled name is never "corrected"), but it is scored like any candidate, so a name that
+        two ingredients share ("quinin") still comes out ambiguous.
+        """
         assert self._rx is not None
         rxcuis = await self._rx.find_rxcuis(norm)
         if not rxcuis:
-            return []
+            return None
         local = await self._store.by_source(rxcuis)
         mapped = await asyncio.gather(*(self._classify(r, local.get(r), names) for r in rxcuis))
+        hits = [m for m in mapped if m is not None]
+        if not hits:
+            return None
         best: dict[str, Scored] = {}
-        for item in mapped:
-            if item is None:
+        for h in hits:
+            if not _same_name(h.name, norm):
                 continue
-            key, match, hint = item
-            old = best.get(key)
-            if old is None or _MATCH_ORDER[match] < _MATCH_ORDER[old.match or "approximate"]:
-                best[key] = Scored(
-                    key, "", 1.0, match, hint if match in ("brand", "salt") else None
-                )
-        display = await self._display_names(list(best), names)
-        for key, s in best.items():
-            s.name = display[key]
-        return [best[k] for k in sorted(best, key=_key_order)]
+            old = best.get(h.key)
+            if old is None or _MATCH_ORDER[h.match] < _MATCH_ORDER[old.match or "approximate"]:
+                hint = h.rxcui if h.match in ("brand", "salt") else None
+                best[h.key] = Scored(h.key, "", 1.0, h.match, hint)
+        if best:
+            display = await self._display_names(list(best), names)
+            for key, sc in best.items():
+                sc.name = display[key]
+            return Cascaded(
+                norm, True, [best[k] for k in sorted(best, key=_key_order)], "rxnav_exact"
+            )
+        scored = await self._score(norm, {h.key for h in hits}, names)
+        return Cascaded(norm, False, scored, "rxnav_exact") if scored else None
 
     async def _classify(
         self, rxcui: str, local: AliasRow | None, names: dict[str, set[str]]
-    ) -> tuple[str, MatchKind, str | None] | None:
-        """(ingredient_key, match kind, product rxcui) of one RxNav hit, or None if the concept
-        has no ingredient. The alias table answers when it knows the concept."""
+    ) -> _Hit | None:
+        """One RxNav hit as (ingredient key, match kind by term type, its own name), or None if
+        the concept has no ingredient. The alias table answers when it knows the concept."""
         assert self._rx is not None
         if local is not None:
-            return local.ingredient_key, self._match_for(local.tty), rxcui
+            return _Hit(local.ingredient_key, self._match_for(local.tty), rxcui, local.alias)
         concept = await self._rx.concept(rxcui)
         ingredients = await self._rx.ingredients(rxcui)
         if not ingredients:
@@ -298,7 +327,8 @@ class CascadeResolver:
         key = ingredient_key([i.rxcui for i in ingredients])
         for ing in ingredients:
             names.setdefault(ing.rxcui, set()).add(ing.name.lower())
-        return key, self._match_for(concept.tty if concept else ""), rxcui
+        tty = concept.tty if concept else ""
+        return _Hit(key, self._match_for(tty), rxcui, concept.name if concept else "")
 
     # --- step 4: approximate candidates ------------------------------------------------------
 
@@ -332,9 +362,7 @@ class CascadeResolver:
         display = await self._display_names(
             sorted(scores), names, {k: v[1] for k, v in scores.items()}
         )
-        out = [
-            Scored(k, display[k], round(scores[k][0], 4)) for k in sorted(scores, key=_key_order)
-        ]
+        out = [Scored(k, display[k], scores[k][0]) for k in sorted(scores, key=_key_order)]
         out.sort(key=lambda s: (-s.score, _key_order(s.key)))
         return out
 
@@ -369,22 +397,38 @@ class CascadeResolver:
         # SPEC: section 7 says only that a pinned ingredient in the candidate set resolves with
         # match="pinned". The candidate set here is every scored candidate, including ones below
         # the gate's floor, and a pin beats the gate (it is the user's answer to the clarification).
-        pinned = [s for s in c.scored if _pin_matches(s.key, pins)] if pins else []
+        # A pin only counts for a candidate the user could have been offered: an exact name, or a
+        # score at or above ambiguous_min. A trigram near-miss is not.
+        pinned = (
+            [
+                s
+                for s in c.scored
+                if _pin_matches(s.key, pins) and round(s.score, 9) >= self._th.ambiguous_min
+            ]
+            if pins
+            else []
+        )
         if pinned:
             winner = min(pinned, key=lambda s: (-s.score, _key_order(s.key)))
-            return await self._resolved(mention, winner, "pinned")
+            return await self._resolved(mention, winner, "pinned", c.degraded)
 
         verdict = decide([KeyScore(s.key, s.score) for s in c.scored], self._th, exact=c.exact)
         by_key = {s.key: s for s in c.scored}
         if verdict.outcome == "unknown":
             top = verdict.top
-            return Resolution(mention=mention, status="unknown", score=top.score if top else None)
+            return Resolution(
+                mention=mention,
+                status="unknown",
+                score=round(top.score, 4) if top else None,
+                degraded=c.degraded,
+            )
         if verdict.outcome == "ambiguous":
             assert verdict.top is not None
             return Resolution(
                 mention=mention,
                 status="ambiguous",
-                score=verdict.top.score,
+                score=round(verdict.top.score, 4),
+                degraded=c.degraded,
                 candidates=[
                     Candidate(
                         ingredient_key=o.key, name=by_key[o.key].name, score=round(o.score, 4)
@@ -394,9 +438,11 @@ class CascadeResolver:
             )
         assert verdict.top is not None
         winner = by_key[verdict.top.key]
-        return await self._resolved(mention, winner, winner.match or "approximate")
+        return await self._resolved(mention, winner, winner.match or "approximate", c.degraded)
 
-    async def _resolved(self, mention: str, s: Scored, match: MatchKind) -> Resolution:
+    async def _resolved(
+        self, mention: str, s: Scored, match: MatchKind, degraded: bool
+    ) -> Resolution:
         """Step 9: a resolved drug with no label in the corpus is `not_covered`."""
         has_label = s.key in await self._store.covered([s.key])
         return Resolution(
@@ -407,7 +453,8 @@ class CascadeResolver:
             name=s.name,
             ingredient_rxcuis=_split_key(s.key),
             product_hint=s.product_hint,
-            score=s.score,
+            score=round(s.score, 4),
+            degraded=degraded,
         )
 
 

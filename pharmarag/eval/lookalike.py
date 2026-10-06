@@ -191,17 +191,11 @@ class SystemRow:
 
 
 async def run_resolver_system(rows: Sequence[Row], resolver: Resolver) -> list[SystemRow]:
-    """Resolve each row's `mention` and classify it. A `CascadeResolver` also reports whether
-    RxNav was down (degraded); any other resolver is taken as not degraded."""
-    detailed = getattr(resolver, "resolve_detailed", None)
+    """Resolve each row's `mention` and classify it. `Resolution.degraded` says whether RxNav
+    was down for that row."""
     out: list[SystemRow] = []
     for row in rows:
-        if detailed is not None:
-            (o,) = await detailed([row.mention])
-            res, degraded = o.resolution, o.degraded
-        else:
-            (res,) = await resolver.resolve([row.mention])
-            degraded = False
+        (res,) = await resolver.resolve([row.mention])
         out.append(
             SystemRow(
                 mention=row.mention,
@@ -214,7 +208,7 @@ async def run_resolver_system(rows: Sequence[Row], resolver: Resolver) -> list[S
                 resolved_name=res.name,
                 score=res.score,
                 candidates=[c.model_dump() for c in res.candidates],
-                degraded=degraded,
+                degraded=res.degraded,
             )
         )
     return out
