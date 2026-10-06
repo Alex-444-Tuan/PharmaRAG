@@ -22,10 +22,11 @@ docker compose down -v                                     # also wipes the post
 ## Tests
 
 ```bash
-uv run pytest -q             # everything (~400 tests, ~6 s)
+uv run pytest -q             # everything (~780 tests, ~30 s)
 uv run pytest tests/unit -q
 uv run pytest tests/graph -q  # route tests with FakeLLM
 uv run pytest tests/sql -q    # filter-leak and EXPLAIN plan tests (needs postgres)
+uv run pytest -m corpus -q    # tests against the real pharmarag_dev corpus (incl. graph-level leak test)
 uv run ruff check . && uv run ruff format --check .
 ```
 
@@ -35,9 +36,16 @@ uv run ruff check . && uv run ruff format --check .
 uv run python -m pharmarag.ingest.run --seed data/seed_ingredients.csv             # uses pins, ~3.5 min if unchanged
 uv run python -m pharmarag.ingest.run --seed data/seed_ingredients.csv --limit 10  # smoke run
 uv run python -m pharmarag.ingest.run --seed data/seed_ingredients.csv --repin     # re-select every label, ~22 min
-uv run python -m pharmarag.eval.run lookalike             # (planned) writes reports/
-uv run python -m pharmarag.eval.run grounding             # (planned)
-uv run python -m pharmarag.eval.run latency               # (planned)
+uv run python -m pharmarag.ingest.run --seed data/seed_ingredients.csv --only paroxetine,sertraline  # re-ingest named seeds
+uv run python -m pharmarag.ingest.audit                   # flag odd label picks (special-indication brands, repackagers)
+
+# Evals need DATABASE_URL=postgresql://postgres:postgres@localhost:5432/pharmarag_dev
+uv run python -m pharmarag.eval.run lookalike --split test --mode both --runs 3 --resolver-only  # no LLM needed
+uv run python -m pharmarag.eval.run lookalike --split test --mode both --runs 5   # full AT-1, needs LLM key
+uv run python -m pharmarag.eval.gate_sweep                # 2,192 dev misspellings vs the resolver gate
+uv run python scripts/calibrate_evidence_thresholds.py    # dense_min / overlap_min calibration
+uv run python -m pharmarag.eval.run grounding             # (planned, cycle 3)
+uv run python -m pharmarag.eval.run latency               # (planned, cycle 3)
 ```
 
 ## Postgres
@@ -69,6 +77,7 @@ FLUSHDB                      # clear all caches
 ```bash
 curl -s localhost:8000/v1/ask -H 'content-type: application/json' \
   -d '{"question":"What is the max daily dose of hydroxyzin for anxiety?"}' | jq
-curl -s 'localhost:8000/v1/drugs/resolve?name=hydroxyzin' | jq
+curl -s 'localhost:8000/v1/drugs/resolve?name=hydroxyzin' | jq   # match, score, degraded
+curl -s localhost:8000/v1/labels/<setid> | jq
 open http://localhost:8000/docs
 ```
