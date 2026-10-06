@@ -51,6 +51,7 @@ class Resolution(BaseModel):
     product_hint: str | None = None  # brand/salt RxCUI: a tie-break, never a filter
     score: float | None = None
     candidates: list[Candidate] = Field(default_factory=list)  # up to 3 when ambiguous
+    degraded: bool = False  # NFR-4: RxNav unavailable, resolved from the local alias table only
 
 
 class Span(BaseModel):

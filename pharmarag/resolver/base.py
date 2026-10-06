@@ -6,7 +6,16 @@ Lane A implements these in pharmarag/resolver/. The graph's `resolve` and
 
 from typing import Protocol
 
+from pydantic import BaseModel
+
 from pharmarag.graph.state import Resolution
+
+
+class RxFact(BaseModel):
+    """One fact line and the ingredient RxCUI it belongs to (for multi-drug attribution)."""
+
+    rxcui: str
+    text: str
 
 
 class Resolver(Protocol):
@@ -23,7 +32,7 @@ class Resolver(Protocol):
 
 
 class RxFactsSource(Protocol):
-    async def facts(self, ingredient_rxcuis: list[str]) -> list[str]:
+    async def facts(self, ingredient_rxcuis: list[str]) -> list[RxFact]:
         """Short fact lines (related brands, dose forms, strengths) for the given
         ingredients, at most `thresholds.retrieval.max_facts` in total, deterministic order.
         The graph node assigns ids r1, r2, ... and the retrieval attempt.

@@ -50,7 +50,7 @@ def make_fake_llm():
 def pg_url() -> str:
     """URL of a fresh, migrated database for this test session."""
     try:
-        admin = psycopg.connect(ADMIN_URL, autocommit=True, connect_timeout=2)
+        admin = psycopg.connect(ADMIN_URL, autocommit=True, connect_timeout=10)
     except psycopg.OperationalError:
         pytest.skip("Postgres not reachable; run `docker compose up -d postgres`")
     name = f"pharmarag_test_{uuid.uuid4().hex[:8]}"
@@ -85,7 +85,7 @@ CORPUS_URL = os.environ.get(
 def corpus_url() -> str:
     """URL of the ingested dev corpus (read-only use). Skips if missing or empty."""
     try:
-        with psycopg.connect(CORPUS_URL, connect_timeout=2) as conn:
+        with psycopg.connect(CORPUS_URL, connect_timeout=10) as conn:
             n = conn.execute("SELECT count(*) FROM label").fetchone()[0]
     except psycopg.Error:
         pytest.skip("dev corpus not available; run the ingest into pharmarag_dev")
