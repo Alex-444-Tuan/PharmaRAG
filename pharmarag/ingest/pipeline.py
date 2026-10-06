@@ -41,8 +41,8 @@ CORE_SECTIONS = {"34067-9": "Indications and usage", "34068-7": "Dosage and admi
 MIN_SECTIONS = 3
 # At most this many label XMLs are downloaded per seed before giving up.
 MAX_FETCHES = 12
-# At most this many candidates per tier get their ingredient set resolved.
-MAX_CHECKS = 60
+# At most this many candidates get their ingredient set resolved (the pool holds up to 300).
+MAX_CHECKS = 200
 
 
 def usability_problem(parsed: ParsedLabel) -> str | None:

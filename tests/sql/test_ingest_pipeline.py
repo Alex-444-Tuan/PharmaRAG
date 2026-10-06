@@ -675,3 +675,27 @@ async def test_manufacturer_anda_tablet_is_chosen_over_a_repackagers_nda_tablet(
 
     assert world.fetched == [CLONIDINE]
     assert result.setids == [CLONIDINE]
+
+
+async def test_default_check_limit_reaches_a_single_ingredient_label_behind_many_combinations(
+    pg_conn, router, world
+):
+    """Naloxone: dozens of buprenorphine/naloxone labels rank ahead of the single-ingredient one."""
+    mock_rxnav(
+        router,
+        ingredient=("7242", "naloxone"),
+        products={
+            "1": [("1819", "buprenorphine"), ("7242", "naloxone")],
+            "2": [("7242", "naloxone")],
+        },
+    )
+    combos = [f"cccccccc-0000-0000-0000-{i:012d}" for i in range(80)]
+    world.lists[None] = [
+        ref(c, "Sep 01, 2026", title="BUPRENORPHINE AND NALOXONE TABLET [HIKMA]") for c in combos
+    ] + [ref(CLONIDINE, "Jan 01, 2020", 5, title="NALOXONE HYDROCHLORIDE INJECTION [HOSPIRA]")]
+    world.xml[CLONIDINE] = (FIXTURES / "clonidine_old.xml").read_bytes()
+    mappings = {c: {"1"} for c in combos} | {CLONIDINE: {"2"}}
+
+    result = await make_ingestor(pg_conn, mappings).ingest_seed("naloxone")
+
+    assert result.setids == [CLONIDINE]
