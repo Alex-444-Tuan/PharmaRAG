@@ -20,6 +20,12 @@ retrieval:           # spec section 8
   # query. Answerable best-dense 0.688-0.884, unanswerable 0.591-0.698. At 0.70 / 3:
   # 89/90 answerable pass on the first attempt, 2/60 unanswerable slip through.
   # The proposed 0.45 / 2 passed 60/60 unanswerable (the weak-evidence path never fired).
+  # Re-check with 60 REALISTIC unanswerable questions (comparative effectiveness, Medicare
+  # coverage, recalls, patient reviews): best-dense 0.658-0.761, overlapping the answerable
+  # range. 45/60 still pass at 0.70; even 0.74 lets 28/60 through while rejecting 10/90
+  # answerable. Retrieval scores separate OFF-TOPIC questions, not on-topic-but-unanswerable
+  # ones; those are stopped downstream by the writer (INSUFFICIENT) and the verifier.
+  # Kept at 0.70 / 3. Script: scripts/calibrate_evidence_thresholds.py
   dense_min: 0.70
   overlap_min: 3
   max_facts: 10
