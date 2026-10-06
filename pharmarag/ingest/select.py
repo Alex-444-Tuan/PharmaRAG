@@ -5,16 +5,19 @@ Only human prescription labels are eligible (checked by the caller against
 
 1. base form: an immediate-release oral tablet or capsule; an injection counts as base only
    when the ingredient has no such oral label (user decision, deviates from spec section 4),
-2. NDA or BLA marketing category (the spec's first rule),
-3. not a repackager label,
+2. not a repackager label (orchestrator decision),
+3. NDA or BLA marketing category (the spec's first rule),
 4. latest effective date (the spec's second rule),
 5. lowest SETID, so the choice is deterministic.
 
-Rules 1 and 3 are not in the spec. Rule 3 exists because "latest date" alone picks whichever
-repackager republished last, and the pick would change every week. Rule 1 outranks the tier
-because the reference label should represent typical use, and an NDA niche form misrepresents
-it: for clonidine the only NDA labels were an epidural injection and an oral solution, and
-bupropion and glipizide had only extended-release NDA labels, while ordinary ANDA tablets exist.
+Rules 1 and 2 are not in the spec and both outrank its NDA/BLA tier. Rule 2 exists because
+"latest date" alone picks whichever repackager republished last, and the pick would change
+every week; a manufacturer's label is also the better reference even when a repackager's copy
+carries the NDA category (a state pharmacy's clonidine tablet label was filed as NDA). Rule 1
+outranks the tier because the reference label should represent typical use, and an NDA niche
+form misrepresents it: for clonidine the only NDA labels were an epidural injection and an oral
+solution, and bupropion and glipizide had only extended-release NDA labels, while ordinary
+ANDA tablets exist.
 
 `labels_per_ingredient` (settings) is the number of labels kept per ingredient set.
 """
@@ -197,15 +200,15 @@ def has_oral_base(candidates: Iterable[Candidate]) -> bool:
 def preference(c: Candidate, injection_is_base: bool = False) -> tuple[int, int, int, int, str]:
     """Sort key: smaller is better. A missing date sorts after every real date.
 
-    SPEC: deviates from spec section 4 by user decision. The form rule comes before the
-    NDA/BLA tier. See the module docstring for why.
+    SPEC: deviates from spec section 4 by user decision. The form rule, then the repackager
+    rule, come before the NDA/BLA tier. See the module docstring for why.
     """
     cls = form_class(c.title) if c.title else "oral"
     base = cls == "oral" or (cls == "injectable" and injection_is_base)
     tier = 0 if is_nda_or_bla(c.marketing_category) else 1
     repackager = 1 if is_repackager(labeler_from_title(c.title)) else 0
     ordinal = c.effective_date.toordinal() if c.effective_date else 0
-    return (0 if base else 1, tier, repackager, -ordinal, c.setid)
+    return (0 if base else 1, repackager, tier, -ordinal, c.setid)
 
 
 def rank(candidates: Iterable[Candidate]) -> list[Candidate]:

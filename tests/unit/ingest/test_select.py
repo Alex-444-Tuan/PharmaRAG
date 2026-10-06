@@ -173,11 +173,11 @@ def test_manufacturers_are_not_repackagers(labeler):
     assert not is_repackager(labeler)
 
 
-def test_repackager_loses_to_the_manufacturer_even_when_newer_but_nda_tier_still_wins():
+def test_repackager_loses_to_every_manufacturer_even_when_newer_or_filed_as_nda():
     maker = titled("b", "NORVASC (AMLODIPINE) TABLET [PFIZER]", d=date(2020, 1, 1))
     repack = titled("a", "NORVASC (AMLODIPINE) TABLET [REMEDYREPACK INC.]", d=date(2026, 1, 1))
     generic = titled("c", "AMLODIPINE TABLET [TEVA]", category="ANDA", d=date(2026, 6, 1))
-    assert rank([repack, generic, maker]) == [maker, repack, generic]
+    assert rank([repack, generic, maker]) == [maker, generic, repack]
 
 
 @pytest.mark.parametrize(
@@ -228,7 +228,7 @@ def test_base_form_beats_niche_form_even_if_older():
     assert rank([niche, base]) == [base, niche]
 
 
-def test_precedence_is_form_then_tier_then_repackager_then_date_then_setid():
+def test_precedence_is_form_then_repackager_then_tier_then_date_then_setid():
     ranked = rank(
         [
             titled("1", "X TABLET [BRYANT RANCH PREPACK]", "NDA", date(2026, 1, 1)),
@@ -239,9 +239,23 @@ def test_precedence_is_form_then_tier_then_repackager_then_date_then_setid():
             titled("6", "X TABLET [TEVA]", "NDA", date(2020, 1, 1)),
         ]
     )
-    # base forms first: NDA non-repackager (newest, then lowest setid), then NDA repackager,
-    # then ANDA; the extended-release label is last even though it is an NDA from a maker
-    assert [c.setid for c in ranked] == ["5", "6", "4", "1", "3", "2"]
+    # base forms first. Among them manufacturers come before the repackager: NDA (newest, then
+    # lowest setid) before ANDA. The repackager's NDA label is next to last, and the
+    # extended-release label is last even though it is an NDA from a manufacturer.
+    assert [c.setid for c in ranked] == ["5", "6", "4", "3", "1", "2"]
+
+
+def test_manufacturer_anda_tablet_beats_a_repackagers_nda_tablet():
+    """State of Florida DOH Central Pharmacy relabels clonidine; DailyMed files it as NDA."""
+    florida = titled(
+        "f",
+        "CLONIDINE HYDROCHLORIDE TABLET [STATE OF FLORIDA DOH CENTRAL PHARMACY]",
+        "NDA",
+        date(2026, 1, 1),
+    )
+    teva = titled("t", "CLONIDINE HYDROCHLORIDE TABLET [TEVA]", "ANDA", date(2015, 1, 1))
+    assert rank([florida, teva]) == [teva, florida]
+    assert select_labels([florida, teva]) == [teva]
 
 
 def test_anda_immediate_release_tablet_beats_nda_er_only_and_nda_epidural_injection():

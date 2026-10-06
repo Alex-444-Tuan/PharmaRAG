@@ -653,3 +653,25 @@ async def test_anda_immediate_release_tablet_is_chosen_over_nda_er_only_and_epid
     assert world.fetched == [CLONIDINE]  # the NDA labels were never even downloaded
     assert result.setids == [CLONIDINE]
     assert await rows(pg_conn, "SELECT marketing_category FROM label") == [("ANDA",)]
+
+
+async def test_manufacturer_anda_tablet_is_chosen_over_a_repackagers_nda_tablet(
+    pg_conn, router, world
+):
+    mock_rxnav(router, ingredient=("2599", "clonidine"), products={"1": [("2599", "clonidine")]})
+    florida = "ffffffff-0000-0000-0000-00000000000f"
+    florida_title = "CLONIDINE HYDROCHLORIDE TABLET [STATE OF FLORIDA DOH CENTRAL PHARMACY]"
+    world.lists[MARKETING_CATEGORY_NDA] = [ref(florida, "Sep 01, 2026", title=florida_title)]
+    world.lists[None] = [
+        ref(florida, "Sep 01, 2026", title=florida_title),
+        ref(CLONIDINE, "Jan 01, 2015", 5, title="CLONIDINE HYDROCHLORIDE TABLET [ALEMBIC]"),
+    ]
+    world.xml[CLONIDINE] = (FIXTURES / "clonidine_old.xml").read_bytes()
+    world.xml[florida] = (FIXTURES / "clonidine_old.xml").read_bytes()
+
+    result = await make_ingestor(pg_conn, {florida: {"1"}, CLONIDINE: {"1"}}).ingest_seed(
+        "clonidine"
+    )
+
+    assert world.fetched == [CLONIDINE]
+    assert result.setids == [CLONIDINE]
