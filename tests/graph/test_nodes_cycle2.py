@@ -203,6 +203,16 @@ async def test_fetch_rx_facts_numbers_lines_and_tags_the_attempt(deps):
     ]
 
 
+async def test_fetch_rx_facts_attributes_each_fact_to_its_own_drug(deps):
+    source = FakeRxFacts({"1": ["Brand: Atarax"], "2": ["Brand: Apresoline"]})
+    out = await fetch_rx_facts({"ingredient_keys": ["1", "2"]}, deps(rx_facts=source))
+    assert source.calls == [["1", "2"]]
+    assert [(f.id, f.rxcui, f.text) for f in out["rx_facts"]] == [
+        ("r1", "1", "Brand: Atarax"),
+        ("r2", "2", "Brand: Apresoline"),
+    ]  # not "1+2" for both
+
+
 async def test_fetch_rx_facts_with_no_keys_or_no_source_returns_no_facts_and_makes_no_call(deps):
     source = FakeRxFacts({"1": ["x"]})
     assert await fetch_rx_facts({"ingredient_keys": []}, deps(rx_facts=source)) == {"rx_facts": []}
@@ -560,3 +570,55 @@ async def test_each_key_strips_only_its_own_drug_terms(deps, pg_conn, fake_embed
         ("1", "Hydroxyzin"),
         ("2", "Hydralazin"),
     ]
+
+
+@pytest.mark.pg
+@pytest.mark.parametrize(
+    ("mention", "name", "query", "kept"),
+    [
+        # Dose words typed with the drug stay in the query: only the drug name is dropped.
+        ("hydroxyzine 25 mg", "hydroxyzine", "hydroxyzine 25 mg dosage", "25 mg dosage"),
+        # A salt word is not stripped from unrelated text.
+        (
+            "atorvastatin calcium",
+            "atorvastatin",
+            "atorvastatin calcium versus calcium channel blocker",
+            "calcium versus calcium channel blocker",
+        ),
+        # A form word in the mention ("dose") is not part of the drug's name.
+        (
+            "amlodipine/olmesartan dose",
+            "amlodipine / olmesartan",
+            "dose of amlodipine/olmesartan in renal impairment",
+            "dose of in renal impairment",
+        ),
+    ],
+)
+def test_node_strips_only_the_drug_name_not_dose_form_or_salt_words(mention, name, query, kept):
+    from pharmarag.retrieval.lexical import strip_drug_terms
+
+    state = {"resolutions": [resolved(mention, "1", name)]}
+    stripped = strip_drug_terms(query, retrieve_lexical_module.drug_terms(state, "1"))
+    assert stripped == kept
+
+
+@pytest.mark.pg
+async def test_filtered_lexical_keeps_dose_words_from_the_question_in_the_query(
+    deps, seeded, monkeypatch
+):
+    seen: list[str] = []
+    real = retrieve_lexical_module.lexical_search
+
+    async def spy(conn, query, **kw):
+        seen.append(query)
+        return await real(conn, query, **kw)
+
+    monkeypatch.setattr(retrieve_lexical_module, "lexical_search", spy)
+    state = {
+        "search_query": "hydroxyzine 50 mg dosage",
+        "ingredient_keys": ["1"],
+        "mentions": ["hydroxyzine 50 mg"],
+        "resolutions": [resolved("hydroxyzine 50 mg", "1", "hydroxyzine")],
+    }
+    await retrieve_lexical(state, deps())
+    assert seen == ["50 mg dosage"]

@@ -231,3 +231,15 @@ def test_factory_fake_and_anthropic():
 def test_factory_rejects_unpinned_model(model):
     with pytest.raises(ValueError):
         get_llm(Settings(_env_file=None, llm_provider="anthropic", llm_model=model))
+
+
+def test_the_sdk_client_does_not_retry_so_the_node_retry_policy_is_the_only_layer():
+    # The SDK default is max_retries=2. Under the graph's RetryPolicy of 3 attempts that would be
+    # 9 attempts (about 4.5 minutes worst case) per node.
+    llm = AnthropicLLM("claude-sonnet-5-5", api_key="k", timeout_s=7.0)
+    assert llm._client.max_retries == 0
+    assert llm._client.timeout == 7.0
+    via_factory = get_llm(
+        Settings(_env_file=None, llm_provider="anthropic", llm_model="claude-sonnet-5-5")
+    )
+    assert via_factory._client.max_retries == 0

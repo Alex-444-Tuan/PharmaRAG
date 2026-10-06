@@ -9,7 +9,7 @@ from pharmarag.app.runtime import build_runtime, close_runtime
 from pharmarag.cache import InMemoryCache
 from pharmarag.graph.run import effective_flags
 from pharmarag.graph.state import Flags
-from tests.graph.fakes import FakeResolver, FakeRxFacts
+from tests.graph.fakes import FakeResolver, FakeRxFacts, FakeVerifier
 
 pytestmark = pytest.mark.pg
 
@@ -94,3 +94,128 @@ async def test_an_injected_cache_is_used(settings_pg, make_fake_llm, fake_embedd
         assert rt.deps.cache is cache
     finally:
         await close_runtime(rt)
+
+
+# --- production safety: no resolver means no start (FR-3) --------------------------------------
+
+
+async def test_outside_eval_mode_a_resolver_that_cannot_be_built_stops_startup(
+    settings_pg, make_fake_llm, fake_embedder, monkeypatch
+):
+    prod = settings_pg.model_copy(update={"eval_mode": False})
+    monkeypatch.setattr(runtime_module, "build_resolver", not_implemented)
+    with pytest.raises(NotImplementedError):
+        await build_runtime(prod, embedder=fake_embedder, llm=make_fake_llm([]))
+
+
+async def test_outside_eval_mode_an_explicit_no_resolver_stops_startup_too(
+    settings_pg, make_fake_llm, fake_embedder
+):
+    prod = settings_pg.model_copy(update={"eval_mode": False})
+    with pytest.raises(RuntimeError, match="no drug resolver"):
+        await build_runtime(
+            prod, embedder=fake_embedder, llm=make_fake_llm([]), resolver=None, rx_facts=None
+        )
+
+
+async def test_a_resolver_error_other_than_not_implemented_always_propagates(
+    settings_pg, make_fake_llm, fake_embedder, monkeypatch
+):
+    def broken(*a):
+        raise ValueError("bad config")
+
+    monkeypatch.setattr(runtime_module, "build_resolver", broken)
+    with pytest.raises(ValueError):  # eval mode too: only NotImplementedError is tolerated
+        await build_runtime(settings_pg, embedder=fake_embedder, llm=make_fake_llm([]))
+
+
+async def test_in_eval_mode_a_missing_resolver_is_the_allowed_baseline_build(
+    settings_pg, make_fake_llm, fake_embedder
+):
+    assert settings_pg.eval_mode is True
+    rt = await build_runtime(
+        settings_pg, embedder=fake_embedder, llm=make_fake_llm([]), resolver=None, rx_facts=None
+    )
+    try:
+        assert rt.deps.resolver is None
+    finally:
+        await close_runtime(rt)
+
+
+async def test_injected_stages_replace_the_factories_and_the_real_ones_are_not_called(
+    settings_pg, make_fake_llm, fake_embedder, monkeypatch
+):
+    def must_not_run(*a):
+        raise AssertionError("factory called although a stage was injected")
+
+    monkeypatch.setattr(runtime_module, "build_resolver", must_not_run)
+    monkeypatch.setattr(runtime_module, "build_rx_facts_source", must_not_run)
+    resolver, facts = FakeResolver({}), FakeRxFacts()
+    verifier = FakeVerifier([[]])
+    rt = await build_runtime(
+        settings_pg,
+        embedder=fake_embedder,
+        llm=make_fake_llm([]),
+        resolver=resolver,
+        rx_facts=facts,
+        verifier=verifier,
+    )
+    try:
+        assert rt.deps.resolver is resolver and rt.deps.rx_facts is facts
+        assert rt.deps.verifier is verifier and rt.deps.verifier_available is True
+    finally:
+        await close_runtime(rt)
+
+
+# --- shutdown ----------------------------------------------------------------------------------
+
+
+async def test_close_runtime_closes_the_pool_and_the_shared_rxnav_client(
+    settings_pg, make_fake_llm, fake_embedder, monkeypatch
+):
+    closed: list = []
+
+    async def fake_close_rxnav(settings):
+        closed.append(settings)
+
+    monkeypatch.setattr(runtime_module, "close_rxnav", fake_close_rxnav)
+    rt = await build_runtime(
+        settings_pg, embedder=fake_embedder, llm=make_fake_llm([]), resolver=None, rx_facts=None
+    )
+    await close_runtime(rt)
+    assert closed == [settings_pg] and rt.deps.pool.closed
+
+
+async def test_rxnav_is_closed_even_when_closing_the_pool_fails(
+    settings_pg, make_fake_llm, fake_embedder, monkeypatch
+):
+    closed: list = []
+
+    async def fake_close_rxnav(settings):
+        closed.append(settings)
+
+    async def bad_close():
+        raise RuntimeError("pool close failed")
+
+    monkeypatch.setattr(runtime_module, "close_rxnav", fake_close_rxnav)
+    rt = await build_runtime(
+        settings_pg, embedder=fake_embedder, llm=make_fake_llm([]), resolver=None, rx_facts=None
+    )
+    real_close = rt.deps.pool.close
+    monkeypatch.setattr(rt.deps.pool, "close", bad_close)
+    with pytest.raises(RuntimeError):
+        await close_runtime(rt)
+    assert closed == [settings_pg]
+    await real_close()
+
+
+async def test_the_real_factory_client_is_released_by_close_runtime(
+    settings_pg, make_fake_llm, fake_embedder
+):
+    """No stubs: build with the real factories, then check the client registry is emptied."""
+    from pharmarag.resolver import factory
+
+    rt = await build_runtime(settings_pg, embedder=fake_embedder, llm=make_fake_llm([]))
+    assert id(settings_pg) in factory._clients
+    await close_runtime(rt)
+    assert id(settings_pg) not in factory._clients

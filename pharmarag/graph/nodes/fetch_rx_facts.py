@@ -23,7 +23,7 @@ async def fetch_rx_facts(state: RAGState, deps: Deps) -> dict:
     if not rxcuis or deps.rx_facts is None:
         return {"rx_facts": []}
     try:
-        lines = await deps.rx_facts.facts(rxcuis)
+        found = await deps.rx_facts.facts(rxcuis)
     except Exception:
         # SPEC: section 6 gives RxNav calls a node RetryPolicy, but Lane A's client already
         # retries internally. If it still fails, the label evidence can answer the question on
@@ -32,14 +32,10 @@ async def fetch_rx_facts(state: RAGState, deps: Deps) -> dict:
         logger.warning("RxNorm facts unavailable; using label evidence only", exc_info=True)
         return {"rx_facts": []}
     attempt = state.get("retrieval_attempt", 1)
-    # SPEC: `RxFactsSource.facts` returns bare lines, so a fact cannot say which ingredient it
-    # came from. With several drugs `Fact.rxcui` holds all of them joined by '+', like a key.
-    # (Contract change request in the lane report: return (rxcui, text) pairs.)
-    owner = "+".join(rxcuis)
     cap = deps.thresholds.retrieval.max_facts
     return {
         "rx_facts": [
-            Fact(id=f"r{i}", rxcui=owner, text=line, retrieval_attempt=attempt)
-            for i, line in enumerate(lines[:cap], start=1)
+            Fact(id=f"r{i}", rxcui=f.rxcui, text=f.text, retrieval_attempt=attempt)
+            for i, f in enumerate(found[:cap], start=1)
         ]
     }

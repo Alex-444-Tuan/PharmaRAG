@@ -7,6 +7,7 @@ import pytest
 
 from pharmarag.app.main import create_app
 from pharmarag.app.runtime import build_runtime
+from tests.graph.fakes import FakeResolver, FakeRxFacts, resolved
 from tests.graph.seed import HYDRALAZINE, HYDROXYZINE, seed_label, set_corpus_version
 
 pytestmark = pytest.mark.pg
@@ -28,7 +29,7 @@ async def test_ask_end_to_end_with_lifespan_warmup_and_pool(
             json.dumps(
                 {
                     "intent": "label_qa",
-                    "mentions": [],
+                    "mentions": ["hydroxyzine"],
                     "sections": ["34068-7"],
                     "search_query": QUERY,
                 }
@@ -43,7 +44,14 @@ async def test_ask_end_to_end_with_lifespan_warmup_and_pool(
     s = settings.model_copy(update={"database_url": pg_url})
 
     async def factory(st):
-        return await build_runtime(st, embedder=fake_embedder, llm=llm)
+        # Fakes for both resolver stages: this test must never reach the live RxNav API.
+        return await build_runtime(
+            st,
+            embedder=fake_embedder,
+            llm=llm,
+            resolver=FakeResolver({"hydroxyzine": resolved("hydroxyzine", "1", "hydroxyzine")}),
+            rx_facts=FakeRxFacts({"1": ["Brand: Atarax"]}),
+        )
 
     app = create_app(s, runtime_factory=factory)
     async with app.router.lifespan_context(app):
@@ -62,5 +70,6 @@ async def test_ask_end_to_end_with_lifespan_warmup_and_pool(
     assert body["sources"][0]["url"].startswith(
         "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid="
     )
-    assert body["meta"]["corpus_version"] == "corpus-e2e"
+    assert [d["name"] for d in body["drugs"]] == ["hydroxyzine"]
+    assert body["meta"]["corpus_version"] == "corpus-e2e" and body["meta"]["resolver"] is True
     assert embed_calls[1:] == [QUERY]  # the analysed query, not the raw question

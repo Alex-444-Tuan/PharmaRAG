@@ -40,13 +40,17 @@ async def answer(state: RAGState, deps: Deps) -> dict:
 
     out: dict = {"generation_attempt": attempt}
     rejected: list[Sentence] = []
+    verified_before: list[Sentence] = []  # attempt 1's supported sentences, if this is attempt 2
     if attempt > 1:
-        # SPEC: the second attempt replaces the first one's sentences. The first attempt's
-        # rejected sentences move to `removed_sentences` (debug payload and meta count); its
-        # supported sentences are not carried over, because the regenerated answer is a new
-        # draft and merging two drafts would repeat or contradict itself.
+        # SPEC: a second attempt that writes sentences replaces the first one's. The first
+        # attempt's rejected sentences move to `removed_sentences` (debug payload and meta
+        # count); its supported sentences are not merged in, because the regenerated answer is
+        # a new draft and merging two drafts would repeat or contradict itself. If the second
+        # attempt writes nothing (a refusal, or INSUFFICIENT), the first attempt's supported
+        # sentences are kept: they were verified, and a failed retry does not make them false.
         previous = state.get("sentences", [])
         rejected = [s for s in previous if s.verdict != "supported"]
+        verified_before = [s for s in previous if s.verdict == "supported"]
         out["removed_sentences"] = [*state.get("removed_sentences", []), *rejected]
 
     try:
@@ -60,12 +64,12 @@ async def answer(state: RAGState, deps: Deps) -> dict:
             rejected=[s.text for s in rejected],
         )
     except LLMRefusalError:
-        # No sentences means `insufficient_evidence` in finalize; nothing unverified leaks. On
-        # the second attempt keep what the first attempt got verified: that is still true.
-        kept = [s for s in state.get("sentences", []) if s.verdict == "supported"]
-        return {**out, "sentences": kept if attempt > 1 else []}
+        # No sentences means `insufficient_evidence` in finalize; nothing unverified leaks.
+        return {**out, "sentences": verified_before}
 
     sentences = result.sentences
+    if not sentences:
+        return {**out, "sentences": verified_before}  # same rule as a refusal
     if sentences and verifier_on(state, deps):
         assert deps.verifier is not None
         verified = await deps.verifier.verify(sentences, evidence, facts)
