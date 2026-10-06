@@ -1,0 +1,32 @@
+# Frozen thresholds. Tune on dev sets only (spec section 11).
+# Eval reports record the git commit of this file, which must predate any test-set run.
+# All values are the spec's *proposed* defaults until tuned.
+
+resolver:            # spec section 7, decision gate
+  resolved_min: 0.90
+  margin: 0.05
+  ambiguous_min: 0.80
+  trigram_min: 0.4
+  trigram_k: 5
+  max_candidates: 3
+
+retrieval:           # spec section 8
+  top_k_per_branch: 20
+  rrf_k: 60
+  evidence_top_k: 8
+  evidence_top_k_per_drug: 5
+  dense_min: 0.45
+  overlap_min: 2
+  max_facts: 10
+
+grounding:           # spec section 9
+  entail_min: 0.70
+  contradict_min: 0.80
+  support_ratio_min: 0.8
+  candidate_spans: 5
+  nearest_spans: 3
+
+graph:               # NFR-6
+  max_retrieval_attempts: 2
+  max_generation_attempts: 2
+  recursion_limit: 12
