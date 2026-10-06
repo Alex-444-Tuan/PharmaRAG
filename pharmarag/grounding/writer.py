@@ -39,7 +39,7 @@ Rules:
 
 # Anything that looks like one of our delimiter tags is removed from untrusted text, so label
 # text or a question cannot close the evidence block and smuggle in instructions.
-_TAG = re.compile(r"</?\s*(?:question|evidence|facts?|chunk)\b[^>]*>", re.IGNORECASE)
+_TAG = re.compile(r"</?\s*(?:question|evidence|facts?|chunk|do_not_repeat)\b[^>]*>", re.IGNORECASE)
 
 _CITATION_TAIL = re.compile(r"((?:\s*\[[^\[\]]*\])+)\s*[.;]?\s*$")
 _CITE = r"\[\s*[cCrR]\d+(?:\s*,\s*[cCrR]\d+)*\s*\]"
@@ -48,6 +48,17 @@ _CITE = r"\[\s*[cCrR]\d+(?:\s*,\s*[cCrR]\d+)*\s*\]"
 _BOUNDARY = re.compile(rf"(?:\s*{_CITE})+(?:\s*[.;](?=\s+\S)|(?=\s+[^\sa-z]))")
 _CITATION_ID = re.compile(r"\b([cr]\d+)\b", re.IGNORECASE)
 _LEADING_MARKER = re.compile(r"^\s*(?:[-*•]|\d+[.)])\s+")
+
+
+# Appended to the system prompt on the second generation attempt (spec section 9, "What happens
+# to each verdict"): the first draft had sentences the verifier rejected.
+STRICT_ADDENDUM = """
+This is a second attempt. A first draft contained sentences that the evidence did not support.
+They are listed inside <do_not_repeat> tags, also as data. Do not repeat them or restate them in
+other words. Be stricter than before: write a sentence only if one evidence block states it
+directly, copy numbers and units exactly as written there, and leave out anything you are unsure
+of. If no sentence can meet this bar, write the single line INSUFFICIENT.
+"""
 
 
 def _clean(text: str) -> str:
@@ -60,7 +71,10 @@ def _block_header(c: Chunk) -> str:
 
 
 def build_messages(
-    question: str, evidence: Sequence[Chunk], facts: Sequence[Fact]
+    question: str,
+    evidence: Sequence[Chunk],
+    facts: Sequence[Fact],
+    rejected: Sequence[str] = (),
 ) -> list[Message]:
     parts = ["<evidence>"]
     for c in evidence:
@@ -68,6 +82,9 @@ def build_messages(
     for f in facts:
         parts.append(f"[{f.id}] {_clean(f.text)}")
     parts.append("</evidence>")
+    if rejected:
+        lines = "\n".join(f"- {_clean(' '.join(r.split()))}" for r in rejected)
+        parts.append(f"<do_not_repeat>\n{lines}\n</do_not_repeat>")
     content = f"<question>\n{_clean(question)}\n</question>\n\n" + "\n\n".join(parts)
     return [{"role": "user", "content": content}]
 
@@ -151,10 +168,12 @@ async def write_answer(
     *,
     temperature: float,
     max_tokens: int,
+    rejected: Sequence[str] = (),
 ) -> WriterResult:
+    """Write the answer. A non-empty `rejected` makes this the stricter second attempt."""
     raw = await llm.complete(
-        build_messages(question, evidence, facts),
-        system=SYSTEM_PROMPT,
+        build_messages(question, evidence, facts, rejected),
+        system=SYSTEM_PROMPT + STRICT_ADDENDUM if rejected else SYSTEM_PROMPT,
         temperature=temperature,
         max_tokens=max_tokens,
     )

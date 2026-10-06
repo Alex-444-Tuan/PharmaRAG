@@ -11,6 +11,9 @@ from tests.graph.seed import HYDRALAZINE, HYDROXYZINE, seed_label, set_corpus_ve
 
 pytestmark = pytest.mark.pg
 
+# A fixture chunk verbatim, so retrieval is strong whatever the tuned grading thresholds are.
+QUERY = HYDROXYZINE[0][1]
+
 
 async def test_ask_end_to_end_with_lifespan_warmup_and_pool(
     settings, make_fake_llm, fake_embedder, pg_url, pg_conn
@@ -27,7 +30,7 @@ async def test_ask_end_to_end_with_lifespan_warmup_and_pool(
                     "intent": "label_qa",
                     "mentions": [],
                     "sections": ["34068-7"],
-                    "search_query": "hydroxyzine dosage anxiety adults",
+                    "search_query": QUERY,
                 }
             ),
             "Hydroxyzine is dosed four times daily. [c1]",
@@ -60,6 +63,4 @@ async def test_ask_end_to_end_with_lifespan_warmup_and_pool(
         "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid="
     )
     assert body["meta"]["corpus_version"] == "corpus-e2e"
-    assert embed_calls[1:] == [
-        "hydroxyzine dosage anxiety adults"
-    ]  # the analysed query, not the raw question
+    assert embed_calls[1:] == [QUERY]  # the analysed query, not the raw question

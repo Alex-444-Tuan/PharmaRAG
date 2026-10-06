@@ -8,6 +8,17 @@ from pharmarag.retrieval.fusion import fuse
 SETID = uuid.UUID(int=1)
 
 
+@pytest.fixture
+def thresholds(thresholds):
+    """The frozen yaml, with the two grading values these fixtures were written for pinned.
+
+    config/thresholds.yaml moves as it is tuned on the dev set; these tests check the
+    fusion and grading rules, not the tuned numbers.
+    """
+    retrieval = thresholds.retrieval.model_copy(update={"dense_min": 0.45, "overlap_min": 2})
+    return thresholds.model_copy(update={"retrieval": retrieval})
+
+
 def hit(chunk_id, source, rank, *, score=0.1, attempt=1, key="1", setid=SETID):
     return Hit(
         chunk_id=chunk_id,

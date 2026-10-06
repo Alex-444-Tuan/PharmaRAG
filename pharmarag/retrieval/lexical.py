@@ -5,6 +5,7 @@ Same two paths as the dense branch. The filtered path reuses the materialised `s
 """
 
 import re
+from collections.abc import Iterable
 
 from psycopg import AsyncConnection
 from psycopg.rows import dict_row
@@ -88,3 +89,21 @@ async def lexical_search(
         await cur.execute(sql, params)
         rows = await cur.fetchall()
     return rows_to_hits(rows, source="lexical", attempt=attempt)
+
+
+def strip_drug_terms(query: str, drug_terms: Iterable[str]) -> str:
+    """`query` without the word tokens of `drug_terms`, matched case-insensitively per token.
+
+    SPEC: section 8 does not strip anything from the lexical query. Inside the ingredient_key
+    filter every chunk already belongs to the drug, so its name carries no information, and as
+    an OR term it matches almost every chunk. That makes the grader's overlap rule ("at least
+    `overlap_min` chunks in both lists") vacuous: on the 150 dev questions the median overlap
+    was 8 for answerable and unanswerable questions alike, and 3 versus 0 once the drug name
+    was removed. Callers use this only on the filtered path. The unfiltered no-mention path has
+    no drug term to strip, and there the name would be signal.
+
+    `drug_terms` are the mention as typed and the resolved name; "atorvastatin calcium"
+    removes both tokens. Returns "" when nothing is left.
+    """
+    drop = {t.lower() for term in drug_terms for t in _TOKEN.findall(term)}
+    return " ".join(t for t in _TOKEN.findall(query) if t.lower() not in drop)
