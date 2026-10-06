@@ -1,5 +1,6 @@
 """DailyMed client with httpx mocked by respx. No network."""
 
+import time
 import zipfile
 from datetime import date
 
@@ -19,7 +20,7 @@ BASE = "https://dm.test/services/v2"
 
 @pytest.fixture
 def client():
-    return DailyMedClient(BASE, retries=2, backoff_s=0.0)
+    return DailyMedClient(BASE, retries=2, backoff_s=0.0, max_rps=0)
 
 
 def page(rows, next_page=None):
@@ -156,3 +157,24 @@ async def test_download_rxnorm_mappings_streams_to_disk(client, tmp_path):
     assert await client.download_rxnorm_mappings(dest) == dest
     assert dest.read_bytes() == b"zipbytes" * 1000
     assert not dest.with_suffix(".zip.part").exists()
+
+
+@respx.mock
+async def test_retries_are_paced_by_the_rate_limiter_too():
+    limited = DailyMedClient(BASE, retries=2, backoff_s=0.0, max_rps=50.0)  # 20 ms apart
+    route = respx.get(f"{BASE}/spls/abc.xml")
+    route.side_effect = [
+        httpx.Response(503),
+        httpx.Response(429),
+        httpx.Response(200, content=b"ok"),
+    ]
+    start = time.monotonic()
+    assert await limited.fetch_spl_xml("abc") == b"ok"
+    assert route.call_count == 3
+    assert time.monotonic() - start >= 2 * 0.02 * 0.9
+
+
+def test_dailymed_default_rate_is_limited():
+    from pharmarag.ingest.dailymed import DEFAULT_MAX_RPS
+
+    assert 0 < DEFAULT_MAX_RPS <= 10

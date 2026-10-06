@@ -87,6 +87,16 @@ async def label_loaded(conn: psycopg.AsyncConnection, setid: str, spl_version: i
     return found
 
 
+async def loaded_version(conn: psycopg.AsyncConnection, setid: str) -> int | None:
+    """Highest spl_version of this setid in the database, or None."""
+    cur = await conn.execute(
+        "SELECT max(spl_version) FROM label WHERE setid = %s", (uuid.UUID(setid),)
+    )
+    version = (await cur.fetchone())[0]
+    await conn.commit()
+    return version
+
+
 async def load_label(
     conn: psycopg.AsyncConnection,
     label: LabelRow,

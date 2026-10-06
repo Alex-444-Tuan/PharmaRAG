@@ -8,6 +8,7 @@ from collections.abc import AsyncIterator
 from contextlib import aclosing
 from dataclasses import dataclass, field, replace
 
+import httpx
 import psycopg
 
 from pharmarag.ingest.chunker import ChunkRecord, chunk_label, embed_text
@@ -19,12 +20,13 @@ from pharmarag.ingest.dailymed import (
 )
 from pharmarag.ingest.load import (
     LabelRow,
-    label_loaded,
     load_label,
+    loaded_version,
     prune_other_labels,
     upsert_aliases,
     upsert_ingredients,
 )
+from pharmarag.ingest.pins import Pins
 from pharmarag.ingest.rxnav import Ingredient, RxNavClient
 from pharmarag.ingest.select import Candidate, ingredient_key, rank
 from pharmarag.ingest.spl_parser import ParsedLabel, SplParseError, parse_spl
@@ -33,20 +35,36 @@ from pharmarag.sections import PRESCRIPTION_LABEL_LOINC
 
 log = logging.getLogger(__name__)
 
-# A label that keeps fewer distinct kept sections than this is treated as truncated
-# (some repackager labels carry only a few sections) and the next candidate is tried.
+# A label must have content (a non-empty block) in these sections and in at least MIN_SECTIONS
+# kept sections overall. Some repackager labels are stubs, and some put dosing inside
+# OVERDOSAGE with no Dosage and administration section; both are skipped for the next label.
+CORE_SECTIONS = {"34067-9": "Indications and usage", "34068-7": "Dosage and administration"}
 MIN_SECTIONS = 3
+# At most this many label XMLs are downloaded per seed before giving up.
+MAX_FETCHES = 12
 # At most this many candidates per tier get their ingredient set resolved.
 MAX_CHECKS = 60
+
+
+def usability_problem(parsed: ParsedLabel) -> str | None:
+    """Why a parsed label cannot be the reference label, or None if it can."""
+    with_content = {s.loinc for s in parsed.sections if any(sub.blocks for sub in s.subsections)}
+    missing = [name for code, name in CORE_SECTIONS.items() if code not in with_content]
+    if missing:
+        return "no text in " + " and ".join(missing)
+    if len(with_content) < MIN_SECTIONS:
+        return f"only {len(with_content)} sections with text"
+    return None
 
 
 @dataclass
 class SeedResult:
     name: str
-    status: str  # loaded | unchanged | unresolved | no_label
+    status: str  # loaded | unchanged | stale | unresolved | no_label
     ingredient_rxcui: str | None = None
     setids: list[str] = field(default_factory=list)
-    chunks: int = 0
+    chunks: int = 0  # chunks written this run (inserted or replaced labels only)
+    stale: int = 0  # labels whose version in the database is newer than DailyMed's
     aliases: int = 0
     pruned: int = 0
 
@@ -69,6 +87,9 @@ class Ingestor:
         conn: psycopg.AsyncConnection,
         labels_per_ingredient: int = 1,
         max_checks: int = MAX_CHECKS,
+        max_fetches: int = MAX_FETCHES,
+        pins: Pins | None = None,
+        repin: bool = False,
     ) -> None:
         self.rxnav = rxnav
         self.dailymed = dailymed
@@ -77,6 +98,9 @@ class Ingestor:
         self.conn = conn
         self.labels_per_ingredient = labels_per_ingredient
         self.max_checks = max_checks
+        self.max_fetches = max_fetches
+        self.pins = pins or Pins()
+        self.repin = repin
 
     async def _evaluate(self, refs: list[LabelRef], category: str) -> AsyncIterator[_Evaluated]:
         """Yield one tier's candidates best first, resolving each ingredient set on demand.
@@ -90,7 +114,7 @@ class Ingestor:
         date is stored once it is parsed.
         """
         unresolved = [
-            Candidate(r.setid, r.spl_version, category, r.published_date, "") for r in refs
+            Candidate(r.setid, r.spl_version, category, r.published_date, "", r.title) for r in refs
         ]
         for cand in rank(unresolved)[: self.max_checks]:
             product_rxcuis = self.mappings.get(cand.setid)
@@ -116,8 +140,16 @@ class Ingestor:
             yield ev
 
     async def _fetch_usable(self, setid: str) -> ParsedLabel | None:
+        """Download, parse and check one label. None means "not usable" (reason is logged)."""
         try:
-            parsed = parse_spl(await self.dailymed.fetch_spl_xml(setid))
+            xml = await self.dailymed.fetch_spl_xml(setid)
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                log.warning("setid %s: no longer on DailyMed", setid)
+                return None
+            raise
+        try:
+            parsed = await asyncio.to_thread(parse_spl, xml)
         except SplParseError as e:
             log.warning("setid %s: unparseable (%s)", setid, e)
             return None
@@ -128,14 +160,32 @@ class Ingestor:
                 parsed.doc_type_loinc,
             )
             return None
-        if len({s.loinc for s in parsed.sections}) < MIN_SECTIONS:
-            log.info(
-                "setid %s: only %d kept sections; trying the next label",
-                setid,
-                len(parsed.sections),
-            )
+        problem = usability_problem(parsed)
+        if problem:
+            log.info("setid %s (%s): %s; trying the next label", setid, parsed.title[:50], problem)
             return None
         return parsed
+
+    async def _pinned(
+        self, ing: Ingredient, target_key: str
+    ) -> list[tuple[_Evaluated, ParsedLabel]]:
+        """Pinned labels that still exist, still pass the checks, and still match the key."""
+        out: list[tuple[_Evaluated, ParsedLabel]] = []
+        for setid in self.pins.get(ing.rxcui)[: self.labels_per_ingredient]:
+            product_rxcuis = self.mappings.get(setid)
+            if not product_rxcuis:
+                log.warning(
+                    "%s: pinned setid %s is not in the mapping file; reselecting", ing.name, setid
+                )
+                continue
+            key, ingredients = await self.rxnav.product_ingredient_key(product_rxcuis)
+            parsed = await self._fetch_usable(setid) if key == target_key else None
+            if parsed is None:
+                log.warning("%s: pinned setid %s is no longer usable; reselecting", ing.name, setid)
+                continue
+            cand = Candidate(setid, parsed.version, "PIN", None, key, parsed.title)
+            out.append((_Evaluated(cand, sorted(product_rxcuis), ingredients), parsed))
+        return out
 
     async def ingest_seed(self, name: str) -> SeedResult:
         ing = await self.rxnav.find_ingredient(name)
@@ -148,34 +198,61 @@ class Ingestor:
 
         target_key = ingredient_key([ing.rxcui])
         chosen: list[tuple[_Evaluated, ParsedLabel]] = []
-        async with aclosing(self._candidates(ing)) as candidates:
-            async for evaluated in candidates:
-                if evaluated.candidate.ingredient_key != target_key:
-                    continue  # a combination product, or one that mixes ingredient sets
-                parsed = await self._fetch_usable(evaluated.candidate.setid)
-                if parsed is not None:
-                    chosen.append((evaluated, parsed))
-                    if len(chosen) >= self.labels_per_ingredient:
+        if not self.repin:
+            chosen = await self._pinned(ing, target_key)
+        have = {parsed.setid for _, parsed in chosen}
+        fetches = 0
+        if len(chosen) < self.labels_per_ingredient:
+            async with aclosing(self._candidates(ing)) as candidates:
+                async for evaluated in candidates:
+                    if evaluated.candidate.ingredient_key != target_key:
+                        continue  # a combination product, or one that mixes ingredient sets
+                    if evaluated.candidate.setid in have:
+                        continue
+                    if fetches >= self.max_fetches:
+                        log.warning("%s: gave up after %d label downloads", name, fetches)
                         break
+                    fetches += 1
+                    parsed = await self._fetch_usable(evaluated.candidate.setid)
+                    if parsed is not None:
+                        chosen.append((evaluated, parsed))
+                        if len(chosen) >= self.labels_per_ingredient:
+                            break
         if not chosen:
             log.warning("%s (%s): no usable single-ingredient prescription label", name, ing.rxcui)
             return SeedResult(name, "no_label", ing.rxcui, aliases=len(aliases))
 
         result = SeedResult(name, "unchanged", ing.rxcui, aliases=len(aliases))
         for evaluated, parsed in chosen:
-            status = await self._load(evaluated, parsed)
+            status, written = await self._load(evaluated, parsed)
             result.setids.append(parsed.setid)
-            result.chunks += status[1]
-            if status[0] != "unchanged":
+            result.chunks += written
+            if status in ("inserted", "replaced"):
                 result.status = "loaded"
+            elif status == "stale":
+                result.stale += 1
+        if result.status == "unchanged" and result.stale == len(chosen):
+            result.status = "stale"
+        self.pins.set(ing.rxcui, ing.name, result.setids)
         result.pruned = await prune_other_labels(self.conn, target_key, result.setids)
         return result
 
     async def _load(self, evaluated: _Evaluated, parsed: ParsedLabel) -> tuple[str, int]:
-        key = evaluated.candidate.ingredient_key
-        if await label_loaded(self.conn, parsed.setid, parsed.version):
+        """Returns (status, chunks written). Only inserted and replaced write chunks."""
+        have = await loaded_version(self.conn, parsed.setid)
+        if have == parsed.version:
             return "unchanged", 0
-        chunks: list[ChunkRecord] = chunk_label(parsed, self.embedder.count_tokens)
+        if have is not None and have > parsed.version:
+            log.warning(
+                "%s: database has version %d, DailyMed served %d; keeping the newer one",
+                parsed.title,
+                have,
+                parsed.version,
+            )
+            return "stale", 0
+        chunks: list[ChunkRecord] = await asyncio.to_thread(
+            chunk_label, parsed, self.embedder.count_tokens
+        )
         drug_name = " / ".join(i.name for i in evaluated.ingredients)
         texts = [embed_text(drug_name, c) for c in chunks]
         embeddings = await asyncio.to_thread(self.embedder.embed_documents, texts)
@@ -187,10 +264,10 @@ class Ingestor:
             labeler=parsed.labeler,
             marketing_category=parsed.marketing_category,
             effective_date=parsed.effective_date,
-            ingredient_key=key,
+            ingredient_key=evaluated.candidate.ingredient_key,
             ingredient_rxcuis=[i.rxcui for i in evaluated.ingredients],
             product_rxcuis=evaluated.product_rxcuis,
         )
         status = await load_label(self.conn, row, chunks, embeddings)
         log.info("%s: %s, %d chunks", parsed.title, status, len(chunks))
-        return status, len(chunks)
+        return status, len(chunks) if status in ("inserted", "replaced") else 0

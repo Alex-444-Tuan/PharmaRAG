@@ -21,6 +21,7 @@ from pharmarag.app.settings import REPO_ROOT, get_settings
 from pharmarag.db import connect
 from pharmarag.ingest.dailymed import DailyMedClient, load_rxnorm_mappings
 from pharmarag.ingest.load import refresh_corpus_version
+from pharmarag.ingest.pins import Pins
 from pharmarag.ingest.pipeline import Ingestor
 from pharmarag.ingest.rxnav import RxNavClient
 from pharmarag.models.embedder import SentenceTransformerEmbedder
@@ -28,6 +29,7 @@ from pharmarag.models.embedder import SentenceTransformerEmbedder
 log = logging.getLogger("pharmarag.ingest")
 
 DEFAULT_MAPPINGS = REPO_ROOT / "data" / "cache" / "rxnorm_mappings.zip"
+DEFAULT_PINS = REPO_ROOT / "data" / "label_pins.csv"
 MAPPINGS_MAX_AGE_S = 7 * 24 * 3600
 INGEST_RXNAV_TIMEOUT_S = 10.0
 
@@ -53,7 +55,14 @@ async def ensure_mappings(dailymed: DailyMedClient, path: Path, refresh: bool) -
     return path
 
 
-async def run(seed: Path, limit: int | None, mappings_path: Path, refresh: bool) -> Counter[str]:
+async def run(
+    seed: Path,
+    limit: int | None,
+    mappings_path: Path,
+    refresh: bool,
+    pins_path: Path = DEFAULT_PINS,
+    repin: bool = False,
+) -> Counter[str]:
     settings = get_settings()
     started = time.monotonic()
     names = [n for n, _ in read_seed(seed)]
@@ -67,6 +76,7 @@ async def run(seed: Path, limit: int | None, mappings_path: Path, refresh: bool)
         settings.rxnav_base_url, timeout_s=max(settings.rxnav_timeout_s, INGEST_RXNAV_TIMEOUT_S)
     )
     conn = await connect(settings.database_url)
+    pins = Pins.load(pins_path)
     try:
         path = await ensure_mappings(dailymed, mappings_path, refresh)
         log.info("loading mapping index")
@@ -79,6 +89,8 @@ async def run(seed: Path, limit: int | None, mappings_path: Path, refresh: bool)
             embedder=embedder,
             conn=conn,
             labels_per_ingredient=settings.labels_per_ingredient,
+            pins=pins,
+            repin=repin,
         )
         tally: Counter[str] = Counter()
         for i, name in enumerate(names, 1):
@@ -90,6 +102,7 @@ async def run(seed: Path, limit: int | None, mappings_path: Path, refresh: bool)
                 await conn.rollback()
                 continue
             tally[result.status] += 1
+            pins.save()  # after every seed, so an interrupted run keeps its picks
             log.info("[%d/%d] %s: %s", i, len(names), name, result.status)
         version = await refresh_corpus_version(conn, settings.embedding_model)
         counts = {}
@@ -112,12 +125,18 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--limit", type=int, default=None, help="only the first N seed rows")
     parser.add_argument("--mappings", type=Path, default=DEFAULT_MAPPINGS)
     parser.add_argument("--refresh-mappings", action="store_true")
+    parser.add_argument("--pins", type=Path, default=DEFAULT_PINS, help="pinned labels CSV")
+    parser.add_argument(
+        "--repin", action="store_true", help="ignore the pins and select labels afresh"
+    )
     args = parser.parse_args(argv)
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
     )
     logging.getLogger("httpx").setLevel(logging.WARNING)
-    asyncio.run(run(args.seed, args.limit, args.mappings, args.refresh_mappings))
+    asyncio.run(
+        run(args.seed, args.limit, args.mappings, args.refresh_mappings, args.pins, args.repin)
+    )
 
 
 if __name__ == "__main__":

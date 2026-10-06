@@ -11,6 +11,9 @@ Text rules:
   that is not in SECTIONS (typically 42229-5, "unclassified") become subsections of the
   nearest kept ancestor. Their title is the chain of titles below that ancestor joined
   with " > ".
+- A section coded 42229-5 (or any code outside SECTIONS) whose title is a standard heading
+  ("2 DOSAGE AND ADMINISTRATION") is mapped to the matching kept code by `code_for_title`.
+- <excerpt> content (Highlights duplicates) is ignored; sections left with no text are dropped.
 - A nested section whose code is in SECTIONS but differs from its parent's code (for
   example Drug Interactions inside an old-format Precautions section) is emitted as its
   own section, so its text is not duplicated in the parent.
@@ -320,14 +323,69 @@ def _own_blocks(sec: etree._Element) -> list[Block]:
     return text_blocks(text) if text is not None else []
 
 
+_TITLE_RULES: list[tuple[str, re.Pattern[str]]] = [
+    (code, re.compile(pattern))
+    for code, pattern in [
+        ("34066-1", r"(BOXED WARNING|WARNING:.*)"),
+        ("34067-9", r"INDICATIONS?( AND USAGE)?"),
+        ("34068-7", r"DOSAGE( ?(AND|/) ?ADMINISTRATION)?"),
+        ("43678-2", r"DOSAGE FORMS( AND STRENGTHS)?"),
+        ("34070-3", r"CONTRAINDICATIONS?"),
+        ("43685-7", r"WARNINGS AND PRECAUTIONS"),
+        ("34071-1", r"WARNINGS"),
+        ("42232-9", r"PRECAUTIONS"),
+        ("34084-4", r"ADVERSE (REACTIONS|EVENTS)"),
+        ("34073-7", r"DRUG INTERACTIONS"),
+        ("43684-0", r"USE IN SPECIFIC POPULATIONS"),
+        ("34088-5", r"OVERDOSAGE"),
+        ("34090-1", r"CLINICAL PHARMACOLOGY"),
+        ("34069-5", r"HOW SUPPLIED.*"),
+    ]
+]
+_LEADING_NUMBER = re.compile(r"^\s*\d+(?:\s*\.\s*\d+)*\s*\.?\s*")
+
+
+def code_for_title(title: str) -> str | None:
+    """Map a section title to a kept LOINC code, or None.
+
+    Some labels code a real section 42229-5 ("unclassified") and give the heading only in the
+    title, for example "2 DOSAGE AND ADMINISTRATION". The title is upper-cased, a leading
+    section number is dropped ("2", "5.1", "16."), "&" becomes "AND", and trailing
+    punctuation is stripped. The whole title must match one rule, so "DOSAGE FORMS AND
+    STRENGTHS" never lands in Dosage and administration.
+    """
+    t = _LEADING_NUMBER.sub("", title.upper().replace("&", " AND "))
+    t = " ".join(t.split()).rstrip(" :.-")
+    for code, pattern in _TITLE_RULES:
+        if pattern.fullmatch(t):
+            return code
+    return None
+
+
 def _walk(sec: etree._Element, out: list[Section], skipped: Counter[str]) -> None:
+    """Add `sec` (and, for sections that are not kept, their descendants) to `out`.
+
+    Only the section's own <text> is read. <excerpt> blocks (the Highlights duplicate of a
+    section) are never read, so a Highlights-only section has no content and is dropped by
+    `parse_spl`.
+    """
     code = _section_code(sec)
     if code not in SECTIONS:
-        skipped[code or "none"] += 1
-        log.debug("skipping section with code %s (%s)", code, _section_title(sec)[:60])
-        for child in _child_sections(sec):
-            _walk(child, out, skipped)
-        return
+        mapped = code_for_title(_section_title(sec))
+        if mapped is None:
+            skipped[code or "none"] += 1
+            log.debug("skipping section with code %s (%s)", code, _section_title(sec)[:60])
+            for child in _child_sections(sec):
+                _walk(child, out, skipped)
+            return
+        log.info(
+            "section coded %s titled %r mapped to %s (%s) by title",
+            code,
+            _section_title(sec)[:60],
+            mapped,
+            SECTIONS[mapped],
+        )
+        code = mapped
 
     section = Section(loinc=code, title=_section_title(sec) or SECTIONS[code])
     out.append(section)
@@ -454,6 +512,6 @@ def parse_spl(xml: bytes | str) -> ParsedLabel:
         product_name=product,
         generic_name=generic,
         active_moieties=list(dict.fromkeys(moieties)),
-        sections=sections,
+        sections=[s for s in sections if s.subsections],  # drop Highlights-only shells
         skipped_codes=skipped,
     )

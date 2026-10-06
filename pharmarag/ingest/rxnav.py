@@ -12,13 +12,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import time
 from dataclasses import dataclass
 from typing import Any
 
 import httpx
 
-from pharmarag.ingest.http import get_with_retry
+from pharmarag.ingest.http import RateLimiter, get_with_retry
 from pharmarag.ingest.select import ingredient_key
 
 log = logging.getLogger(__name__)
@@ -40,25 +39,6 @@ class Alias:
     tty: str  # IN, PIN, BN or SY
     source_rxcui: str
     ingredient_key: str
-
-
-class RateLimiter:
-    """Serialises callers and spaces them at least `1 / rate` seconds apart."""
-
-    def __init__(self, rate_per_s: float) -> None:
-        self._interval = 1.0 / rate_per_s if rate_per_s > 0 else 0.0
-        self._lock = asyncio.Lock()
-        self._next = 0.0
-
-    async def wait(self) -> None:
-        if not self._interval:
-            return
-        async with self._lock:
-            now = time.monotonic()
-            if now < self._next:
-                await asyncio.sleep(self._next - now)
-                now = time.monotonic()
-            self._next = now + self._interval
 
 
 class RxNavClient:
@@ -85,12 +65,12 @@ class RxNavClient:
             await self._client.aclose()
 
     async def _json(self, path: str, **params: str) -> dict[str, Any]:
-        await self._limiter.wait()
         resp = await get_with_retry(
             self._client,
             f"{self._base}{path}",
             retries=self._retries,
             backoff_s=self._backoff_s,
+            before_request=self._limiter.wait,
             params=params or None,
         )
         return resp.json()

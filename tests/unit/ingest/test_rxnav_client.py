@@ -221,3 +221,18 @@ async def test_client_applies_the_limiter_to_every_request():
     for r in ("1", "2", "3"):
         await rx.ingredients_of(r)
     assert time.monotonic() - start >= 2 * 0.02 * 0.9
+
+
+@respx.mock
+async def test_rxnav_retries_are_paced_by_the_rate_limiter_too():
+    rx = RxNavClient(BASE, max_rps=50.0, retries=2, backoff_s=0.0)
+    route = respx.get(f"{BASE}/rxcui/1/properties.json")
+    route.side_effect = [
+        httpx.Response(429),
+        httpx.Response(500),
+        httpx.Response(200, json=props("1", "a", "IN")),
+    ]
+    start = time.monotonic()
+    assert await rx.ingredients_of("1") == [Ingredient("1", "a")]
+    assert route.call_count == 3
+    assert time.monotonic() - start >= 2 * 0.02 * 0.9

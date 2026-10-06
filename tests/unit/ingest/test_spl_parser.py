@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from pharmarag.ingest.spl_parser import ParsedLabel, SplParseError, parse_spl
+from pharmarag.ingest.spl_parser import ParsedLabel, SplParseError, code_for_title, parse_spl
 from pharmarag.sections import PRESCRIPTION_LABEL_LOINC, SECTIONS
 
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures" / "spl"
@@ -31,8 +31,8 @@ def all_blocks(label: ParsedLabel, loinc: str):
 # --- real fixtures ------------------------------------------------------------------------
 
 
-def test_five_fixture_labels_exist():
-    assert len(list(FIXTURES.glob("*.xml"))) == 5
+def test_fixture_labels_exist():
+    assert {p.name for p in FIXTURES.glob("*.xml")} >= set(PLR + OLD)
 
 
 def test_metadata_norvasc():
@@ -310,3 +310,91 @@ def test_missing_set_id_raises():
 def test_invalid_xml_raises():
     with pytest.raises(SplParseError, match="invalid XML"):
         parse_spl(b"<document><unclosed></document>")
+
+
+# --- title-coded sections and Highlights excerpts -----------------------------------------
+
+
+def test_dosage_section_coded_unclassified_is_found_by_its_title(caplog):
+    """QLONILIK codes the real D&A section 42229-5; the 34068-7 section is Highlights only."""
+    with caplog.at_level(logging.INFO, logger="pharmarag.ingest.spl_parser"):
+        label = load("qlonilik_plr_title_coded.xml")
+    dosing = [s for s in label.sections if s.loinc == "34068-7"]
+    assert len(dosing) == 1  # the empty Highlights shell is not a second section
+    assert dosing[0].title == "2 DOSAGE AND ADMINISTRATION"
+    assert [sub.title for sub in dosing[0].subsections] == [
+        "2.1 Recommended Dosage",
+        "2.2 Administration Instructions",
+    ]
+    assert all(b.text for sub in dosing[0].subsections for b in sub.blocks)
+    assert any(
+        "mapped to 34068-7" in r.getMessage() and "2 DOSAGE AND ADMINISTRATION" in r.getMessage()
+        for r in caplog.records
+    )
+
+
+def test_highlights_excerpt_text_is_never_read():
+    label = load("qlonilik_plr_title_coded.xml")
+    every_text = " ".join(
+        b.text for s in label.sections for sub in s.subsections for b in sub.blocks
+    )
+    assert "See full prescribing information" not in every_text
+    assert all(s.subsections for s in label.sections)  # no empty shells survive
+
+
+def test_excerpt_only_section_without_full_text_is_dropped():
+    body = (
+        '<component><section><code code="34068-7"/><text/>'
+        "<excerpt><highlight><text><paragraph>Take 5 mg daily.</paragraph></text></highlight>"
+        "</excerpt></section></component>"
+    )
+    assert parse_spl(spl(body)).sections == []
+
+
+@pytest.mark.parametrize(
+    ("title", "code"),
+    [
+        ("2 DOSAGE AND ADMINISTRATION", "34068-7"),
+        ("DOSAGE & ADMINISTRATION", "34068-7"),
+        ("Dosage and Administration:", "34068-7"),
+        ("1 INDICATIONS AND USAGE", "34067-9"),
+        ("INDICATIONS", "34067-9"),
+        ("3 DOSAGE FORMS AND STRENGTHS", "43678-2"),
+        ("4 CONTRAINDICATIONS", "34070-3"),
+        ("5 WARNINGS AND PRECAUTIONS", "43685-7"),
+        ("WARNINGS", "34071-1"),
+        ("PRECAUTIONS", "42232-9"),
+        ("6 ADVERSE REACTIONS", "34084-4"),
+        ("7 DRUG INTERACTIONS", "34073-7"),
+        ("8 USE IN SPECIFIC POPULATIONS", "43684-0"),
+        ("10 OVERDOSAGE", "34088-5"),
+        ("12 CLINICAL PHARMACOLOGY", "34090-1"),
+        ("16 HOW SUPPLIED/STORAGE AND HANDLING", "34069-5"),
+        ("HOW SUPPLIED", "34069-5"),
+        ("WARNING: FETAL TOXICITY", "34066-1"),
+        ("BOXED WARNING", "34066-1"),
+    ],
+)
+def test_code_for_title_maps_every_kept_heading(title, code):
+    assert code_for_title(title) == code
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "",
+        "5.1 Hypotension",
+        "11 DESCRIPTION",
+        "14 CLINICAL STUDIES",
+        "DOSAGE FORMS AND DOSES",
+        "Overdosage in children",
+    ],
+)
+def test_code_for_title_rejects_other_headings(title):
+    assert code_for_title(title) is None
+
+
+def test_every_kept_code_is_reachable_by_title():
+    from pharmarag.ingest.spl_parser import _TITLE_RULES
+
+    assert {code for code, _ in _TITLE_RULES} == set(SECTIONS)

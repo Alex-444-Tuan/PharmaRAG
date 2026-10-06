@@ -12,7 +12,7 @@ from pathlib import Path
 
 import httpx
 
-from pharmarag.ingest.http import get_with_retry
+from pharmarag.ingest.http import RateLimiter, get_with_retry
 from pharmarag.sections import PRESCRIPTION_LABEL_LOINC
 
 log = logging.getLogger(__name__)
@@ -21,6 +21,8 @@ log = logging.getLogger(__name__)
 # dailymed timeout. The file lives on a separate host from the REST API.
 RXNORM_MAPPINGS_URL = "https://dailymed-data.nlm.nih.gov/public-release-files/rxnorm_mappings.zip"
 DEFAULT_TIMEOUT_S = 30.0
+# SPEC: DailyMed publishes no rate limit. 10 requests per second is a polite default.
+DEFAULT_MAX_RPS = 10.0
 
 # FDA marketing category codes accepted by the `marketing_category_code` filter.
 MARKETING_CATEGORY_NDA = "C73594"
@@ -53,12 +55,14 @@ class DailyMedClient:
         client: httpx.AsyncClient | None = None,
         retries: int = 2,
         backoff_s: float = 1.0,
+        max_rps: float = DEFAULT_MAX_RPS,
     ) -> None:
         self._base = base_url.rstrip("/")
         self._client = client or httpx.AsyncClient(timeout=timeout_s, follow_redirects=True)
         self._owns_client = client is None
         self._retries = retries
         self._backoff_s = backoff_s
+        self._limiter = RateLimiter(max_rps)
 
     async def aclose(self) -> None:
         if self._owns_client:
@@ -66,7 +70,12 @@ class DailyMedClient:
 
     async def _get(self, url: str, **kwargs) -> httpx.Response:
         return await get_with_retry(
-            self._client, url, retries=self._retries, backoff_s=self._backoff_s, **kwargs
+            self._client,
+            url,
+            retries=self._retries,
+            backoff_s=self._backoff_s,
+            before_request=self._limiter.wait,
+            **kwargs,
         )
 
     async def list_labels(

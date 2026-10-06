@@ -1,0 +1,799 @@
+<?xml version="1.0" encoding="UTF-8"?><?xml-stylesheet href="https://www.accessdata.fda.gov/spl/stylesheet/spl.xsl" type="text/xsl"?>
+<document xmlns="urn:hl7-org:v3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:hl7-org:v3 https://www.accessdata.fda.gov/spl/schema/spl.xsd">
+   <id root="9d9a0953-57dd-439d-a354-826284f56725"/>
+   <code code="34391-3" codeSystem="2.16.840.1.113883.6.1" displayName="HUMAN PRESCRIPTION DRUG LABEL"/>
+   <title>These highlights do not include all the information needed to use QLONILIK safely and effectively. See full prescribing information for QLONILIK. <br/>
+      <br/>QLONILIK<sup>TM</sup> (clonidine hydrochloride) oral solution <br/>Initial U.S. Approval: 1974 </title>
+   <effectiveTime value="20260812"/>
+   <setId root="826de1dc-378e-4c90-86d1-e33f7a4248cd"/>
+   <versionNumber value="1"/>
+   <author>
+      <time/>
+      <assignedEntity>
+         <representedOrganization>
+            <id extension="005224175" root="1.3.6.1.4.1.519.1"/>
+            <name>CMP Pharma, Inc.</name>
+            <assignedEntity>
+               <assignedOrganization/>
+            </assignedEntity>
+         </representedOrganization>
+      </assignedEntity>
+   </author>
+   <component>
+      <structuredBody>
+         <component>
+            <section>
+               <id root="df795518-7dea-436e-815a-98f583fe0eb3"/>
+               <code code="48780-1" codeSystem="2.16.840.1.113883.6.1" displayName="SPL PRODUCT DATA ELEMENTS SECTION"/>
+               <effectiveTime value="20250404"/>
+               <subject>
+                  <manufacturedProduct>
+                     <manufacturedProduct>
+                        <code code="46287-085" codeSystem="2.16.840.1.113883.6.69"/>
+                        <name>QLONILIK</name>
+                        <formCode code="C42986" codeSystem="2.16.840.1.113883.3.26.1.1" displayName="SOLUTION"/>
+                        <asEntityWithGeneric>
+                           <genericMedicine>
+                              <name>clonidine hydrochloride</name>
+                           </genericMedicine>
+                        </asEntityWithGeneric>
+                        <ingredient classCode="ACTIB">
+                           <quantity>
+                              <numerator value="0.05" unit="mg"/>
+                              <denominator value="1" unit="mL"/>
+                           </quantity>
+                           <ingredientSubstance>
+                              <code code="W76I6XXF06" codeSystem="2.16.840.1.113883.4.9"/>
+                              <name> CLONIDINE HYDROCHLORIDE</name>
+                              <activeMoiety>
+                                 <activeMoiety>
+                                    <code code="MN3L5RMN02" codeSystem="2.16.840.1.113883.4.9"/>
+                                    <name> CLONIDINE</name>
+                                 </activeMoiety>
+                              </activeMoiety>
+                           </ingredientSubstance>
+                        </ingredient>
+                        <ingredient classCode="IACT">
+                           <ingredientSubstance>
+                              <code code="A2I8C7HI9T" codeSystem="2.16.840.1.113883.4.9"/>
+                              <name> METHYLPARABEN</name>
+                           </ingredientSubstance>
+                        </ingredient>
+                        <ingredient classCode="IACT">
+                           <ingredientSubstance>
+                              <code code="Z8IX2SC1OH" codeSystem="2.16.840.1.113883.4.9"/>
+                              <name> PROPYLPARABEN</name>
+                           </ingredientSubstance>
+                        </ingredient>
+                        <ingredient classCode="IACT">
+                           <ingredientSubstance>
+                              <code code="96K6UQ3ZD4" codeSystem="2.16.840.1.113883.4.9"/>
+                              <name> SUCRALOSE</name>
+                           </ingredientSubstance>
+                        </ingredient>
+                        <ingredient classCode="IACT">
+                           <ingredientSubstance>
+                              <code code="6DC9Q167V3" codeSystem="2.16.840.1.113883.4.9"/>
+                              <name> PROPYLENE GLYCOL</name>
+                           </ingredientSubstance>
+                        </ingredient>
+                        <ingredient classCode="IACT">
+                           <ingredientSubstance>
+                              <code code="5QWK665956" codeSystem="2.16.840.1.113883.4.9"/>
+                              <name> SODIUM PHOSPHATE, MONOBASIC, DIHYDRATE</name>
+                           </ingredientSubstance>
+                        </ingredient>
+                        <ingredient classCode="IACT">
+                           <ingredientSubstance>
+                              <code code="94255I6E2T" codeSystem="2.16.840.1.113883.4.9"/>
+                              <name> SODIUM PHOSPHATE, DIBASIC, DIHYDRATE</name>
+                           </ingredientSubstance>
+                        </ingredient>
+                        <ingredient classCode="IACT">
+                           <ingredientSubstance>
+                              <code code="059QF0KO0R" codeSystem="2.16.840.1.113883.4.9"/>
+                              <name>WATER</name>
+                           </ingredientSubstance>
+                        </ingredient>
+                        <asContent>
+                           <quantity>
+                              <numerator value="120" unit="mL"/>
+                              <denominator value="1"/>
+                           </quantity>
+                           <containerPackagedProduct>
+                              <code code="46287-085-04" codeSystem="2.16.840.1.113883.6.69"/>
+                              <formCode code="C43169" codeSystem="2.16.840.1.113883.3.26.1.1" displayName="BOTTLE"/>
+                           </containerPackagedProduct>
+                           <subjectOf>
+                              <characteristic classCode="OBS">
+                                 <code code="SPLCMBPRDTP" codeSystem="2.16.840.1.113883.1.11.19255"/>
+                                 <value code="C112160" codeSystem="2.16.840.1.113883.3.26.1.1" displayName="Type 0: Not a Combination Product" xsi:type="CE"/>
+                              </characteristic>
+                           </subjectOf>
+                           <subjectOf>
+                              <marketingAct>
+                                 <code code="C53292" codeSystem="2.16.840.1.113883.3.26.1.1"/>
+                                 <statusCode code="active"/>
+                                 <effectiveTime>
+                                    <low value="20260828"/>
+                                 </effectiveTime>
+                              </marketingAct>
+                           </subjectOf>
+                        </asContent>
+                     </manufacturedProduct>
+                     <subjectOf>
+                        <approval>
+                           <id extension="NDA221094" root="2.16.840.1.113883.3.150"/>
+                           <code code="C73594" codeSystem="2.16.840.1.113883.3.26.1.1" displayName="NDA"/>
+                           <author>
+                              <territorialAuthority>
+                                 <territory>
+                                    <code code="USA" codeSystem="2.16.840.1.113883.5.28"/>
+                                 </territory>
+                              </territorialAuthority>
+                           </author>
+                        </approval>
+                     </subjectOf>
+                     <subjectOf>
+                        <marketingAct>
+                           <code code="C53292" codeSystem="2.16.840.1.113883.3.26.1.1"/>
+                           <statusCode code="active"/>
+                           <effectiveTime>
+                              <low value="20260828"/>
+                           </effectiveTime>
+                        </marketingAct>
+                     </subjectOf>
+                     <subjectOf>
+                        <characteristic>
+                           <code code="SPLCOLOR" codeSystem="2.16.840.1.113883.1.11.19255"/>
+                           <value code="C48325" codeSystem="2.16.840.1.113883.3.26.1.1" displayName="white" xsi:type="CE">
+                              <originalText>clear, colorless solution</originalText>
+                           </value>
+                        </characteristic>
+                     </subjectOf>
+                     <subjectOf>
+                        <characteristic>
+                           <code code="SPLFLAVOR" codeSystem="2.16.840.1.113883.1.11.19255"/>
+                           <value code="C73413" codeSystem="2.16.840.1.113883.3.26.1.1" displayName="RASPBERRY" xsi:type="CE"/>
+                        </characteristic>
+                     </subjectOf>
+                     <consumedIn>
+                        <substanceAdministration>
+                           <routeCode code="C38288" codeSystem="2.16.840.1.113883.3.26.1.1" displayName="ORAL"/>
+                        </substanceAdministration>
+                     </consumedIn>
+                  </manufacturedProduct>
+               </subject>
+            </section>
+         </component>
+         <component>
+            <section ID="S1">
+               <id root="5eeac89a-031e-4d75-82d5-3adcddbcae64"/>
+               <code code="34067-9" codeSystem="2.16.840.1.113883.6.1" displayName="INDICATIONS &amp; USAGE SECTION"/>
+               <title>1 INDICATIONS AND USAGE</title>
+               <text>
+                  <paragraph>QLONILIK<sup>TM</sup> (clonidine hydrochloride) oral solution is indicated for the treatment of hypertension, to lower blood pressure in adults. Lowering blood pressure reduces the risk of fatal and nonfatal cardiovascular events, primarily strokes and myocardial infarctions. These benefits have been seen in controlled trials of antihypertensive drugs from a wide variety of pharmacologic classes including this drug.</paragraph>
+                  <paragraph>Control of high blood pressure should be part of comprehensive cardiovascular risk management, including, as appropriate, lipid control, diabetes management, antithrombotic therapy, smoking cessation, exercise, and limited sodium intake. Many patients will require more than one drug to achieve blood pressure goals. For specific advice on goals and management, see published guidelines, such as those of the American College of Cardiology/American Heart Association (ACC/AHA). </paragraph>
+                  <paragraph>Numerous antihypertensive drugs, from a variety of pharmacologic classes and with different mechanisms of action, have been shown in randomized controlled trials to reduce cardiovascular morbidity and mortality, and it can be concluded that it is blood pressure reduction, and not some other pharmacologic property of the drugs, that is largely responsible for those benefits. The largest and most consistent cardiovascular outcome benefit has been a reduction in the risk of stroke, but reductions in myocardial infarction and cardiovascular mortality also have been seen regularly.</paragraph>
+                  <paragraph>Elevated systolic or diastolic pressure causes increased cardiovascular risk, and the absolute risk increase per mmHg is greater at higher blood pressures, so that even modest reductions of severe hypertension can provide substantial benefit. Relative risk reduction from blood pressure reduction is similar across populations with varying absolute risk, so the absolute benefit is greater in patients who are at higher risk independent of their hypertension (for example, patients with diabetes or hyperlipidemia), and such patients would be expected to benefit from more aggressive treatment to a lower blood pressure goal.</paragraph>
+                  <paragraph>Some antihypertensive drugs have smaller blood pressure effects (as monotherapy) in black patients, and many antihypertensive drugs have additional approved indications and effects (e.g., on angina, heart failure, or diabetic kidney disease). These considerations may guide selection of therapy.</paragraph>
+                  <paragraph>QLONILIK may be employed alone or concomitantly with other antihypertensive agents.</paragraph>
+               </text>
+               <effectiveTime value="20260404"/>
+               <excerpt>
+                  <highlight>
+                     <text>
+                        <paragraph>QLONILIK is a central alpha-2 adrenergic agonist indicated for the treatment of hypertension, to lower blood pressure in adults. Lowering blood pressure reduces the risk of fatal and nonfatal cardiovascular events, primarily strokes and myocardial infarctions. It may be employed alone or concomitantly with other antihypertensive agents. (<linkHtml href="#S1">1</linkHtml>)</paragraph>
+                     </text>
+                  </highlight>
+               </excerpt>
+            </section>
+         </component>
+         <component>
+            <section ID="e8f267ad-bb8c-4f9b-82c6-801d409a72bc">
+               <id root="1e7758c6-6287-413b-aa2b-cfafa0a0c3d7"/>
+               <code code="34068-7" codeSystem="2.16.840.1.113883.6.1" displayName="DOSAGE &amp; ADMINISTRATION SECTION"/>
+               <effectiveTime value="20260812"/>
+               <excerpt>
+                  <highlight>
+                     <text>
+                        <list listType="unordered" styleCode="Disc">
+                           <item>Dosage should be individualized based on response. The recommended initial dosage is 0.1 mg orally twice daily (morning and bedtime). (<linkHtml href="#S2">2</linkHtml>)</item>
+                           <item>Titrate in increments of 0.1 mg per day at weekly intervals as necessary. Doses should be taken orally twice a day, with either an equal or higher split dosage taken at bedtime. (<linkHtml href="#S2">2</linkHtml>)</item>
+                        </list>
+                     </text>
+                  </highlight>
+               </excerpt>
+            </section>
+         </component>
+         <component>
+            <section ID="S2">
+               <id root="cf3120a5-3938-4127-be72-7b3317bf48ae"/>
+               <code code="42229-5" codeSystem="2.16.840.1.113883.6.1" displayName="SPL UNCLASSIFIED SECTION"/>
+               <title>2 DOSAGE AND ADMINISTRATION</title>
+               <text/>
+               <effectiveTime value="20260421"/>
+               <component>
+                  <section ID="S2.1">
+                     <id root="2df830ee-1892-4ef9-bfbb-a549bb3a01b8"/>
+                     <code code="42229-5" codeSystem="2.16.840.1.113883.6.1" displayName="SPL UNCLASSIFIED SECTION"/>
+                     <title>2.1 Recommended Dosage</title>
+                     <text>
+                        <paragraph>Dosage should be individualized based on response. The recommended initial dosage is 0.1 mg orally twice daily (morning and bedtime).</paragraph>
+                        <paragraph>Dosage can be titrated in increments of 0.1 mg per day at weekly intervals as necessary. Doses should be taken orally twice a day, with either an equal or higher split dosage taken at bedtime. The therapeutic doses most commonly employed have ranged from 0.2 mg to 0.6 mg per day, given in divided doses. Maximum recommended daily dose is 2.4 mg, but doses as high as this have rarely been employed.</paragraph>
+                     </text>
+                     <effectiveTime value="20260421"/>
+                  </section>
+               </component>
+               <component>
+                  <section ID="S2.2">
+                     <id root="cb878a6e-1440-4dc4-bbd5-1f430cf2cf51"/>
+                     <code code="42229-5" codeSystem="2.16.840.1.113883.6.1" displayName="SPL UNCLASSIFIED SECTION"/>
+                     <title>2.2 Administration Instructions</title>
+                     <text>
+                        <paragraph>A calibrated measuring device, such as an oral dosing syringe or oral dosing cup, is recommended to measure and deliver the prescribed dose accurately. A household teaspoon or tablespoon is not an adequate measuring device.</paragraph>
+                        <paragraph> Administer QLONILIK with or without food <content styleCode="italics">[see <linkHtml href="#S12.3"> Clinical Pharmacology (12.3)</linkHtml>].</content>
+                        </paragraph>
+                        <paragraph> QLONILIK may be administered up to 4 hours before surgery and resume as soon as possible post-operatively <content styleCode="italics">[see <linkHtml href="#S5.2"> Warnings and Precautions (5.2)</linkHtml>].</content>
+                        </paragraph>
+                     </text>
+                     <effectiveTime value="20260421"/>
+                  </section>
+               </component>
+            </section>
+         </component>
+         <component>
+            <section ID="S3">
+               <id root="867708f9-14f8-4e6d-9b66-46e42471f9b7"/>
+               <code code="43678-2" codeSystem="2.16.840.1.113883.6.1" displayName="DOSAGE FORMS &amp; STRENGTHS SECTION"/>
+               <title>3 DOSAGE FORMS AND STRENGTHS</title>
+               <text>
+                  <paragraph>Oral Solution: 0.05 mg/mL clonidine hydrochloride; clear colorless solution with a raspberry flavor.</paragraph>
+               </text>
+               <effectiveTime value="20250404"/>
+               <excerpt>
+                  <highlight>
+                     <text>
+                        <paragraph>Oral Solution: 0.05 mg/mL (<linkHtml href="#S3">3</linkHtml>)</paragraph>
+                     </text>
+                  </highlight>
+               </excerpt>
+            </section>
+         </component>
+         <component>
+            <section ID="S4">
+               <id root="7aaf6863-b369-48df-a9c2-289605bfce9b"/>
+               <code code="34070-3" codeSystem="2.16.840.1.113883.6.1" displayName="CONTRAINDICATIONS SECTION"/>
+               <title>4 CONTRAINDICATIONS</title>
+               <text>
+                  <paragraph>QLONILIK is contraindicated in patients with known hypersensitivity to clonidine.</paragraph>
+               </text>
+               <effectiveTime value="20250404"/>
+               <excerpt>
+                  <highlight>
+                     <text>
+                        <paragraph>QLONILIK should not be used in patients with known hypersensitivity to clonidine. (<linkHtml href="#S4">4</linkHtml>)</paragraph>
+                     </text>
+                  </highlight>
+               </excerpt>
+            </section>
+         </component>
+         <component>
+            <section ID="S5">
+               <id root="b6152b1c-82e6-456f-ae7a-44cf4c2fe0a4"/>
+               <code code="43685-7" codeSystem="2.16.840.1.113883.6.1" displayName="WARNINGS AND PRECAUTIONS SECTION"/>
+               <title>5 WARNINGS AND PRECAUTIONS</title>
+               <effectiveTime value="20250404"/>
+               <excerpt>
+                  <highlight>
+                     <text>
+                        <list listType="unordered" styleCode="Disc">
+                           <item>QLONILIK can cause bradycardia, cardiac conduction abnormalities, and symptomatic hypotension. (<linkHtml href="#S5.1">5.1</linkHtml>)</item>
+                           <item>Abrupt discontinuation of QLONILIK can cause rebound hypertension with elevated plasma catecholamines, especially with higher doses or concomitant beta-blocker use. Symptoms of abrupt discontinuation include tachycardia, rapid blood pressure elevation, headache, nervousness, and agitation. (<linkHtml href="#S5.2">5.2</linkHtml>)</item>
+                           <item>QLONILIK may cause sedation. Advise patients who engage in potentially hazardous activities, such as operating machinery or driving, of possible sedative effects. Avoid use with other central nervous system (CNS) depressants (<linkHtml href="#S5.3">5.3</linkHtml>)</item>
+                        </list>
+                     </text>
+                  </highlight>
+               </excerpt>
+               <component>
+                  <section ID="S5.1">
+                     <id root="25c9b63a-5d3a-4994-9f5d-d27f40009cd1"/>
+                     <code code="42229-5" codeSystem="2.16.840.1.113883.6.1" displayName="SPL UNCLASSIFIED SECTION"/>
+                     <title>5.1 Bradycardia, Cardiac Conduction Abnormalities, and Symptomatic Hypotension</title>
+                     <text>
+                        <paragraph>Treatment with QLONILIK can cause bradycardia, cardiac conduction abnormalities, and symptomatic hypotension <content styleCode="italics">[see <linkHtml href="#S6"> Adverse Reactions (6.1)</linkHtml>].</content>The sympatholytic action of clonidine may worsen sinus node dysfunction and atrioventricular (AV) block, especially in patients taking other sympatholytic drugs. There have been post-marketing reports of patients with conduction abnormalities and/or taking other sympatholytic drugs who developed severe bradycardia requiring intravenous (IV) atropine, IV isoproterenol, and temporary cardiac pacing while taking clonidine.</paragraph>
+                        <paragraph>Titrate QLONILIK slowly in patients with a history of syncope, cardiac conduction abnormalities, and those with underlying conditions that may be worsened by hypotension and bradycardia; e.g., heart block, bradycardia, cardiovascular disease, vascular disease, cerebrovascular disease, or chronic renal failure. Monitor blood pressure and heart rate and adjust dosages accordingly in patients treated concomitantly with antihypertensives or other drugs that can reduce blood pressure or heart rate or increase the risk of syncope. Avoid the use of drugs that can affect the sinus node function or AV node conduction <content styleCode="italics">[see <linkHtml href="#S7"> Drug Interactions (7)</linkHtml>].</content>
+                        </paragraph>
+                        <paragraph>In patients who have a history of syncope or may have a condition that predisposes them to syncope, such as symptomatic hypotension, bradycardia, or dehydration, advise patients to avoid becoming dehydrated or overheated.</paragraph>
+                     </text>
+                     <effectiveTime value="20250404"/>
+                  </section>
+               </component>
+               <component>
+                  <section ID="S5.2">
+                     <id root="16fda356-4be5-4c8d-a211-e80cdc009d40"/>
+                     <code code="42229-5" codeSystem="2.16.840.1.113883.6.1" displayName="SPL UNCLASSIFIED SECTION"/>
+                     <title>5.2 Rebound Hypertension</title>
+                     <text>
+                        <paragraph>Abrupt discontinuation of QLONILIK can cause rebound hypertension with elevated plasma catecholamines, especially with higher doses or concomitant beta-blocker use. Symptoms of abrupt discontinuation include tachycardia, rapid blood pressure elevation, headache, nervousness, and agitation. Serious cases of hypertensive encephalopathy, stroke, and death have been reported after abrupt clonidine discontinuation. To reduce the risk of rebound hypertension, taper clonidine gradually over 2-4 days. If rebound hypertension occurs, reverse hypertensive crisis with oral clonidine or IV phentolamine. When discontinuing concurrent beta-blocker therapy, withdraw the beta-blocker several days before beginning clonidine taper.</paragraph>
+                        <paragraph>Administration of QLONILIK should be continued up to 4 hours before surgery and resumed as soon as possible thereafter. Blood pressure should be carefully monitored during surgery and additional measures to control blood pressure should be available if required.</paragraph>
+                     </text>
+                     <effectiveTime value="20250404"/>
+                  </section>
+               </component>
+               <component>
+                  <section ID="S5.3">
+                     <id root="14bf92fd-d0de-4417-b1f4-83e5455e2ce1"/>
+                     <code code="42229-5" codeSystem="2.16.840.1.113883.6.1" displayName="SPL UNCLASSIFIED SECTION"/>
+                     <title>5.3 Sedation and Somnolence</title>
+                     <text>
+                        <paragraph>QLONILIK may cause sedation. Patients who engage in potentially hazardous activities, such as operating machinery or driving, should be advised of possible sedative effects of clonidine. Avoid use with other central nervous system (CNS) depressants, as this combination may cause excessive drowsiness or sedation <content styleCode="italics">[see <linkHtml href="#S7"> Drug Interactions (7)</linkHtml>].</content>
+                        </paragraph>
+                     </text>
+                     <effectiveTime value="20250404"/>
+                  </section>
+               </component>
+            </section>
+         </component>
+         <component>
+            <section ID="S6">
+               <id root="c4c259ea-71fe-4351-b473-d13ffec68739"/>
+               <code code="34084-4" codeSystem="2.16.840.1.113883.6.1" displayName="ADVERSE REACTIONS SECTION"/>
+               <title>6 ADVERSE REACTIONS</title>
+               <text>
+                  <paragraph>Because clinical trials are conducted under widely varying conditions, adverse reaction rates observed in the clinical trials of a drug cannot be directly compared to rates in the clinical trials of another drug and may not reflect the rates observed in practice. </paragraph>
+                  <paragraph> Most adverse effects are mild and tend to diminish with continued therapy. The most frequent (which appear to be dose-related) are dry mouth (40%), drowsiness (33%); dizziness (16%); constipation and sedation (10%, respectively). </paragraph>
+                  <paragraph>The following less frequent adverse experiences have also been reported in patients receiving clonidine hydrochloride tablets, but in many cases patients were receiving concomitant medication and a causal relationship has not been established.</paragraph>
+                  <paragraph>
+                     <content styleCode="Italics">Body as a Whole:</content> Fatigue, headache, pallor, malaise, weakness, and withdrawal syndrome.</paragraph>
+                  <paragraph>
+                     <content styleCode="Italics">Cardiovascular:</content> Bradycardia, congestive heart failure, electrocardiographic abnormalities (i.e., sinus node arrest, junctional bradycardia, high degree AV block and arrhythmias), orthostatic symptoms, palpitations, syncope, and tachycardia. </paragraph>
+                  <paragraph>
+                     <content styleCode="Italics">Central Nervous System:</content> Agitation, anxiety, delirium, hallucinations (including visual and auditory), insomnia, mental depression, behavioral changes, paresthesia, sleep disorder, and vivid dreams or nightmares.</paragraph>
+                  <paragraph>
+                     <content styleCode="Italics">Gastrointestinal:</content> Anorexia, constipation, nausea, and vomiting.</paragraph>
+                  <paragraph>
+                     <content styleCode="Italics">Hematologic:</content> Thrombocytopenia.</paragraph>
+                  <paragraph>
+                     <content styleCode="Italics">Hepatobiliary:</content> Hepatitis and transaminitis.</paragraph>
+                  <paragraph>
+                     <content styleCode="Italics">Hypersensitivity:</content> Angioedema, hives, pruritus, rash, and urticaria.</paragraph>
+                  <paragraph>
+                     <content styleCode="Italics">Metabolic:</content> Transient elevation of blood glucose or serum creatine phosphokinase, and weight gain.</paragraph>
+                  <paragraph>
+                     <content styleCode="Italics">Musculoskeletal:</content> Leg cramps and muscle or joint pain.</paragraph>
+                  <paragraph>
+                     <content styleCode="Italics">Ophthalmological:</content> Accommodation disorder, blurred vision, burning of the eyes, decreased lacrimation, and dryness of eyes.</paragraph>
+                  <paragraph>
+                     <content styleCode="Italics">Renal and Urinary:</content> Difficulty in micturition, nocturia, and urinary retention.</paragraph>
+                  <paragraph>Reproductive System and Breast Disorders: Gynecomastia. erectile dysfunction, and loss of libido.</paragraph>
+                  <paragraph>
+                     <content styleCode="Italics">Vascular:</content> Raynaud’s phenomenon.</paragraph>
+               </text>
+               <effectiveTime value="20250925"/>
+               <excerpt>
+                  <highlight>
+                     <text>
+                        <paragraph>Most common adverse reactions are dry mouth, drowsiness, dizziness, constipation and sedation. (<linkHtml href="#S6">6</linkHtml>) </paragraph>
+                        <br/>
+                        <paragraph>
+                           <content styleCode="bold">To report SUSPECTED ADVERSE REACTIONS, contact CMP Pharma, Inc. at 1-844-321-1443 or FDA at 1-800-FDA-1088 or www.fda.gov/medwatch.
+ </content>
+                        </paragraph>
+                     </text>
+                  </highlight>
+               </excerpt>
+            </section>
+         </component>
+         <component>
+            <section ID="S7">
+               <id root="847afd7e-04f9-43cf-9639-34300dc08695"/>
+               <code code="34073-7" codeSystem="2.16.840.1.113883.6.1" displayName="DRUG INTERACTIONS SECTION"/>
+               <title>7 DRUG INTERACTIONS</title>
+               <text>
+                  <paragraph>The interactions of QLONILIK with co-administration of other drugs have not been studied. The drug interaction data provided in this section is based on oral immediate-release clonidine formulations. Table 1 displays clinically important drug interactions with QLONILIK.</paragraph>
+                  <br/>
+                  <paragraph>Table 1: Clinically Important Drug Interactions with QLONILIK.</paragraph>
+                  <table cellspacing="0" cellpadding="0" border="0">
+                     <tbody>
+                        <tr styleCode="Botrule">
+                           <td styleCode="Lrule Rrule" colspan="2" valign="middle">Antihypertensive drugs</td>
+                        </tr>
+                        <tr styleCode="Botrule">
+                           <td styleCode="Lrule Rrule" valign="middle">
+                              <content styleCode="italics">Clinical Implication</content>
+                              <br/>
+                           </td>
+                           <td styleCode="Rrule" align="justify" valign="middle">
+                              <br/>Concomitant use of antihypertensive drugs with clonidine potentiates the hypotensive effects of clonidine <content styleCode="italics">[see <linkHtml href="#S5.1"> Warnings and Precautions (5.1)</linkHtml>].</content>
+                           </td>
+                        </tr>
+                        <tr styleCode="Botrule">
+                           <td styleCode="Lrule Rrule" valign="middle">
+                              <content styleCode="italics">Intervention</content>
+                              <br/>
+                           </td>
+                           <td styleCode="Rrule" align="justify" valign="middle">
+                              <br/>Monitor blood pressure and heart rate, and adjust dosage of QLONILIK accordingly in patients treated concomitantly with antihypertensives</td>
+                        </tr>
+                        <tr styleCode="Botrule">
+                           <td styleCode="Lrule Rrule" colspan="2" valign="middle">CNS depressants<br/>
+                           </td>
+                        </tr>
+                        <tr styleCode="Botrule">
+                           <td styleCode="Lrule Rrule" valign="middle">
+                              <content styleCode="italics">Clinical Implication</content>
+                              <br/>
+                           </td>
+                           <td styleCode="Rrule" valign="middle">Concomitant use of CNS depressants with clonidine potentiates the sedating effects <content styleCode="italics">[see <linkHtml href="#S5.3"> Warnings and Precautions (5.3)</linkHtml>].</content>
+                              <br/>
+                           </td>
+                        </tr>
+                        <tr styleCode="Botrule">
+                           <td styleCode="Lrule Rrule" valign="middle">
+                              <content styleCode="italics">Intervention</content>
+                              <br/>
+                           </td>
+                           <td styleCode="Rrule" align="justify" valign="middle">
+                              <br/>Avoid concomitant use of CNS depressants with QLONILIK.</td>
+                        </tr>
+                        <tr styleCode="Botrule">
+                           <td styleCode="Lrule Rrule" colspan="2" align="justify" valign="middle">Drugs that affect sinus node function or AV node conduction (e.g., digitalis, calcium channel blockers, beta blockers)</td>
+                        </tr>
+                        <tr styleCode="Botrule">
+                           <td styleCode="Lrule Rrule" valign="middle">
+                              <content styleCode="italics">Clinical Implication</content>
+                              <br/>
+                           </td>
+                           <td styleCode="Rrule" valign="middle">Concomitant use of drugs that affect sinus node function or AV node conduction with clonidine potentiate bradycardia and risk of AV block<content styleCode="italics">[see <linkHtml href="#S5.1"> Warnings and Precautions (5.1)</linkHtml>].</content>
+                              <br/>
+                           </td>
+                        </tr>
+                        <tr styleCode="Botrule">
+                           <td styleCode="Lrule Rrule" valign="middle">
+                              <content styleCode="italics">Intervention</content>
+                              <br/>
+                           </td>
+                           <td styleCode="Rrule" valign="middle">Avoid concomitant use of drugs that affect sinus node function or AV node conduction with QLONILIK.<br/>
+                           </td>
+                        </tr>
+                        <tr styleCode="Botrule">
+                           <td styleCode="Lrule Rrule" colspan="2" valign="middle">Tricyclic antidepressants</td>
+                        </tr>
+                        <tr styleCode="Botrule">
+                           <td styleCode="Lrule Rrule" valign="middle">
+                              <content styleCode="italics">Clinical Implication</content>
+                              <br/>
+                           </td>
+                           <td styleCode="Rrule" valign="middle">Concomitant use of tricyclic antidepressants with clonidine can increase blood pressure and may counteract the hypotensive effects of clonidine.</td>
+                        </tr>
+                        <tr>
+                           <td styleCode="Lrule Rrule" valign="middle">
+                              <content styleCode="italics">Intervention</content>
+                              <br/>
+                           </td>
+                           <td styleCode="Rrule" valign="middle">Monitor blood pressure and adjust dosage of QLONILIK as needed.</td>
+                        </tr>
+                     </tbody>
+                  </table>
+               </text>
+               <effectiveTime value="20260421"/>
+               <excerpt>
+                  <highlight>
+                     <text>
+                        <list listType="unordered" styleCode="Disc">
+                           <item>Concomitant use of antihypertensive drugs with clonidine potentiates the hypotensive effects of clonidine.(<linkHtml href="#S7">7</linkHtml>)</item>
+                           <item>Concomitant use of CNS depressants with clonidine potentiates the sedating effects. (<linkHtml href="#S7">7</linkHtml>)</item>
+                           <item>Concomitant use of drugs that affect sinus node function or AV node conduction with clonidine potentiate bradycardia and risk of AV block. (<linkHtml href="#S7">7</linkHtml>)</item>
+                           <item>Concomitant use of tricyclic antidepressants with clonidine can increase blood pressure and may counteract the hypotensive effects of clonidine. (<linkHtml href="#S7">7</linkHtml>)</item>
+                        </list>
+                     </text>
+                  </highlight>
+               </excerpt>
+            </section>
+         </component>
+         <component>
+            <section ID="S8">
+               <id root="4369f01c-430a-47a0-815c-8f08fff4a5fc"/>
+               <code code="43684-0" codeSystem="2.16.840.1.113883.6.1" displayName="USE IN SPECIFIC POPULATIONS SECTION"/>
+               <title>8 USE IN SPECIFIC POPULATIONS</title>
+               <effectiveTime value="20260404"/>
+               <component>
+                  <section ID="S8.1">
+                     <id root="63047d2b-f65c-4ee4-b352-c5443334f59e"/>
+                     <code code="42228-7" codeSystem="2.16.840.1.113883.6.1" displayName="PREGNANCY SECTION"/>
+                     <title>8.1 Pregnancy</title>
+                     <effectiveTime value="20260404"/>
+                     <component>
+                        <section>
+                           <id root="548eceef-5af9-4613-8ee5-8931809a15f7"/>
+                           <code code="42229-5" codeSystem="2.16.840.1.113883.6.1" displayName="SPL UNCLASSIFIED SECTION"/>
+                           <text>
+                              <paragraph>
+                                 <content styleCode="underline">Risk Summary</content>
+                                 <br/>
+                              Prolonged experience with clonidine in pregnant women over several decades, based on published literature, including controlled trials, a retrospective cohort study and case reports, have not identified a drug associated risk of major birth defects, miscarriage, adverse maternal or fetal outcomes. In animal embryofetal studies, increased resorptions were seen in rats and mice administered oral clonidine hydrochloride from implantation through organogenesis at approximately 2 times the maximum recommended human dose (MRHD) (see <linkHtml href="#S8.1">Data</linkHtml>).<br/>
+The estimated background risk of major birth defects and miscarriage for the indicated population is unknown. All pregnancies have a background risk of birth defect, loss, or other adverse outcomes. In the U.S. general population, the estimated background risk of major birth defects and miscarriages in clinically recognized pregnancies is 2 to 4% and 15 to 20%, respectively. </paragraph>
+                              <paragraph>
+                                 <content styleCode="underline">Data</content>
+                                 <br/>
+                                 <content styleCode="italics">Animal Data</content>
+                                 <br/>
+Oral administration of clonidine hydrochloride to pregnant rabbits during the period of embryo/fetal organogenesis at doses of up to 0.08 mg/kg/day (approximately 0.6 times the oral maximum recommended human dose [MRHD] of 2.4 mg/day on a mg/m<sup>2</sup> basis) produced no developmental effects. In pregnant rats, however, doses as low as 0.015 mg/kg/day (~1/16 the oral MRHD on a mg/m<sup>2</sup> basis) were associated with increased resorptions in a study in which dams were treated continuously from 2 months prior to mating and throughout gestation. Increased resorptions were not associated with treatment at the same or at higher dose levels when treatment of the dams was restricted to gestation days 6-15. Increases in resorptions were observed in both rats and mice at 0.5 mg/kg/day (2 and 1 times the MRHD on a mg/m<sup>2</sup> basis in rats and mice, respectively) or higher when the animals were treated on gestation days 1-14; 0.5 mg/kg/day was the lowest dose employed in this study.</paragraph>
+                           </text>
+                           <effectiveTime value="20250404"/>
+                        </section>
+                     </component>
+                  </section>
+               </component>
+               <component>
+                  <section ID="S8.2">
+                     <id root="f0663976-82d4-4f08-9964-92820f0a7539"/>
+                     <code code="77290-5" codeSystem="2.16.840.1.113883.6.1" displayName="LACTATION SECTION"/>
+                     <title>8.2 Lactation</title>
+                     <effectiveTime value="20250404"/>
+                     <component>
+                        <section>
+                           <id root="ce18a10a-a055-4865-ad10-9ca20c755f42"/>
+                           <code code="42229-5" codeSystem="2.16.840.1.113883.6.1" displayName="SPL UNCLASSIFIED SECTION"/>
+                           <text>
+                              <paragraph>Based on published lactation studies, clonidine hydrochloride is present in human milk at relative infant doses ranging from 4.1 to 8.4% of the maternal weight-adjusted dosage. Although in most cases, there were no reported adverse effects in breastfed infants exposed to clonidine, there is one case report of sedation, hypotonia, and apnea in an infant exposed to clonidine through breast milk. If an infant is exposed to clonidine hydrochloride through breastmilk, monitor for symptoms of hypotension and bradycardia, such as sedation, lethargy, tachypnea and poor feeding (<content styleCode="italics">see <linkHtml href="#S8.2">Clinical Considerations</linkHtml>
+                                 </content>). The developmental and health benefits of breastfeeding should be considered along with the mother’s clinical need for QLONILIK and any potential adverse effects on the breastfed child from clonidine or from the underlying maternal condition. Exercise caution when QLONILIK is administered to a nursing woman.</paragraph>
+                              <paragraph>
+                                 <content styleCode="underline">Clinical Considerations</content>
+                                 <br/>
+                        Monitor breastfeeding infants exposed to QLONILIK through breast milk for symptoms of hypotension and/or bradycardia such as sedation, lethargy, tachypnea, and poor feeding.
+</paragraph>
+                           </text>
+                           <effectiveTime value="20260404"/>
+                        </section>
+                     </component>
+                  </section>
+               </component>
+               <component>
+                  <section ID="S8.3">
+                     <id root="ee3ad66b-23ed-4397-8ceb-95004ad27fb5"/>
+                     <code code="34081-0" codeSystem="2.16.840.1.113883.6.1" displayName="PEDIATRIC USE SECTION"/>
+                     <title>8.4 Pediatric Use</title>
+                     <effectiveTime value="20260123"/>
+                     <component>
+                        <section>
+                           <id root="ac33e7c3-1aba-4228-9550-37d495d96c72"/>
+                           <code code="42229-5" codeSystem="2.16.840.1.113883.6.1" displayName="SPL UNCLASSIFIED SECTION"/>
+                           <text>
+                              <paragraph>Safety and effectiveness in pediatric patients have not been established.</paragraph>
+                           </text>
+                           <effectiveTime value="20250404"/>
+                        </section>
+                     </component>
+                  </section>
+               </component>
+               <component>
+                  <section ID="S8.4">
+                     <id root="fd7d5c45-d783-4d0f-9af1-4b1754d77be2"/>
+                     <code code="34081-0" codeSystem="2.16.840.1.113883.6.1" displayName="PEDIATRIC USE SECTION"/>
+                     <title>8.6 Renal Impairment</title>
+                     <text>
+                        <paragraph>The half-life of clonidine increases in patients with renal impairment <content styleCode="italics">[see <linkHtml href="#S12.3"> Clinical Pharmacology (12.3)</linkHtml>].</content> Patients with renal impairment may start from a lower dose. Since only a minimal amount of clonidine is removed during routine hemodialysis, there is no need to give supplemental QLONILIK following dialysis.</paragraph>
+                     </text>
+                     <effectiveTime value="20250404"/>
+                  </section>
+               </component>
+            </section>
+         </component>
+         <component>
+            <section ID="S10">
+               <id root="fd6cec37-e07f-489e-b86b-66ea69145433"/>
+               <code code="34088-5" codeSystem="2.16.840.1.113883.6.1" displayName="OVERDOSAGE SECTION"/>
+               <title>10 OVERDOSAGE</title>
+               <text>
+                  <paragraph>Hypertension may develop early and may be followed by hypotension, bradycardia, respiratory depression, hypothermia, drowsiness, decreased or absent reflexes, weakness, irritability and miosis. The frequency of CNS depression may be higher in pediatric patients than adults. Large overdoses may result in reversible cardiac conduction defects or dysrhythmias, apnea, coma and seizures. Signs and symptoms of overdose generally occur within 30 minutes to two hours after exposure. Dialysis is not likely to significantly enhance the elimination of clonidine.</paragraph>
+               </text>
+               <effectiveTime value="20250404"/>
+            </section>
+         </component>
+         <component>
+            <section ID="S11">
+               <id root="938f0aae-5546-4507-aa6b-c06a32e9a5d9"/>
+               <code code="34089-3" codeSystem="2.16.840.1.113883.6.1" displayName="DESCRIPTION SECTION"/>
+               <title>11 DESCRIPTION</title>
+               <text>
+                  <paragraph>QLONILIK contains clonidine, a central alpha-2 adrenergic agonist, available as a solution for oral administration. Clonidine hydrochloride is an imidazoline derivative and exists as a mesomeric compound. The chemical name is 2-(2,6-dichlorophenylamino)-2-imidazoline hydrochloride. The molecular formula for clonidine hydrochloride is C<sub>9</sub>H<sub>9</sub>Cl<sub>2</sub>N<sub>3</sub> ·HCl and the molecular weight is 266.55 g/mol. The following is the structural formula:</paragraph>
+                  <renderMultiMedia referencedObject="MM1"/>
+                  <paragraph>Clonidine hydrochloride USP is an odorless, bitter, white, crystalline substance soluble in water and alcohol.</paragraph>
+                  <paragraph>QLONILIK<sup>TM</sup> (clonidine hydrochloride) Oral Solution is a clear, colorless solution for oral administration. Each mL contains 0.05 mg clonidine hydrochloride (equivalent to 0.043 mg clonidine) and the following inactive ingredients: methylparaben, propylene glycol, propylparaben, purified water, raspberry flavor, sodium phosphate dibasic dihydrate, sodium phosphate monobasic dihydrate, and sucralose.</paragraph>
+               </text>
+               <effectiveTime value="20250404"/>
+               <component>
+                  <observationMedia ID="MM1">
+                     <text>Chemical Structure</text>
+                     <value xsi:type="ED" mediaType="image/jpeg">
+                        <reference value="qlonilik-01.jpg"/>
+                     </value>
+                  </observationMedia>
+               </component>
+            </section>
+         </component>
+         <component>
+            <section ID="S12">
+               <id root="33245875-1cab-4cdc-a0da-6d98e1afeba9"/>
+               <code code="34090-1" codeSystem="2.16.840.1.113883.6.1" displayName="CLINICAL PHARMACOLOGY SECTION"/>
+               <title>12 CLINICAL PHARMACOLOGY</title>
+               <effectiveTime value="20250404"/>
+               <component>
+                  <section ID="S12.1">
+                     <id root="e3c17614-232a-4f33-9f34-98736e155bf7"/>
+                     <code code="43679-0" codeSystem="2.16.840.1.113883.6.1" displayName="MECHANISM OF ACTION SECTION"/>
+                     <title>12.1 Mechanism of Action</title>
+                     <text>
+                        <paragraph>Clonidine stimulates alpha-adrenoreceptors in the brain stem. This action results in reduced sympathetic outflow from the central nervous system and in decreases in peripheral resistance, renal vascular resistance, heart rate, and blood pressure.</paragraph>
+                     </text>
+                     <effectiveTime value="20250404"/>
+                  </section>
+               </component>
+               <component>
+                  <section ID="S12.2">
+                     <id root="9161857a-d607-4a32-9cde-c6f7d0dad757"/>
+                     <code code="43681-6" codeSystem="2.16.840.1.113883.6.1" displayName="PHARMACODYNAMICS SECTION"/>
+                     <title>12.2 Pharmacodynamics</title>
+                     <effectiveTime value="20250404"/>
+                     <component>
+                        <section>
+                           <id root="d596e79c-6a69-4b96-9ef9-bb6ba46979c3"/>
+                           <code code="42229-5" codeSystem="2.16.840.1.113883.6.1" displayName="SPL UNCLASSIFIED SECTION"/>
+                           <title/>
+                           <text>
+                              <paragraph>The patient's blood pressure declines within 30 to 60 minutes after an oral dose, the maximum decrease occurring within 2 to 4 hours. Renal blood flow and glomerular filtration rate remain essentially unchanged. Normal postural reflexes are intact; therefore, orthostatic symptoms are mild and infrequent. The antihypertensive effect is reached at plasma concentrations between about 0.2 and 2.0 ng/mL in patients with normal excretory function. A further rise in the plasma levels will not enhance the antihypertensive effect.</paragraph>
+                              <paragraph>Acute studies with clonidine hydrochloride in humans have demonstrated a moderate reduction (15% to 20%) of cardiac output in the supine position with no change in the peripheral resistance: at a 45° tilt there is a smaller reduction in cardiac output and a decrease of peripheral resistance. During long term therapy, cardiac output tends to return to control values, while peripheral resistance remains decreased. Slowing of the pulse rate has been observed in most patients given clonidine, but the drug does not alter normal hemodynamic response to exercise.
+Tolerance to the antihypertensive effect may develop in some patients, necessitating a reevaluation of therapy.</paragraph>
+                              <paragraph>Other studies in patients have provided evidence of a reduction in plasma renin activity and in the excretion of aldosterone and catecholamines. The exact relationship of these pharmacologic actions to the antihypertensive effect of clonidine has not been fully elucidated.</paragraph>
+                           </text>
+                           <effectiveTime value="20250404"/>
+                        </section>
+                     </component>
+                  </section>
+               </component>
+               <component>
+                  <section ID="S12.3">
+                     <id root="143e3915-f87d-427f-8ff6-9bb18e949c48"/>
+                     <code code="43682-4" codeSystem="2.16.840.1.113883.6.1" displayName="PHARMACOKINETICS SECTION"/>
+                     <title>12.3	Pharmacokinetics</title>
+                     <text>
+                        <paragraph>The pharmacokinetics of clonidine is dose-proportional in the range of 0.1 to 0.6 mg.</paragraph>
+                        <paragraph>
+                           <content styleCode="underline">Absorption</content>
+                           <br/> The absolute bioavailability of clonidine following oral administration is 70% to 80%. The median (range) time to peak plasma concentrations (Tmax) following oral administration of 50 µg/mL QLONILIK solution under fasting condition was 2 hours (0.75 hour to 8 hours).<br/>
+                        </paragraph>
+                        <paragraph>
+                           <content styleCode="italics">Effect of food</content>
+                           <br/> Food had no effect on plasma exposure of clonidine after administration of QLONILIK.<br/>
+                        </paragraph>
+                        <paragraph>
+                           <content styleCode="underline">Distribution</content>
+                           <br/> Following intravenous administration, clonidine displays biphasic disposition with a distribution half-life of about 20 minutes. Clonidine crosses the placental barrier. <br/>
+                        </paragraph>
+                        <paragraph>
+                           <content styleCode="underline">Elimination</content>
+                           <br/> Elimination half-life ranges from 12 to 16 hour.<br/>
+                        </paragraph>
+                        <paragraph>
+                           <content styleCode="italics">Metabolism</content>
+                           <br/> About 50% of the absorbed dose is metabolized in the liver. <br/>
+                        </paragraph>
+                        <paragraph>
+                           <content styleCode="italics">Excretion</content>
+                           <br/> Following oral administration, about 40% to 60% of the absorbed dose is recovered in the urine as unchanged drug in 24 hours. <br/>
+                        </paragraph>
+                        <paragraph>
+                           <content styleCode="underline">Specific Populations</content>
+                           <br/>
+                           <content styleCode="italics">Patients with Renal Impairment </content>
+                           <br/> The half-life increases up to 41 hours in patients with severe impairment of renal function. Clonidine is minimally removed during hemodialysis.<br/>
+                        </paragraph>
+                     </text>
+                     <effectiveTime value="20250404"/>
+                  </section>
+               </component>
+            </section>
+         </component>
+         <component>
+            <section ID="S13">
+               <id root="e9d5698f-8fd5-4b1b-875a-61241265b8ae"/>
+               <code code="43680-8" codeSystem="2.16.840.1.113883.6.1" displayName="NONCLINICAL TOXICOLOGY SECTION"/>
+               <title>13 NONCLINICAL TOXICOLOGY</title>
+               <effectiveTime value="20250404"/>
+               <component>
+                  <section ID="S13.1">
+                     <id root="855528b7-3e1b-4a88-a583-d18647c7fec0"/>
+                     <code code="34083-6" codeSystem="2.16.840.1.113883.6.1" displayName="CARCINOGENESIS &amp; MUTAGENESIS &amp; IMPAIRMENT OF FERTILITY SECTION"/>
+                     <title>13.1 Carcinogenesis, Mutagenesis, Impairment of Fertility</title>
+                     <text>
+                        <paragraph>Chronic dietary administration of clonidine was not carcinogenic to rats (132 weeks) or mice (78 weeks) dosed, respectively, at up to 2 or 1 times the MRHD on a mg/m<sup>2</sup> basis. </paragraph>
+                        <paragraph>There was no evidence of genotoxicity in the Ames test for mutagenicity or mouse micronucleus test for clastogenicity.
+                        </paragraph>
+                        <paragraph>Fertility of female rats appeared to be affected at dose levels of 0.5 and 2.0 mg/kg/day (2 to 8 times the MRHD on a mg/m<sup>2</sup> basis). Lower doses have not been adequately evaluated and a no adverse effect level could not be established.
+                        </paragraph>
+                     </text>
+                     <effectiveTime value="20250404"/>
+                  </section>
+               </component>
+            </section>
+         </component>
+         <component>
+            <section ID="S16">
+               <id root="0e9d393d-ecdb-4cb9-bcda-9763f0ade14b"/>
+               <code code="34069-5" codeSystem="2.16.840.1.113883.6.1" displayName="HOW SUPPLIED SECTION"/>
+               <title>16 HOW SUPPLIED/STORAGE AND HANDLING</title>
+               <text>
+                  <paragraph>QLONILIK (clonidine hydrochloride) Oral Solution, 0.05 mg/mL is a clear, colorless solution with a raspberry flavor filled in a white, opaque HDPE bottle with a child-resistant closure containing 120 mL of the oral solution.</paragraph>
+                  <paragraph>NDC 46287-085-04</paragraph>
+                  <paragraph>Store at 20°C to 25°C (68°F to 77°F); excursions permitted to 15°C to 30°C (59°F to 86°F) <content styleCode="italics">[see USP Controlled Room Temperature]</content>. Store and dispense in the original container. Discard unused portion 60 days after first opening.</paragraph>
+               </text>
+               <effectiveTime value="20250404"/>
+            </section>
+         </component>
+         <component>
+            <section ID="S17">
+               <id root="b1260539-ad18-4f07-9b64-7608de1c85a4"/>
+               <code code="34076-0" codeSystem="2.16.840.1.113883.6.1" displayName="INFORMATION FOR PATIENTS SECTION"/>
+               <title>17 PATIENT COUNSELING INFORMATION
+</title>
+               <text>
+                  <paragraph>
+                     <content styleCode="underline">Sedation and Somnolence</content>
+                     <br/>
+                   Advise patients not to interrupt QLONILIK therapy without consulting their physician. They should be cautious of potential sedative effects, dizziness, or accommodation issues and avoid activities such as driving or operating machinery. Additionally, advise patients that the sedative effects may be increased by the use of alcohol, barbiturates, or other sedating drugs. <content styleCode="italics">[see <linkHtml href="#S7"> Drug Interactions (7)</linkHtml> and <linkHtml href="#S5.3"> Warnings and Precautions (5.3)</linkHtml>].</content>
+                  </paragraph>
+                  <paragraph>
+                     <content styleCode="underline">Rebound Hypertension</content>
+                     <br/>
+                  Advise patients not to discontinue Clonidine therapy without consulting their physician, as sudden cessation can cause symptoms like tachycardia, rapid blood pressure elevation, headache, nervousness and agitation. The risk is higher with higher doses or ongoing beta-blocker use. <content styleCode="italics">[see <linkHtml href="#S5.2"> Warnings and Precautions (5.2)</linkHtml>].</content>
+                     <br/> Bradycardia, cardiac conduction abnormalities, and symptomatic hypotension
+<br/> Advise patients who have a history of syncope or may have a condition that predisposes them to syncope, such as symptomatic hypotension, bradycardia, or dehydration, to avoid becoming dehydrated or overheated.</paragraph>
+                  <paragraph>
+                     <content styleCode="underline">Administration Information</content>
+                     <br/>
+                  Instruct patients or caregivers to use an oral dosing syringe or oral dosing cup to correctly measure the prescribed amount of medication. Inform patients that oral dosing syringes may be obtained from their pharmacy.</paragraph>
+                  <paragraph>
+                     <content styleCode="bold">Distributed by:</content>
+                     <br/> CMP Pharma, Inc.<br/>Farmville, NC 27828</paragraph>
+                  <paragraph>3109 R0826</paragraph>
+               </text>
+               <effectiveTime value="20260129"/>
+            </section>
+         </component>
+         <component>
+            <section>
+               <id root="3769a815-1784-4ca3-a9a6-3f5ce2637463"/>
+               <code code="51945-4" codeSystem="2.16.840.1.113883.6.1" displayName="PACKAGE LABEL.PRINCIPAL DISPLAY PANEL"/>
+               <title>PRINCIPAL DISPLAY PANEL - Clonidine Hydrochloride Oral Solution, 0.05 mg/mL</title>
+               <text>
+                  <paragraph>120 mL </paragraph>
+                  <paragraph>Rx only</paragraph>
+                  <paragraph>NDC 46287-085-04</paragraph>
+                  <paragraph>
+                     <content styleCode="bold">QLONILIK <sup>TM</sup>
+                     </content>
+                  </paragraph>
+                  <br/>
+                  <paragraph>(clonidine hydrochloride) </paragraph>
+                  <paragraph>oral solution</paragraph>
+                  <paragraph>
+                     <content styleCode="bold">0.05 mg/mL</content>
+                  </paragraph>
+                  <renderMultiMedia referencedObject="MM5"/>
+               </text>
+               <effectiveTime value="20250404"/>
+               <component>
+                  <observationMedia ID="MM5">
+                     <text>PRINCIPAL DISPLAY PANEL - Bottle Label</text>
+                     <value xsi:type="ED" mediaType="image/jpeg">
+                        <reference value="qlonilik-02.jpg"/>
+                     </value>
+                  </observationMedia>
+               </component>
+            </section>
+         </component>
+      </structuredBody>
+   </component>
+</document>
