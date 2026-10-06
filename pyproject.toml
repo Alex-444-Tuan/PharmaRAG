@@ -48,6 +48,7 @@ testpaths = ["tests"]
 markers = [
     "pg: needs a running PostgreSQL with pgvector (skipped if unavailable)",
     "network: hits a real external API (skipped unless RUN_NETWORK_TESTS=1)",
+    "corpus: reads the ingested pharmarag_dev corpus (skipped if unavailable)",
 ]
 
 [tool.ruff]

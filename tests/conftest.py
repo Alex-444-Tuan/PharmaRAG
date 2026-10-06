@@ -74,3 +74,30 @@ async def pg_conn(pg_url):
     await conn.execute(f"TRUNCATE {', '.join(TABLES)} RESTART IDENTITY CASCADE")
     await conn.commit()
     await conn.close()
+
+
+CORPUS_URL = os.environ.get(
+    "CORPUS_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/pharmarag_dev"
+)
+
+
+@pytest.fixture(scope="session")
+def corpus_url() -> str:
+    """URL of the ingested dev corpus (read-only use). Skips if missing or empty."""
+    try:
+        with psycopg.connect(CORPUS_URL, connect_timeout=2) as conn:
+            n = conn.execute("SELECT count(*) FROM label").fetchone()[0]
+    except psycopg.Error:
+        pytest.skip("dev corpus not available; run the ingest into pharmarag_dev")
+    if n == 0:
+        pytest.skip("dev corpus is empty; run the ingest into pharmarag_dev")
+    return CORPUS_URL
+
+
+@pytest.fixture
+async def corpus_conn(corpus_url):
+    """Read-only async connection to the dev corpus. Never write through it."""
+    conn = await connect(corpus_url)
+    await conn.set_read_only(True)
+    yield conn
+    await conn.close()
