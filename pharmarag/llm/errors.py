@@ -13,7 +13,8 @@ class LLMError(RuntimeError):
 
 
 class LLMUnavailableError(LLMError):
-    """Timeout, rate limit, 5xx, or connection failure after the SDK's own retries."""
+    """Timeout, rate limit, 5xx, or connection failure. The SDK does not retry (max_retries=0);
+    the graph node RetryPolicy does."""
 
 
 class LLMOutputError(LLMError):

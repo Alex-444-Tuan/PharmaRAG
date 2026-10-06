@@ -4,6 +4,7 @@ import json
 from collections.abc import Callable, Sequence
 
 from pharmarag.graph.state import Candidate, Chunk, Fact, Resolution, Sentence, Verdict
+from pharmarag.resolver.base import RxFact
 
 
 def resolved(
@@ -82,11 +83,15 @@ class FakeRxFacts:
         self.error = error
         self.calls: list[list[str]] = []
 
-    async def facts(self, ingredient_rxcuis: list[str]) -> list[str]:
+    async def facts(self, ingredient_rxcuis: list[str]) -> list[RxFact]:
         self.calls.append(list(ingredient_rxcuis))
         if self.error:
             raise self.error
-        return [line for rxcui in ingredient_rxcuis for line in self.lines.get(rxcui, [])]
+        return [
+            RxFact(rxcui=rxcui, text=line)
+            for rxcui in ingredient_rxcuis
+            for line in self.lines.get(rxcui, [])
+        ]
 
 
 class FakeVerifier:

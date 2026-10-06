@@ -7,7 +7,7 @@ import pytest
 from pharmarag.app.main import create_app, get_runtime
 from pharmarag.app.runtime import Runtime
 from pharmarag.graph.deps import Deps
-from tests.graph.fakes import FakeResolver, ambiguous, not_covered, resolved
+from tests.graph.fakes import FakeResolver, ambiguous, not_covered, resolved, unknown
 
 
 @pytest.fixture
@@ -82,3 +82,13 @@ async def test_resolve_dependency_failure_is_503(make_client, error):
     async with make_client(Down()) as c:
         r = await c.get("/v1/drugs/resolve", params={"name": "hydroxyzin"})
     assert r.status_code == 503
+
+
+async def test_resolve_surfaces_the_degraded_flag(make_client):
+    local_only = resolved("hydroxyzin", "5553", "hydroxyzine", "approximate").model_copy(
+        update={"degraded": True}
+    )
+    async with make_client(FakeResolver({"hydroxyzin": local_only, "zzz": unknown("zzz")})) as c:
+        degraded = (await c.get("/v1/drugs/resolve", params={"name": "hydroxyzin"})).json()
+        normal = (await c.get("/v1/drugs/resolve", params={"name": "zzz"})).json()
+    assert degraded["degraded"] is True and normal["degraded"] is False

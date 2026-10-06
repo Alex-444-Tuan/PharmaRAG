@@ -56,6 +56,15 @@ LIMIT %(k)s
 """
 
 _TOKEN = re.compile(r"[A-Za-z0-9]+")
+# Words that follow a drug name as its salt or counter-ion. They also occur on their own in
+# label text ("calcium channel blockers", "sodium retention"), so they carry signal.
+GENERIC_WORDS = frozenset(
+    {
+        "calcium", "sodium", "potassium", "magnesium", "hydrochloride", "hcl", "sulfate",
+        "phosphate", "acetate", "maleate", "mesylate", "besylate", "tartrate", "succinate",
+        "citrate", "bromide", "chloride", "nitrate", "fumarate", "and",
+    }
+)  # fmt: skip
 MAX_QUERY_TERMS = 32
 
 
@@ -102,8 +111,10 @@ def strip_drug_terms(query: str, drug_terms: Iterable[str]) -> str:
     was removed. Callers use this only on the filtered path. The unfiltered no-mention path has
     no drug term to strip, and there the name would be signal.
 
-    `drug_terms` are the mention as typed and the resolved name; "atorvastatin calcium"
-    removes both tokens. Returns "" when nothing is left.
+    `drug_terms` are the normalised mention and the resolved name (the caller decides; dose and
+    form words must not be in them). Salt and counter-ion words (`GENERIC_WORDS`) are never
+    stripped even when the mention carries them: "atorvastatin calcium" must not remove
+    "calcium" from "calcium channel blocker". Returns "" when nothing is left.
     """
-    drop = {t.lower() for term in drug_terms for t in _TOKEN.findall(term)}
+    drop = {t.lower() for term in drug_terms for t in _TOKEN.findall(term)} - GENERIC_WORDS
     return " ".join(t for t in _TOKEN.findall(query) if t.lower() not in drop)

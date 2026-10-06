@@ -65,8 +65,11 @@ class AnthropicLLM:
         if not model_id:
             raise ValueError("LLM_MODEL must be set to a pinned model ID")
         self.model_id = model_id
+        # max_retries=0: the graph's node RetryPolicy (3 attempts, backoff) is the one retry
+        # layer. The SDK default of 2 retries underneath it would make 3 x 3 = 9 attempts, about
+        # 4.5 minutes of worst-case waiting per node, instead of 3.
         self._client = client or anthropic.AsyncAnthropic(
-            api_key=api_key or None, timeout=timeout_s
+            api_key=api_key or None, timeout=timeout_s, max_retries=0
         )
         self.sampling_supported = _supports_sampling(model_id)
 

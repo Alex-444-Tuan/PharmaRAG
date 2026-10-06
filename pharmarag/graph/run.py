@@ -70,6 +70,8 @@ async def run_ask(
             "mentions": final.get("mentions", []),
             "ingredient_keys": final.get("ingredient_keys", []),
             "resolutions": [r.model_dump() for r in final.get("resolutions", [])],
+            # NFR-4: some mention was resolved from the local alias table because RxNav was down.
+            "degraded": any(r.degraded for r in final.get("resolutions", [])),
             "sections": final.get("sections", []),
             "search_query": final.get("search_query"),
             "support_ratio": final.get("support_ratio"),

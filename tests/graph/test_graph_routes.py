@@ -6,6 +6,7 @@ import pytest
 from pharmarag.graph.run import effective_flags, initial_state, run_ask
 from pharmarag.graph.state import Flags
 from pharmarag.grounding.writer import STRICT_ADDENDUM
+from pharmarag.llm.errors import LLMRefusalError
 from tests.graph.fakes import (
     DOSE_TEXT,
     GIBBERISH,
@@ -402,6 +403,42 @@ async def test_uncited_sentences_count_against_support_and_trigger_regeneration(
     # 1 of 2 sentences supported (the uncited one counts in the denominator): 0.5 < 0.8.
     assert [s["text"] for s in out["answer"]] == ["Another cited sentence."]
     assert out["meta"]["removed_sentences"] == 1
+
+
+@pytest.mark.parametrize("second_reply", ["INSUFFICIENT", "refusal"])
+async def test_second_attempt_that_writes_nothing_keeps_the_first_attempts_supported_sentences(
+    make_fake_llm, make_deps, make_graph, corpus, second_reply
+):
+    # One rule for both: a failed retry does not make verified sentences false (FR-6 holds,
+    # they were verified), and the first attempt's rejected sentence is still counted once.
+    def refuse(messages, system):
+        raise LLMRefusalError("declined")
+
+    reply = refuse if second_reply == "refusal" else "INSUFFICIENT"
+    verifier = FakeVerifier([["supported", "unsupported"]])
+    llm = make_fake_llm([analysis(mentions=["hydroxyzin"]), TWO_SENTENCES, reply])
+    deps = make_deps(llm, resolver=hydroxyzin_resolver(), verifier=verifier)
+    out = await run_ask(make_graph(deps), deps, question=HYDROXYZIN_Q, debug=True)
+    assert out["status"] == "answered"
+    assert [s["text"] for s in out["answer"]] == ["Sentence A is true."]
+    assert out["meta"]["generation_attempts"] == 2 and out["meta"]["removed_sentences"] == 1
+    assert len(verifier.calls) == 1  # nothing new to verify
+
+
+async def test_debug_payload_says_when_a_drug_was_resolved_from_the_local_table_only(
+    make_fake_llm, make_deps, make_graph, corpus
+):
+    local_only = HYDROXYZINE.model_copy(update={"degraded": True})  # RxNav was down (NFR-4)
+    llm = make_fake_llm([analysis(mentions=["hydroxyzin"]), f"{DOSE_TEXT} [c1]"])
+    deps = make_deps(llm, resolver=FakeResolver({"hydroxyzin": local_only}))
+    out = await run_ask(make_graph(deps), deps, question=HYDROXYZIN_Q, debug=True)
+    assert out["debug"]["degraded"] is True
+    assert out["debug"]["resolutions"][0]["degraded"] is True
+
+    llm = make_fake_llm([analysis(mentions=["hydroxyzin"]), f"{DOSE_TEXT} [c1]"])
+    deps = make_deps(llm, resolver=hydroxyzin_resolver())
+    out = await run_ask(make_graph(deps), deps, question=HYDROXYZIN_Q, debug=True)
+    assert out["debug"]["degraded"] is False
 
 
 async def test_writer_saying_insufficient_is_not_regenerated(

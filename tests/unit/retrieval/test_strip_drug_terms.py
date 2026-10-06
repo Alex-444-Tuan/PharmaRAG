@@ -7,7 +7,15 @@ def test_strips_mention_and_resolved_name_case_insensitively_per_token():
 
 
 def test_multi_word_terms_strip_each_token():
-    assert strip_drug_terms("atorvastatin calcium myopathy", ["atorvastatin calcium"]) == "myopathy"
+    assert strip_drug_terms("amlodipine olmesartan renal", ["amlodipine olmesartan"]) == "renal"
+
+
+def test_salt_words_survive_even_when_the_mention_carries_them():
+    # "atorvastatin calcium" is the drug; "calcium channel blocker" is a different concept.
+    q = "atorvastatin calcium vs a calcium channel blocker"
+    assert strip_drug_terms(q, ["atorvastatin calcium", "atorvastatin"]) == (
+        "calcium vs a calcium channel blocker"
+    )
 
 
 def test_tokens_are_whole_words_not_substrings():
