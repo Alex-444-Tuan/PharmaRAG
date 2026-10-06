@@ -1,0 +1,1088 @@
+{
+  "eval": "lookalike",
+  "split": "test",
+  "mode": "both",
+  "runs": 3,
+  "timestamp": "2026-10-06T19:30:04Z",
+  "model_id": null,
+  "corpus_version": "24bdf02ae716c922",
+  "thresholds_commit": "980367d8eae4348b179e53e98b66ecc53082caf7",
+  "thresholds_dirty": false,
+  "git_head": "200cfb826a064024d105aff080cd69eaac5d8608",
+  "thresholds": {
+    "resolver": {
+      "resolved_min": 0.9,
+      "margin": 0.05,
+      "ambiguous_min": 0.8,
+      "trigram_min": 0.4,
+      "trigram_k": 5,
+      "max_candidates": 3
+    },
+    "retrieval": {
+      "top_k_per_branch": 20,
+      "rrf_k": 60,
+      "evidence_top_k": 8,
+      "evidence_top_k_per_drug": 5,
+      "dense_min": 0.7,
+      "overlap_min": 3,
+      "max_facts": 10
+    }
+  },
+  "dataset": {
+    "file": "lookalike_test.jsonl",
+    "sha256": "71f96645e017c5739ede6dfd1d16498c7501d4f24f1d885a34f63e47352351f0"
+  },
+  "resolver_only": true,
+  "rxnav": "live",
+  "n_queries": 15,
+  "kinds": {
+    "misspelling": 8,
+    "brand": 4,
+    "correct_partner": 3
+  },
+  "system": {
+    "runs": [
+      {
+        "counts": {
+          "correct": 12,
+          "clarified": 3,
+          "other": 0,
+          "wrong_drug": 0,
+          "not_recognised": 0,
+          "not_covered": 0,
+          "clarify_without_gold": 0,
+          "misinterpreted": 0,
+          "total": 15
+        },
+        "rows": [
+          {
+            "mention": "hydroxazine",
+            "gold_ingredient_key": "5553",
+            "kind": "misspelling",
+            "outcome": "clarified",
+            "status": "ambiguous",
+            "match": null,
+            "resolved_key": null,
+            "resolved_name": null,
+            "score": 0.9636,
+            "candidates": [
+              {
+                "ingredient_key": "5553",
+                "name": "hydroxyzine",
+                "score": 0.9636
+              },
+              {
+                "ingredient_key": "5470",
+                "name": "hydralazine",
+                "score": 0.9273
+              }
+            ],
+            "degraded": false
+          },
+          {
+            "mention": "quinidene",
+            "gold_ingredient_key": "9068",
+            "kind": "misspelling",
+            "outcome": "clarified",
+            "status": "ambiguous",
+            "match": null,
+            "resolved_key": null,
+            "resolved_name": null,
+            "score": 0.9306,
+            "candidates": [
+              {
+                "ingredient_key": "9068",
+                "name": "quinidine",
+                "score": 0.9306
+              },
+              {
+                "ingredient_key": "9071",
+                "name": "quinine",
+                "score": 0.927
+              }
+            ],
+            "degraded": false
+          },
+          {
+            "mention": "glypuride",
+            "gold_ingredient_key": "4815",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "approximate",
+            "resolved_key": "4815",
+            "resolved_name": "glyburide",
+            "score": 0.9481,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "predisolone",
+            "gold_ingredient_key": "8638",
+            "kind": "misspelling",
+            "outcome": "clarified",
+            "status": "ambiguous",
+            "match": null,
+            "resolved_key": null,
+            "resolved_name": null,
+            "score": 0.9436,
+            "candidates": [
+              {
+                "ingredient_key": "8640",
+                "name": "prednisone",
+                "score": 0.9436
+              },
+              {
+                "ingredient_key": "8638",
+                "name": "prednisolone",
+                "score": 0.9288
+              }
+            ],
+            "degraded": false
+          },
+          {
+            "mention": "carbamezapine",
+            "gold_ingredient_key": "2002",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "approximate",
+            "resolved_key": "2002",
+            "resolved_name": "carbamazepine",
+            "score": 0.9846,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "lorazapam",
+            "gold_ingredient_key": "6470",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "approximate",
+            "resolved_key": "6470",
+            "resolved_name": "lorazepam",
+            "score": 0.9306,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "tizanadine",
+            "gold_ingredient_key": "57258",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "approximate",
+            "resolved_key": "57258",
+            "resolved_name": "tizanidine",
+            "score": 0.9378,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "nifedapine",
+            "gold_ingredient_key": "7417",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "approximate",
+            "resolved_key": "7417",
+            "resolved_name": "nifedipine",
+            "score": 0.9378,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "Celebrex",
+            "gold_ingredient_key": "140587",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "brand",
+            "resolved_key": "140587",
+            "resolved_name": "celecoxib",
+            "score": 1.0,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "Lamictel",
+            "gold_ingredient_key": "28439",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "approximate",
+            "resolved_key": "28439",
+            "resolved_name": "lamotrigine",
+            "score": 0.95,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "Toprol",
+            "gold_ingredient_key": "6918",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "brand",
+            "resolved_key": "6918",
+            "resolved_name": "metoprolol",
+            "score": 1.0,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "Paxill",
+            "gold_ingredient_key": "32937",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "approximate",
+            "resolved_key": "32937",
+            "resolved_name": "paroxetine",
+            "score": 0.9667,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "tiagabine",
+            "gold_ingredient_key": "31914",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "exact",
+            "resolved_key": "31914",
+            "resolved_name": "tiagabine",
+            "score": 1.0,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "clomipramine",
+            "gold_ingredient_key": "2597",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "exact",
+            "resolved_key": "2597",
+            "resolved_name": "clomipramine",
+            "score": 1.0,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "azacitidine",
+            "gold_ingredient_key": "1251",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "exact",
+            "resolved_key": "1251",
+            "resolved_name": "azacitidine",
+            "score": 1.0,
+            "candidates": [],
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "counts": {
+          "correct": 12,
+          "clarified": 3,
+          "other": 0,
+          "wrong_drug": 0,
+          "not_recognised": 0,
+          "not_covered": 0,
+          "clarify_without_gold": 0,
+          "misinterpreted": 0,
+          "total": 15
+        },
+        "rows": [
+          {
+            "mention": "hydroxazine",
+            "gold_ingredient_key": "5553",
+            "kind": "misspelling",
+            "outcome": "clarified",
+            "status": "ambiguous",
+            "match": null,
+            "resolved_key": null,
+            "resolved_name": null,
+            "score": 0.9636,
+            "candidates": [
+              {
+                "ingredient_key": "5553",
+                "name": "hydroxyzine",
+                "score": 0.9636
+              },
+              {
+                "ingredient_key": "5470",
+                "name": "hydralazine",
+                "score": 0.9273
+              }
+            ],
+            "degraded": false
+          },
+          {
+            "mention": "quinidene",
+            "gold_ingredient_key": "9068",
+            "kind": "misspelling",
+            "outcome": "clarified",
+            "status": "ambiguous",
+            "match": null,
+            "resolved_key": null,
+            "resolved_name": null,
+            "score": 0.9306,
+            "candidates": [
+              {
+                "ingredient_key": "9068",
+                "name": "quinidine",
+                "score": 0.9306
+              },
+              {
+                "ingredient_key": "9071",
+                "name": "quinine",
+                "score": 0.927
+              }
+            ],
+            "degraded": false
+          },
+          {
+            "mention": "glypuride",
+            "gold_ingredient_key": "4815",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "approximate",
+            "resolved_key": "4815",
+            "resolved_name": "glyburide",
+            "score": 0.9481,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "predisolone",
+            "gold_ingredient_key": "8638",
+            "kind": "misspelling",
+            "outcome": "clarified",
+            "status": "ambiguous",
+            "match": null,
+            "resolved_key": null,
+            "resolved_name": null,
+            "score": 0.9436,
+            "candidates": [
+              {
+                "ingredient_key": "8640",
+                "name": "prednisone",
+                "score": 0.9436
+              },
+              {
+                "ingredient_key": "8638",
+                "name": "prednisolone",
+                "score": 0.9288
+              }
+            ],
+            "degraded": false
+          },
+          {
+            "mention": "carbamezapine",
+            "gold_ingredient_key": "2002",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "approximate",
+            "resolved_key": "2002",
+            "resolved_name": "carbamazepine",
+            "score": 0.9846,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "lorazapam",
+            "gold_ingredient_key": "6470",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "approximate",
+            "resolved_key": "6470",
+            "resolved_name": "lorazepam",
+            "score": 0.9306,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "tizanadine",
+            "gold_ingredient_key": "57258",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "approximate",
+            "resolved_key": "57258",
+            "resolved_name": "tizanidine",
+            "score": 0.9378,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "nifedapine",
+            "gold_ingredient_key": "7417",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "approximate",
+            "resolved_key": "7417",
+            "resolved_name": "nifedipine",
+            "score": 0.9378,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "Celebrex",
+            "gold_ingredient_key": "140587",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "brand",
+            "resolved_key": "140587",
+            "resolved_name": "celecoxib",
+            "score": 1.0,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "Lamictel",
+            "gold_ingredient_key": "28439",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "approximate",
+            "resolved_key": "28439",
+            "resolved_name": "lamotrigine",
+            "score": 0.95,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "Toprol",
+            "gold_ingredient_key": "6918",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "brand",
+            "resolved_key": "6918",
+            "resolved_name": "metoprolol",
+            "score": 1.0,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "Paxill",
+            "gold_ingredient_key": "32937",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "approximate",
+            "resolved_key": "32937",
+            "resolved_name": "paroxetine",
+            "score": 0.9667,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "tiagabine",
+            "gold_ingredient_key": "31914",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "exact",
+            "resolved_key": "31914",
+            "resolved_name": "tiagabine",
+            "score": 1.0,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "clomipramine",
+            "gold_ingredient_key": "2597",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "exact",
+            "resolved_key": "2597",
+            "resolved_name": "clomipramine",
+            "score": 1.0,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "azacitidine",
+            "gold_ingredient_key": "1251",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "exact",
+            "resolved_key": "1251",
+            "resolved_name": "azacitidine",
+            "score": 1.0,
+            "candidates": [],
+            "degraded": false
+          }
+        ]
+      },
+      {
+        "counts": {
+          "correct": 12,
+          "clarified": 3,
+          "other": 0,
+          "wrong_drug": 0,
+          "not_recognised": 0,
+          "not_covered": 0,
+          "clarify_without_gold": 0,
+          "misinterpreted": 0,
+          "total": 15
+        },
+        "rows": [
+          {
+            "mention": "hydroxazine",
+            "gold_ingredient_key": "5553",
+            "kind": "misspelling",
+            "outcome": "clarified",
+            "status": "ambiguous",
+            "match": null,
+            "resolved_key": null,
+            "resolved_name": null,
+            "score": 0.9636,
+            "candidates": [
+              {
+                "ingredient_key": "5553",
+                "name": "hydroxyzine",
+                "score": 0.9636
+              },
+              {
+                "ingredient_key": "5470",
+                "name": "hydralazine",
+                "score": 0.9273
+              }
+            ],
+            "degraded": false
+          },
+          {
+            "mention": "quinidene",
+            "gold_ingredient_key": "9068",
+            "kind": "misspelling",
+            "outcome": "clarified",
+            "status": "ambiguous",
+            "match": null,
+            "resolved_key": null,
+            "resolved_name": null,
+            "score": 0.9306,
+            "candidates": [
+              {
+                "ingredient_key": "9068",
+                "name": "quinidine",
+                "score": 0.9306
+              },
+              {
+                "ingredient_key": "9071",
+                "name": "quinine",
+                "score": 0.927
+              }
+            ],
+            "degraded": false
+          },
+          {
+            "mention": "glypuride",
+            "gold_ingredient_key": "4815",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "approximate",
+            "resolved_key": "4815",
+            "resolved_name": "glyburide",
+            "score": 0.9481,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "predisolone",
+            "gold_ingredient_key": "8638",
+            "kind": "misspelling",
+            "outcome": "clarified",
+            "status": "ambiguous",
+            "match": null,
+            "resolved_key": null,
+            "resolved_name": null,
+            "score": 0.9436,
+            "candidates": [
+              {
+                "ingredient_key": "8640",
+                "name": "prednisone",
+                "score": 0.9436
+              },
+              {
+                "ingredient_key": "8638",
+                "name": "prednisolone",
+                "score": 0.9288
+              }
+            ],
+            "degraded": false
+          },
+          {
+            "mention": "carbamezapine",
+            "gold_ingredient_key": "2002",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "approximate",
+            "resolved_key": "2002",
+            "resolved_name": "carbamazepine",
+            "score": 0.9846,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "lorazapam",
+            "gold_ingredient_key": "6470",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "approximate",
+            "resolved_key": "6470",
+            "resolved_name": "lorazepam",
+            "score": 0.9306,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "tizanadine",
+            "gold_ingredient_key": "57258",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "approximate",
+            "resolved_key": "57258",
+            "resolved_name": "tizanidine",
+            "score": 0.9378,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "nifedapine",
+            "gold_ingredient_key": "7417",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "approximate",
+            "resolved_key": "7417",
+            "resolved_name": "nifedipine",
+            "score": 0.9378,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "Celebrex",
+            "gold_ingredient_key": "140587",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "brand",
+            "resolved_key": "140587",
+            "resolved_name": "celecoxib",
+            "score": 1.0,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "Lamictel",
+            "gold_ingredient_key": "28439",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "approximate",
+            "resolved_key": "28439",
+            "resolved_name": "lamotrigine",
+            "score": 0.95,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "Toprol",
+            "gold_ingredient_key": "6918",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "brand",
+            "resolved_key": "6918",
+            "resolved_name": "metoprolol",
+            "score": 1.0,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "Paxill",
+            "gold_ingredient_key": "32937",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "approximate",
+            "resolved_key": "32937",
+            "resolved_name": "paroxetine",
+            "score": 0.9667,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "tiagabine",
+            "gold_ingredient_key": "31914",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "exact",
+            "resolved_key": "31914",
+            "resolved_name": "tiagabine",
+            "score": 1.0,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "clomipramine",
+            "gold_ingredient_key": "2597",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "exact",
+            "resolved_key": "2597",
+            "resolved_name": "clomipramine",
+            "score": 1.0,
+            "candidates": [],
+            "degraded": false
+          },
+          {
+            "mention": "azacitidine",
+            "gold_ingredient_key": "1251",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "resolved",
+            "match": "exact",
+            "resolved_key": "1251",
+            "resolved_name": "azacitidine",
+            "score": 1.0,
+            "candidates": [],
+            "degraded": false
+          }
+        ]
+      }
+    ],
+    "misinterpreted": {
+      "values": [
+        0,
+        0,
+        0
+      ],
+      "min": 0,
+      "max": 0,
+      "mean": 0
+    },
+    "clarified": {
+      "values": [
+        3,
+        3,
+        3
+      ],
+      "min": 3,
+      "max": 3,
+      "mean": 3
+    },
+    "degraded_rows": {
+      "values": [
+        0,
+        0,
+        0
+      ],
+      "min": 0,
+      "max": 0,
+      "mean": 0
+    }
+  },
+  "baseline_proxy": {
+    "note": "PROXY, not the AT-1 number. This baseline runs unfiltered dense and lexical retrieval on the question, fuses the lists, and checks which drug the top evidence belongs to. No answer is written, so it does not say whether a writer would have cited that chunk.",
+    "embedding_model": "BAAI/bge-small-en-v1.5",
+    "counts": {
+      "total": 15,
+      "top1_wrong": 7,
+      "any_top8_wrong": 15,
+      "no_evidence": 0
+    },
+    "rows": [
+      {
+        "question": "What is the usual adult dose of hydroxazine for itching?",
+        "gold_ingredient_key": "5553",
+        "kind": "misspelling",
+        "top1_key": "5553",
+        "top8_keys": [
+          "5553",
+          "18631",
+          "140587",
+          "8745",
+          "140587",
+          "8745",
+          "5553",
+          "18631"
+        ],
+        "top1_wrong": false,
+        "any_top8_wrong": true
+      },
+      {
+        "question": "What are the warnings for quinidene in patients with atrial fibrillation?",
+        "gold_ingredient_key": "9068",
+        "kind": "misspelling",
+        "top1_key": "9068",
+        "top8_keys": [
+          "9068",
+          "115698",
+          "9068",
+          "115698",
+          "37418",
+          "9068",
+          "9068",
+          "115698"
+        ],
+        "top1_wrong": false,
+        "any_top8_wrong": true
+      },
+      {
+        "question": "What is the maximum daily dose of glypuride for type 2 diabetes?",
+        "gold_ingredient_key": "4815",
+        "kind": "misspelling",
+        "top1_key": "1373458",
+        "top8_keys": [
+          "1373458",
+          "140587",
+          "25789",
+          "140587",
+          "1488564",
+          "114477",
+          "4821",
+          "38404"
+        ],
+        "top1_wrong": true,
+        "any_top8_wrong": true
+      },
+      {
+        "question": "What are the contraindications of predisolone?",
+        "gold_ingredient_key": "8638",
+        "kind": "misspelling",
+        "top1_key": "2596",
+        "top8_keys": [
+          "2596",
+          "7454",
+          "5553",
+          "42347",
+          "8638",
+          "8640",
+          "72625",
+          "746741"
+        ],
+        "top1_wrong": true,
+        "any_top8_wrong": true
+      },
+      {
+        "question": "Should patients be tested for HLA-B*1502 before starting carbamezapine?",
+        "gold_ingredient_key": "2002",
+        "kind": "misspelling",
+        "top1_key": "2002",
+        "top8_keys": [
+          "2002",
+          "32624",
+          "28439",
+          "115698",
+          "115698",
+          "8183",
+          "38400",
+          "2002"
+        ],
+        "top1_wrong": false,
+        "any_top8_wrong": true
+      },
+      {
+        "question": "What is the recommended dose of lorazapam for anxiety?",
+        "gold_ingredient_key": "6470",
+        "kind": "misspelling",
+        "top1_key": "4493",
+        "top8_keys": [
+          "4493",
+          "2598",
+          "18631",
+          "2598",
+          "140587",
+          "6470",
+          "140587",
+          "596"
+        ],
+        "top1_wrong": true,
+        "any_top8_wrong": true
+      },
+      {
+        "question": "What is the maximum daily dose of tizanadine for spasticity?",
+        "gold_ingredient_key": "57258",
+        "kind": "misspelling",
+        "top1_key": "72302",
+        "top8_keys": [
+          "72302",
+          "31914",
+          "57258",
+          "140587",
+          "8787",
+          "140587",
+          "1116632",
+          "114477"
+        ],
+        "top1_wrong": true,
+        "any_top8_wrong": true
+      },
+      {
+        "question": "Can nifedapine be used for chronic stable angina?",
+        "gold_ingredient_key": "7417",
+        "kind": "misspelling",
+        "top1_key": "7417",
+        "top8_keys": [
+          "7417",
+          "7514",
+          "7417",
+          "7514",
+          "17767",
+          "7514",
+          "86009",
+          "7417"
+        ],
+        "top1_wrong": false,
+        "any_top8_wrong": true
+      },
+      {
+        "question": "Can Celebrex be taken by patients with a sulfonamide allergy?",
+        "gold_ingredient_key": "140587",
+        "kind": "brand",
+        "top1_key": "115698",
+        "top8_keys": [
+          "115698",
+          "140587",
+          "115698",
+          "140587",
+          "37418",
+          "1808",
+          "115698",
+          "140587"
+        ],
+        "top1_wrong": true,
+        "any_top8_wrong": true
+      },
+      {
+        "question": "What is the risk of serious skin rash with Lamictel?",
+        "gold_ingredient_key": "28439",
+        "kind": "brand",
+        "top1_key": "28439",
+        "top8_keys": [
+          "28439",
+          "28439",
+          "28439",
+          "5640",
+          "28439",
+          "7258",
+          "41493",
+          "30125"
+        ],
+        "top1_wrong": false,
+        "any_top8_wrong": true
+      },
+      {
+        "question": "Can Toprol be stopped abruptly in patients with heart disease?",
+        "gold_ingredient_key": "6918",
+        "kind": "brand",
+        "top1_key": "115698",
+        "top8_keys": [
+          "115698",
+          "19484",
+          "1202",
+          "115698",
+          "37418",
+          "31555",
+          "20352",
+          "115698"
+        ],
+        "top1_wrong": true,
+        "any_top8_wrong": true
+      },
+      {
+        "question": "What symptoms can occur when Paxill is discontinued?",
+        "gold_ingredient_key": "32937",
+        "kind": "brand",
+        "top1_key": "4493",
+        "top8_keys": [
+          "4493",
+          "72625",
+          "39786",
+          "321988",
+          "37801",
+          "15996",
+          "6915",
+          "39993"
+        ],
+        "top1_wrong": true,
+        "any_top8_wrong": true
+      },
+      {
+        "question": "What is the recommended dose of tiagabine for partial seizures?",
+        "gold_ingredient_key": "31914",
+        "kind": "correct_partner",
+        "top1_key": "31914",
+        "top8_keys": [
+          "31914",
+          "31914",
+          "31914",
+          "31914",
+          "18631",
+          "140587",
+          "140587",
+          "31914"
+        ],
+        "top1_wrong": false,
+        "any_top8_wrong": true
+      },
+      {
+        "question": "What is the starting dose of clomipramine for obsessive-compulsive disorder?",
+        "gold_ingredient_key": "2597",
+        "kind": "correct_partner",
+        "top1_key": "2597",
+        "top8_keys": [
+          "2597",
+          "32937",
+          "4493",
+          "32937",
+          "2597",
+          "32937",
+          "4493",
+          "32937"
+        ],
+        "top1_wrong": false,
+        "any_top8_wrong": true
+      },
+      {
+        "question": "How is azacitidine administered for myelodysplastic syndromes?",
+        "gold_ingredient_key": "1251",
+        "kind": "correct_partner",
+        "top1_key": "1251",
+        "top8_keys": [
+          "1251",
+          "1251",
+          "83367",
+          "1251",
+          "8703",
+          "1251",
+          "8703",
+          "83367"
+        ],
+        "top1_wrong": false,
+        "any_top8_wrong": true
+      }
+    ]
+  }
+}
