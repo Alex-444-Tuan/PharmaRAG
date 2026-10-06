@@ -1,0 +1,794 @@
+{
+  "eval": "gate_sweep",
+  "split": "dev",
+  "mode": "local-only",
+  "runs": 1,
+  "timestamp": "2026-10-06T18:47:33Z",
+  "model_id": null,
+  "corpus_version": "f8f0f8f32f1155fd",
+  "thresholds_commit": "5deed9d171077285557696752cddcef31b151474",
+  "thresholds_dirty": false,
+  "git_head": "5b85145b03cdd247c04563759a76b722d581a356",
+  "thresholds": {
+    "resolver": {
+      "resolved_min": 0.9,
+      "margin": 0.05,
+      "ambiguous_min": 0.8,
+      "trigram_min": 0.4,
+      "trigram_k": 5,
+      "max_candidates": 3
+    },
+    "retrieval": {
+      "top_k_per_branch": 20,
+      "rrf_k": 60,
+      "evidence_top_k": 8,
+      "evidence_top_k_per_drug": 5,
+      "dense_min": 0.45,
+      "overlap_min": 2,
+      "max_facts": 10
+    }
+  },
+  "dataset": {
+    "file": "seed_ingredients.csv",
+    "sha256": "1b418fe4ebffdc9a16da731d81790dcf07ff7269336e9d9c98bf166e5c187d31"
+  },
+  "resolver_only": true,
+  "n_queries": 2192,
+  "current": [
+    0.9,
+    0.05,
+    0.8
+  ],
+  "grid": [
+    {
+      "resolved_min": 0.85,
+      "margin": 0.02,
+      "ambiguous_min": 0.75,
+      "correct": 2114,
+      "clarified": 61,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 6
+    },
+    {
+      "resolved_min": 0.85,
+      "margin": 0.02,
+      "ambiguous_min": 0.8,
+      "correct": 2114,
+      "clarified": 56,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 6
+    },
+    {
+      "resolved_min": 0.85,
+      "margin": 0.02,
+      "ambiguous_min": 0.85,
+      "correct": 2114,
+      "clarified": 41,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 6
+    },
+    {
+      "resolved_min": 0.85,
+      "margin": 0.03,
+      "ambiguous_min": 0.75,
+      "correct": 2104,
+      "clarified": 77,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.85,
+      "margin": 0.03,
+      "ambiguous_min": 0.8,
+      "correct": 2104,
+      "clarified": 72,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.85,
+      "margin": 0.03,
+      "ambiguous_min": 0.85,
+      "correct": 2104,
+      "clarified": 57,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.85,
+      "margin": 0.05,
+      "ambiguous_min": 0.75,
+      "correct": 2012,
+      "clarified": 169,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.85,
+      "margin": 0.05,
+      "ambiguous_min": 0.8,
+      "correct": 2012,
+      "clarified": 164,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.85,
+      "margin": 0.05,
+      "ambiguous_min": 0.85,
+      "correct": 2012,
+      "clarified": 149,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.85,
+      "margin": 0.07,
+      "ambiguous_min": 0.75,
+      "correct": 1979,
+      "clarified": 202,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.85,
+      "margin": 0.07,
+      "ambiguous_min": 0.8,
+      "correct": 1979,
+      "clarified": 197,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.85,
+      "margin": 0.07,
+      "ambiguous_min": 0.85,
+      "correct": 1979,
+      "clarified": 182,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.85,
+      "margin": 0.1,
+      "ambiguous_min": 0.75,
+      "correct": 1920,
+      "clarified": 261,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.85,
+      "margin": 0.1,
+      "ambiguous_min": 0.8,
+      "correct": 1920,
+      "clarified": 256,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.85,
+      "margin": 0.1,
+      "ambiguous_min": 0.85,
+      "correct": 1920,
+      "clarified": 241,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.88,
+      "margin": 0.02,
+      "ambiguous_min": 0.75,
+      "correct": 2079,
+      "clarified": 96,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 6
+    },
+    {
+      "resolved_min": 0.88,
+      "margin": 0.02,
+      "ambiguous_min": 0.8,
+      "correct": 2079,
+      "clarified": 91,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 6
+    },
+    {
+      "resolved_min": 0.88,
+      "margin": 0.02,
+      "ambiguous_min": 0.85,
+      "correct": 2079,
+      "clarified": 76,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 6
+    },
+    {
+      "resolved_min": 0.88,
+      "margin": 0.03,
+      "ambiguous_min": 0.75,
+      "correct": 2071,
+      "clarified": 110,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.88,
+      "margin": 0.03,
+      "ambiguous_min": 0.8,
+      "correct": 2071,
+      "clarified": 105,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.88,
+      "margin": 0.03,
+      "ambiguous_min": 0.85,
+      "correct": 2071,
+      "clarified": 90,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.88,
+      "margin": 0.05,
+      "ambiguous_min": 0.75,
+      "correct": 1979,
+      "clarified": 202,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.88,
+      "margin": 0.05,
+      "ambiguous_min": 0.8,
+      "correct": 1979,
+      "clarified": 197,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.88,
+      "margin": 0.05,
+      "ambiguous_min": 0.85,
+      "correct": 1979,
+      "clarified": 182,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.88,
+      "margin": 0.07,
+      "ambiguous_min": 0.75,
+      "correct": 1946,
+      "clarified": 235,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.88,
+      "margin": 0.07,
+      "ambiguous_min": 0.8,
+      "correct": 1946,
+      "clarified": 230,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.88,
+      "margin": 0.07,
+      "ambiguous_min": 0.85,
+      "correct": 1946,
+      "clarified": 215,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.88,
+      "margin": 0.1,
+      "ambiguous_min": 0.75,
+      "correct": 1887,
+      "clarified": 294,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.88,
+      "margin": 0.1,
+      "ambiguous_min": 0.8,
+      "correct": 1887,
+      "clarified": 289,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.88,
+      "margin": 0.1,
+      "ambiguous_min": 0.85,
+      "correct": 1887,
+      "clarified": 274,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.9,
+      "margin": 0.02,
+      "ambiguous_min": 0.75,
+      "correct": 2058,
+      "clarified": 118,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 5
+    },
+    {
+      "resolved_min": 0.9,
+      "margin": 0.02,
+      "ambiguous_min": 0.8,
+      "correct": 2058,
+      "clarified": 113,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 5
+    },
+    {
+      "resolved_min": 0.9,
+      "margin": 0.02,
+      "ambiguous_min": 0.85,
+      "correct": 2058,
+      "clarified": 98,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 5
+    },
+    {
+      "resolved_min": 0.9,
+      "margin": 0.03,
+      "ambiguous_min": 0.75,
+      "correct": 2050,
+      "clarified": 131,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.9,
+      "margin": 0.03,
+      "ambiguous_min": 0.8,
+      "correct": 2050,
+      "clarified": 126,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.9,
+      "margin": 0.03,
+      "ambiguous_min": 0.85,
+      "correct": 2050,
+      "clarified": 111,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.9,
+      "margin": 0.05,
+      "ambiguous_min": 0.75,
+      "correct": 1959,
+      "clarified": 222,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.9,
+      "margin": 0.05,
+      "ambiguous_min": 0.8,
+      "correct": 1959,
+      "clarified": 217,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.9,
+      "margin": 0.05,
+      "ambiguous_min": 0.85,
+      "correct": 1959,
+      "clarified": 202,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.9,
+      "margin": 0.07,
+      "ambiguous_min": 0.75,
+      "correct": 1926,
+      "clarified": 255,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.9,
+      "margin": 0.07,
+      "ambiguous_min": 0.8,
+      "correct": 1926,
+      "clarified": 250,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.9,
+      "margin": 0.07,
+      "ambiguous_min": 0.85,
+      "correct": 1926,
+      "clarified": 235,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.9,
+      "margin": 0.1,
+      "ambiguous_min": 0.75,
+      "correct": 1867,
+      "clarified": 314,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.9,
+      "margin": 0.1,
+      "ambiguous_min": 0.8,
+      "correct": 1867,
+      "clarified": 309,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.9,
+      "margin": 0.1,
+      "ambiguous_min": 0.85,
+      "correct": 1867,
+      "clarified": 294,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.92,
+      "margin": 0.02,
+      "ambiguous_min": 0.75,
+      "correct": 1965,
+      "clarified": 211,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 5
+    },
+    {
+      "resolved_min": 0.92,
+      "margin": 0.02,
+      "ambiguous_min": 0.8,
+      "correct": 1965,
+      "clarified": 206,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 5
+    },
+    {
+      "resolved_min": 0.92,
+      "margin": 0.02,
+      "ambiguous_min": 0.85,
+      "correct": 1965,
+      "clarified": 191,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 5
+    },
+    {
+      "resolved_min": 0.92,
+      "margin": 0.03,
+      "ambiguous_min": 0.75,
+      "correct": 1957,
+      "clarified": 224,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.92,
+      "margin": 0.03,
+      "ambiguous_min": 0.8,
+      "correct": 1957,
+      "clarified": 219,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.92,
+      "margin": 0.03,
+      "ambiguous_min": 0.85,
+      "correct": 1957,
+      "clarified": 204,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.92,
+      "margin": 0.05,
+      "ambiguous_min": 0.75,
+      "correct": 1868,
+      "clarified": 313,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.92,
+      "margin": 0.05,
+      "ambiguous_min": 0.8,
+      "correct": 1868,
+      "clarified": 308,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.92,
+      "margin": 0.05,
+      "ambiguous_min": 0.85,
+      "correct": 1868,
+      "clarified": 293,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.92,
+      "margin": 0.07,
+      "ambiguous_min": 0.75,
+      "correct": 1835,
+      "clarified": 346,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.92,
+      "margin": 0.07,
+      "ambiguous_min": 0.8,
+      "correct": 1835,
+      "clarified": 341,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.92,
+      "margin": 0.07,
+      "ambiguous_min": 0.85,
+      "correct": 1835,
+      "clarified": 326,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.92,
+      "margin": 0.1,
+      "ambiguous_min": 0.75,
+      "correct": 1779,
+      "clarified": 402,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.92,
+      "margin": 0.1,
+      "ambiguous_min": 0.8,
+      "correct": 1779,
+      "clarified": 397,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.92,
+      "margin": 0.1,
+      "ambiguous_min": 0.85,
+      "correct": 1779,
+      "clarified": 382,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.95,
+      "margin": 0.02,
+      "ambiguous_min": 0.75,
+      "correct": 1626,
+      "clarified": 550,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 5
+    },
+    {
+      "resolved_min": 0.95,
+      "margin": 0.02,
+      "ambiguous_min": 0.8,
+      "correct": 1626,
+      "clarified": 545,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 5
+    },
+    {
+      "resolved_min": 0.95,
+      "margin": 0.02,
+      "ambiguous_min": 0.85,
+      "correct": 1626,
+      "clarified": 530,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 5
+    },
+    {
+      "resolved_min": 0.95,
+      "margin": 0.03,
+      "ambiguous_min": 0.75,
+      "correct": 1622,
+      "clarified": 559,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.95,
+      "margin": 0.03,
+      "ambiguous_min": 0.8,
+      "correct": 1622,
+      "clarified": 554,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.95,
+      "margin": 0.03,
+      "ambiguous_min": 0.85,
+      "correct": 1622,
+      "clarified": 539,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.95,
+      "margin": 0.05,
+      "ambiguous_min": 0.75,
+      "correct": 1545,
+      "clarified": 636,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.95,
+      "margin": 0.05,
+      "ambiguous_min": 0.8,
+      "correct": 1545,
+      "clarified": 631,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.95,
+      "margin": 0.05,
+      "ambiguous_min": 0.85,
+      "correct": 1545,
+      "clarified": 616,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.95,
+      "margin": 0.07,
+      "ambiguous_min": 0.75,
+      "correct": 1522,
+      "clarified": 659,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.95,
+      "margin": 0.07,
+      "ambiguous_min": 0.8,
+      "correct": 1522,
+      "clarified": 654,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.95,
+      "margin": 0.07,
+      "ambiguous_min": 0.85,
+      "correct": 1522,
+      "clarified": 639,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.95,
+      "margin": 0.1,
+      "ambiguous_min": 0.75,
+      "correct": 1473,
+      "clarified": 708,
+      "clarify_no_gold": 0,
+      "not_recognised": 11,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.95,
+      "margin": 0.1,
+      "ambiguous_min": 0.8,
+      "correct": 1473,
+      "clarified": 703,
+      "clarify_no_gold": 0,
+      "not_recognised": 16,
+      "wrong": 0
+    },
+    {
+      "resolved_min": 0.95,
+      "margin": 0.1,
+      "ambiguous_min": 0.85,
+      "correct": 1473,
+      "clarified": 688,
+      "clarify_no_gold": 0,
+      "not_recognised": 31,
+      "wrong": 0
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{"question": "What is the usual adult dose of hydroxizine for anxiety?", "mention": "hydroxizine", "gold_ingredient_key": "5553", "gold_name": "hydroxyzine", "partner_name": "hydralazine", "kind": "misspelling"}
+{"question": "What are the common side effects of hydralzine?", "mention": "hydralzine", "gold_ingredient_key": "5470", "gold_name": "hydralazine", "partner_name": "hydroxyzine", "kind": "misspelling"}
+{"question": "Is clonazapam contraindicated in pregnancy?", "mention": "clonazapam", "gold_ingredient_key": "2598", "gold_name": "clonazepam", "partner_name": "clonidine", "kind": "misspelling"}
+{"question": "What is the maximum daily dose of buproprion for depression?", "mention": "buproprion", "gold_ingredient_key": "42347", "gold_name": "bupropion", "partner_name": "buspirone", "kind": "misspelling"}
+{"question": "How should busparone be titrated when starting treatment?", "mention": "busparone", "gold_ingredient_key": "1827", "gold_name": "buspirone", "partner_name": "bupropion", "kind": "misspelling"}
+{"question": "What drug interactions should I know about with carbamazapin?", "mention": "carbamazapin", "gold_ingredient_key": "2002", "gold_name": "carbamazepine", "partner_name": "oxcarbazepine", "kind": "misspelling"}
+{"question": "Does glypizide need a dose change in renal impairment?", "mention": "glypizide", "gold_ingredient_key": "4821", "gold_name": "glipizide", "partner_name": "glyburide", "kind": "misspelling"}
+{"question": "What warnings does the label give for predisone?", "mention": "predisone", "gold_ingredient_key": "8640", "gold_name": "prednisone", "partner_name": "prednisolone", "kind": "misspelling"}
+{"question": "What is the starting dose of trazadone for insomnia?", "mention": "trazadone", "gold_ingredient_key": "10737", "gold_name": "trazodone", "partner_name": "tramadol", "kind": "misspelling"}
+{"question": "What are the adverse reactions listed for metrodinazole?", "mention": "metrodinazole", "gold_ingredient_key": "6922", "gold_name": "metronidazole", "partner_name": "metformin", "kind": "misspelling"}
+{"question": "What is the recommended dosage of risperadone for schizophrenia?", "mention": "risperadone", "gold_ingredient_key": "35636", "gold_name": "risperidone", "partner_name": "ropinirole", "kind": "misspelling"}
+{"question": "What is the dosing for Celexa in adults?", "mention": "Celexa", "gold_ingredient_key": "2556", "gold_name": "citalopram", "partner_name": "celecoxib", "kind": "brand"}
+{"question": "What are the side effects of Zocor for cholesterol?", "mention": "Zocor", "gold_ingredient_key": "36567", "gold_name": "simvastatin", "partner_name": "sertraline", "kind": "brand"}
+{"question": "Can Prilosec be taken with other medicines that affect stomach acid?", "mention": "Prilosec", "gold_ingredient_key": "7646", "gold_name": "omeprazole", "partner_name": "fluoxetine", "kind": "brand"}
+{"question": "What are the boxed warnings for Klonopin?", "mention": "Klonopin", "gold_ingredient_key": "2598", "gold_name": "clonazepam", "partner_name": "clonidine", "kind": "brand"}
+{"question": "What is Imuran used to treat?", "mention": "Imuran", "gold_ingredient_key": "1256", "gold_name": "azathioprine", "partner_name": "sumatriptan", "kind": "brand"}
+{"question": "What are the contraindications for prednisolone?", "mention": "prednisolone", "gold_ingredient_key": "8638", "gold_name": "prednisolone", "partner_name": "prednisone", "kind": "correct_partner"}
+{"question": "What is the usual dose of nicardipine for angina?", "mention": "nicardipine", "gold_ingredient_key": "7396", "gold_name": "nicardipine", "partner_name": "nifedipine", "kind": "correct_partner"}
+{"question": "How is ropinirole dosed for Parkinson's disease?", "mention": "ropinirole", "gold_ingredient_key": "72302", "gold_name": "ropinirole", "partner_name": "risperidone", "kind": "correct_partner"}
+{"question": "What are the precautions for oxcarbazepine in patients with liver disease?", "mention": "oxcarbazepine", "gold_ingredient_key": "32624", "gold_name": "oxcarbazepine", "partner_name": "carbamazepine", "kind": "correct_partner"}
