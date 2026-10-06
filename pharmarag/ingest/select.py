@@ -3,14 +3,18 @@
 Only human prescription labels are eligible (checked by the caller against
 `PRESCRIPTION_LABEL_LOINC`). Within one ingredient set the preference order is:
 
-1. NDA or BLA marketing category (the spec's rule),
-2. not a repackager label,
-3. a base immediate-release oral or injectable form,
-4. latest effective date (the spec's rule),
+1. base form: an immediate-release oral tablet or capsule; an injection counts as base only
+   when the ingredient has no such oral label (user decision, deviates from spec section 4),
+2. NDA or BLA marketing category (the spec's first rule),
+3. not a repackager label,
+4. latest effective date (the spec's second rule),
 5. lowest SETID, so the choice is deterministic.
 
-Rules 2 and 3 are tie-breaks inside the spec's tier. They exist because "latest date" alone
-picks whichever repackager republished last, and the pick would change every week.
+Rules 1 and 3 are not in the spec. Rule 3 exists because "latest date" alone picks whichever
+repackager republished last, and the pick would change every week. Rule 1 outranks the tier
+because the reference label should represent typical use, and an NDA niche form misrepresents
+it: for clonidine the only NDA labels were an epidural injection and an oral solution, and
+bupropion and glipizide had only extended-release NDA labels, while ordinary ANDA tablets exist.
 
 `labels_per_ingredient` (settings) is the number of labels kept per ingredient set.
 """
@@ -79,6 +83,7 @@ REPACKAGERS = (
     "AVPAK",
     "HJ HARKINS",
     "COUPLER",
+    "STATE OF FLORIDA",
     "GOLDEN STATE MEDICAL SUPPLY",
     "AIDAREX",
     "PACK PHARMACEUTICALS",
@@ -128,18 +133,19 @@ def is_repackager(labeler: str) -> bool:
     return any(re.search(r"\b" + re.escape(r), name) for r in REPACKAGERS)
 
 
-def is_base_form(title: str) -> bool:
-    """True if the label covers a plain tablet, capsule or injection, judged from its title.
+def form_class(title: str) -> str:
+    """ "oral", "injectable" or "niche", judged from the DailyMed list title.
 
-    A DailyMed title lists every product: "NAME (GENERIC) FORM NAME2 (GENERIC) FORM2 [LABELER]".
-    Each dose-form phrase is checked on its own, together with the brand text in front of it
-    (so "OXTELLAR XR (...) TABLET" is extended release although its form says only TABLET). A
-    label with at least one plain product counts as base: Trileptal lists tablets and a
-    suspension, Tegretol lists tablets, XR tablets and a suspension. A title with no solid or
-    injectable phrase is base unless it names a liquid, patch, extended release, and so on.
+    A title lists every product: "NAME (GENERIC) FORM NAME2 (GENERIC) FORM2 [LABELER]". Each
+    dose-form phrase is checked on its own, together with the brand text in front of it (so
+    "OXTELLAR XR (...) TABLET" is extended release although its form says only TABLET). A label
+    with at least one plain tablet or capsule is "oral": Trileptal lists tablets and a
+    suspension, Tegretol lists tablets, XR tablets and a suspension. Otherwise a plain
+    injection makes it "injectable". A title with no tablet, capsule or injection phrase is
+    "oral" unless it names a liquid, patch, extended release and so on, which is "niche".
     """
     head = re.sub(r"\[[^\]]*\]\s*$", "", title.upper())
-    found = False
+    found = injectable = False
     previous_end = 0
     for m in _FORM_PHRASE.finditer(head):
         found = True
@@ -147,10 +153,20 @@ def is_base_form(title: str) -> bool:
         previous_end = m.end()
         if _ER_WORDS.search(brand) or _NICHE_DESCRIPTORS.search(m.group("desc")):
             continue
-        return True
+        if m.group("noun") == "INJECTION":
+            injectable = True
+            continue
+        return "oral"
+    if injectable:
+        return "injectable"
     if found:
-        return False
-    return not (_ER_WORDS.search(head) or _LIQUID_ETC.search(head))
+        return "niche"
+    return "niche" if (_ER_WORDS.search(head) or _LIQUID_ETC.search(head)) else "oral"
+
+
+def is_base_form(title: str) -> bool:
+    """True for a plain oral solid or an injection (see `form_class`)."""
+    return form_class(title) != "niche"
 
 
 @dataclass(frozen=True)
@@ -167,25 +183,44 @@ def is_nda_or_bla(category: str | None) -> bool:
     return (category or "").strip().upper() in BRAND_CATEGORIES
 
 
-def preference(c: Candidate) -> tuple[int, int, int, int, str]:
-    """Sort key: smaller is better. A missing date sorts after every real date."""
+def has_oral_base(candidates: Iterable[Candidate]) -> bool:
+    """True if any candidate is a plain oral tablet or capsule label.
+
+    A candidate with no title counts as oral. The pool may include combination products, which
+    can make an injection-only ingredient look like it has an oral form. The cost is only a
+    slightly different order among its injection and niche labels, because candidates with
+    the wrong ingredient set are skipped later anyway.
+    """
+    return any(form_class(c.title) == "oral" for c in candidates)
+
+
+def preference(c: Candidate, injection_is_base: bool = False) -> tuple[int, int, int, int, str]:
+    """Sort key: smaller is better. A missing date sorts after every real date.
+
+    SPEC: deviates from spec section 4 by user decision. The form rule comes before the
+    NDA/BLA tier. See the module docstring for why.
+    """
+    cls = form_class(c.title) if c.title else "oral"
+    base = cls == "oral" or (cls == "injectable" and injection_is_base)
     tier = 0 if is_nda_or_bla(c.marketing_category) else 1
     repackager = 1 if is_repackager(labeler_from_title(c.title)) else 0
-    niche = 0 if is_base_form(c.title) or not c.title else 1
     ordinal = c.effective_date.toordinal() if c.effective_date else 0
-    return (tier, repackager, niche, -ordinal, c.setid)
+    return (0 if base else 1, tier, repackager, -ordinal, c.setid)
 
 
 def rank(candidates: Iterable[Candidate]) -> list[Candidate]:
-    return sorted(candidates, key=preference)
+    """Best first. Injection is base only if no candidate in the pool is an oral label."""
+    pool = list(candidates)
+    injection_is_base = not has_oral_base(pool)
+    return sorted(pool, key=lambda c: preference(c, injection_is_base))
 
 
 def group_by_key(candidates: Iterable[Candidate]) -> dict[str, list[Candidate]]:
-    """Candidates per ingredient key, each list ranked best first."""
-    groups: dict[str, list[Candidate]] = {}
-    for c in rank(candidates):
-        groups.setdefault(c.ingredient_key, []).append(c)
-    return groups
+    """Candidates per ingredient key, each list ranked best first (judged within the group)."""
+    raw: dict[str, list[Candidate]] = {}
+    for c in candidates:
+        raw.setdefault(c.ingredient_key, []).append(c)
+    return {key: rank(group) for key, group in raw.items()}
 
 
 def select_labels(candidates: Iterable[Candidate], per_key: int = 1) -> list[Candidate]:

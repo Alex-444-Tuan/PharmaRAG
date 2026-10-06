@@ -624,3 +624,32 @@ async def test_chunk_count_is_the_number_of_chunks_written(pg_conn, router, worl
     [(n,)] = await rows(pg_conn, "SELECT count(*) FROM chunk")
     assert first.chunks == n
     assert (second.chunks, second.status) == (0, "unchanged")
+
+
+async def test_anda_immediate_release_tablet_is_chosen_over_nda_er_only_and_epidural_labels(
+    pg_conn, router, world
+):
+    mock_rxnav(router, ingredient=("2599", "clonidine"), products={"1": [("2599", "clonidine")]})
+    nda_er = "bbbbbbbb-0000-0000-0000-00000000000b"
+    nda_epidural = "cccccccc-0000-0000-0000-00000000000c"
+    world.lists[MARKETING_CATEGORY_NDA] = [
+        ref(nda_epidural, "Sep 01, 2026", title="DURACLON (CLONIDINE) INJECTION, SOLUTION [MYLAN]"),
+        ref(
+            nda_er, "Sep 02, 2026", title="KAPVAY (CLONIDINE) TABLET, EXTENDED RELEASE [CONCORDIA]"
+        ),
+    ]
+    world.lists[None] = [
+        ref(nda_epidural, "Sep 01, 2026", title="DURACLON (CLONIDINE) INJECTION, SOLUTION [MYLAN]"),
+        ref(
+            nda_er, "Sep 02, 2026", title="KAPVAY (CLONIDINE) TABLET, EXTENDED RELEASE [CONCORDIA]"
+        ),
+        ref(CLONIDINE, "Jan 01, 2020", 5, title="CLONIDINE HYDROCHLORIDE TABLET [ALEMBIC]"),
+    ]
+    world.xml[CLONIDINE] = (FIXTURES / "clonidine_old.xml").read_bytes()
+    mappings = {nda_er: {"1"}, nda_epidural: {"1"}, CLONIDINE: {"1"}}
+
+    result = await make_ingestor(pg_conn, mappings).ingest_seed("clonidine")
+
+    assert world.fetched == [CLONIDINE]  # the NDA labels were never even downloaded
+    assert result.setids == [CLONIDINE]
+    assert await rows(pg_conn, "SELECT marketing_category FROM label") == [("ANDA",)]
