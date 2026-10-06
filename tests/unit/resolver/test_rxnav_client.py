@@ -111,22 +111,53 @@ async def test_ingredients_maps_a_concept_to_its_ingredients_and_is_memoised():
 
 
 @respx.mock
-async def test_related_reads_brands_dose_forms_and_strengths_in_one_request():
+async def test_related_reads_brands_dose_forms_strengths_and_branded_drugs_in_one_request():
     route = respx.get(f"{BASE}/rxcui/17767/related.json").respond(
         json=related(
             ("17767", "amlodipine", "IN"),
             ("58927", "Norvasc", "BN"),
             ("317541", "Oral Tablet", "DF"),
             ("329528", "amlodipine 5 MG", "SCDC"),
+            ("212549", "amlodipine 5 MG Oral Tablet [Norvasc]", "SBD"),
         )
     )
     got = await make().related("17767")
     assert route.call_count == 1
-    assert route.calls.last.request.url.params["tty"] == "IN+BN+DF+SCDC"
     assert got.ingredient == Ingredient("17767", "amlodipine")
     assert [c.name for c in got.brands] == ["Norvasc"]
     assert [c.name for c in got.dose_forms] == ["Oral Tablet"]
     assert [c.name for c in got.strengths] == ["amlodipine 5 MG"]
+    assert [c.name for c in got.branded_drugs] == ["amlodipine 5 MG Oral Tablet [Norvasc]"]
+
+
+async def test_related_sends_the_literal_url_rxnav_accepts():
+    """RxNav reads "+" in `tty` as a separator and answers HTTP 400 to an encoded "%2B". The
+    client must send spaces, which httpx puts on the wire as "+". Asserted on the raw URL,
+    because a stubbed `RxNavSource` or a parsed `params["tty"]` would hide the difference."""
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(str(request.url))
+        if "%2B" in str(request.url):  # what live RxNav does with it
+            return httpx.Response(400, text="Path or Query Parameter error")
+        return httpx.Response(200, json=related(("17767", "amlodipine", "IN")))
+
+    transport = httpx.MockTransport(handler)
+    rx = make(client=httpx.AsyncClient(transport=transport))
+    got = await rx.related("17767")
+    assert seen == [f"{BASE}/rxcui/17767/related.json?tty=IN+BN+DF+SCDC+SBD"]
+    assert got.ingredient == Ingredient("17767", "amlodipine")
+
+
+@respx.mock
+async def test_a_400_is_logged_as_a_warning_and_is_no_result(caplog):
+    respx.get(f"{BASE}/rxcui/17767/related.json").respond(400, text="Path or Query Parameter error")
+    rx = make()
+    with caplog.at_level("WARNING", logger="pharmarag.resolver.rxnav_client"):
+        got = await rx.related("17767")
+    assert got.ingredient is None and got.brands == []
+    assert any("HTTP 400" in r.message and r.levelname == "WARNING" for r in caplog.records)
+    assert not rx.breaker_open  # RxNav answered: it is up
 
 
 # --- timeout and retry policy ------------------------------------------------------------------
@@ -221,23 +252,66 @@ async def test_backoff_doubles_between_attempts(monkeypatch):
 
 
 @respx.mock
-async def test_after_an_outage_calls_fail_fast_until_the_breaker_closes():
+async def test_the_breaker_opens_after_three_exhausted_calls_in_a_row():
     now = [100.0]
     route = respx.get(f"{BASE}/rxcui.json").respond(503)
     rx = make(breaker_s=30.0, clock=lambda: now[0])
+    for _ in range(2):
+        with pytest.raises(RxNavUnavailable):
+            await rx.find_rxcuis("x")
+        assert not rx.breaker_open  # one or two bad calls do not switch RxNav off
+    assert route.call_count == 6  # each call used its three attempts
+
     with pytest.raises(RxNavUnavailable):
         await rx.find_rxcuis("x")
-    assert route.call_count == 3
+    assert route.call_count == 9
     assert rx.breaker_open
 
     # Open: no HTTP traffic at all, so a request does not wait for three more timeouts.
     with pytest.raises(RxNavUnavailable):
         await rx.find_rxcuis("x")
-    assert route.call_count == 3
+    assert route.call_count == 9
 
     # Closed again after breaker_s, and the next call really goes out.
     now[0] = 131.0
     assert not rx.breaker_open
     route.respond(200, json={"idGroup": {"rxnormId": ["5553"]}})
     assert await rx.find_rxcuis("x") == ["5553"]
-    assert route.call_count == 4
+    assert route.call_count == 10
+
+
+@respx.mock
+async def test_a_success_resets_the_consecutive_failure_count():
+    route = respx.get(f"{BASE}/rxcui.json")
+    rx = make()
+
+    async def failing_call():
+        route.respond(503)
+        with pytest.raises(RxNavUnavailable):
+            await rx.find_rxcuis("x")
+
+    await failing_call()
+    await failing_call()
+    route.respond(200, json={"idGroup": {}})
+    await rx.find_rxcuis("x")  # an answer: the count starts again
+    await failing_call()
+    await failing_call()
+    assert not rx.breaker_open  # four failures, but never three in a row
+    await failing_call()
+    assert rx.breaker_open
+
+
+@respx.mock
+async def test_a_404_also_resets_the_failure_count():
+    route = respx.get(f"{BASE}/rxcui.json")
+    rx = make()
+    for _ in range(2):
+        route.respond(503)
+        with pytest.raises(RxNavUnavailable):
+            await rx.find_rxcuis("x")
+    route.respond(404)
+    assert await rx.find_rxcuis("x") == []
+    route.respond(503)
+    with pytest.raises(RxNavUnavailable):
+        await rx.find_rxcuis("x")
+    assert not rx.breaker_open

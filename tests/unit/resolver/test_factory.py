@@ -70,14 +70,19 @@ async def test_resolver_through_http_rxnav_503_falls_back_to_local(
     with caplog.at_level(logging.WARNING, logger="pharmarag.resolver"):
         (r,) = await resolver.resolve(["klonipin"])  # does not raise
     assert (r.status, r.match, r.ingredient_key) == ("resolved", "approximate", "2598")
+    assert r.degraded  # contract v2: the NFR-4 fallback is visible on the Resolution
     assert route.call_count == 3  # the client's three attempts, once
     assert any("degraded" in rec.message for rec in caplog.records)
 
-    # The breaker is open now: the next mention does not wait for RxNav again.
-    calls = route.call_count
-    (r2,) = await resolver.resolve(["lasik"])
-    assert r2.ingredient_key == "4603"
-    assert route.call_count == calls
+    # Two more exhausted calls open the breaker (three in a row)...
+    for mention in ("lasik", "klonipin"):
+        (r2,) = await resolver.resolve([mention])
+        assert r2.degraded
+    assert route.call_count == 9
+    # ...and then a mention does not wait for RxNav at all.
+    (r3,) = await resolver.resolve(["lasik"])
+    assert (r3.ingredient_key, r3.degraded) == ("4603", True)
+    assert route.call_count == 9
     await factory.close_rxnav(rx_settings)
 
 
@@ -86,31 +91,32 @@ async def test_resolver_through_http_timeouts_fall_back_to_local(pool, rx_settin
     respx.get(url__startswith=BASE).mock(side_effect=httpx.ReadTimeout("2 s"))
     resolver = factory.build_resolver(rx_settings, thresholds, pool, InMemoryCache())
     (r,) = await resolver.resolve(["klonipin"])
-    assert r.ingredient_key == "2598"
+    assert (r.ingredient_key, r.degraded) == ("2598", True)
     await factory.close_rxnav(rx_settings)
 
 
 @respx.mock
-async def test_facts_source_through_http(rx_settings, thresholds):
-    respx.get(f"{BASE}/rxcui/17767/related.json").respond(
+async def test_facts_source_through_http_is_one_request_per_ingredient(rx_settings, thresholds):
+    route = respx.get(f"{BASE}/rxcui/17767/related.json").respond(
         json=related(
             ("17767", "amlodipine", "IN"),
             ("58927", "Norvasc", "BN"),
+            ("722127", "Exforge", "BN"),
             ("317541", "Oral Tablet", "DF"),
             ("329528", "amlodipine 5 MG", "SCDC"),
+            ("212549", "amlodipine 5 MG Oral Tablet [Norvasc]", "SBD"),
+            ("1", "amlodipine 5 MG / valsartan 160 MG Oral Tablet [Exforge]", "SBD"),
         )
     )
-    respx.get(f"{BASE}/rxcui/58927/related.json").respond(
-        json=related(("17767", "amlodipine", "IN"))
-    )
     source = factory.build_rx_facts_source(rx_settings, thresholds, InMemoryCache())
-    lines = await source.facts(["17767"])
-    assert lines == [
-        "RxNorm brand names for amlodipine: Norvasc.",
-        "RxNorm dose forms for amlodipine: Oral Tablet.",
-        "RxNorm strengths for amlodipine: 5 MG.",
+    facts = await source.facts(["17767"])
+    assert [(f.rxcui, f.text) for f in facts] == [
+        ("17767", "RxNorm brand names for amlodipine: Norvasc."),
+        ("17767", "RxNorm dose forms for amlodipine: Oral Tablet."),
+        ("17767", "RxNorm strengths for amlodipine: 5 MG."),
     ]
-    assert len(lines) <= thresholds.retrieval.max_facts
+    assert len(facts) <= thresholds.retrieval.max_facts
+    assert route.call_count == 1
     await factory.close_rxnav(rx_settings)
 
 

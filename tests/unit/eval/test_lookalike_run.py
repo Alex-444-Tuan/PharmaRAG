@@ -1,7 +1,7 @@
 """The look-alike eval end to end over the real corpus, with FakeLLM and no network.
 
-Full mode runs `run_ask` through the cycle 1 graph plus a stand-in `resolve` node (see
-stand_in_graph.py), a scripted FakeLLM (analyze JSON, writer lines citing chunk ids) and
+Full mode runs `run_ask` through the real compiled graph (`pharmarag.graph.build.build_graph`)
+with a local-only resolver, a scripted FakeLLM (analyze JSON, writer lines citing chunk ids) and
 FakeEmbedder vectors. Nothing here calls a real LLM or RxNav.
 """
 
@@ -16,12 +16,12 @@ from pharmarag.eval import lookalike as la
 from pharmarag.eval import lookalike_run as lr
 from pharmarag.eval.report import write_report
 from pharmarag.eval.run import parse_args
+from pharmarag.graph.build import build_graph
 from pharmarag.graph.deps import Deps
 from pharmarag.graph.run import run_ask
 from pharmarag.llm.base import FakeLLM
 from pharmarag.resolver.cascade import CascadeResolver
 from pharmarag.resolver.local import PgLocalStore
-from tests.unit.eval.stand_in_graph import build_system_graph
 from tests.unit.resolver.fakes import FakeRx
 
 pytestmark = pytest.mark.corpus
@@ -65,10 +65,11 @@ def scripted_llm(rows: list[la.Row]) -> FakeLLM:
 @pytest.fixture
 def full_deps(pool, settings, thresholds, fake_embedder):
     rows = la.load_dataset("dev")
-    # FakeEmbedder's hashed bag-of-words cosines are far below the real model's, so the grader's
-    # dense_min would reject every retrieval. Only that one threshold is relaxed, for this test.
+    # FakeEmbedder vectors against the corpus's real bge vectors give cosines near zero or
+    # negative, so the grader's dense_min would reject every retrieval. Only that threshold is
+    # relaxed, for this test.
     relaxed = thresholds.model_copy(
-        update={"retrieval": thresholds.retrieval.model_copy(update={"dense_min": 0.0})}
+        update={"retrieval": thresholds.retrieval.model_copy(update={"dense_min": -1.0})}
     )
     return Deps(
         llm=scripted_llm(rows),
@@ -76,13 +77,13 @@ def full_deps(pool, settings, thresholds, fake_embedder):
         pool=pool,
         settings=settings.model_copy(update={"eval_mode": True}),
         thresholds=relaxed,
-        resolver_available=True,
+        resolver=local_resolver(pool, thresholds),
     )
 
 
 @pytest.fixture
-def ask(full_deps, pool, thresholds):
-    graph = build_system_graph(full_deps, local_resolver(pool, thresholds))
+def ask(full_deps):
+    graph = build_graph(full_deps)
     responses: list[tuple[str, bool, dict]] = []
 
     async def _ask(question, flags):

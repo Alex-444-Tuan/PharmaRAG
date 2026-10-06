@@ -20,8 +20,8 @@ import re
 from itertools import zip_longest
 
 from pharmarag.cache import Cache
-from pharmarag.ingest.select import ingredient_key
-from pharmarag.resolver.rxnav_client import RxNavSource, RxNavUnavailable
+from pharmarag.resolver.base import RxFact
+from pharmarag.resolver.rxnav_client import Concept, RxNavSource, RxNavUnavailable
 
 log = logging.getLogger(__name__)
 
@@ -29,12 +29,24 @@ CACHE_TTL_S = 24 * 3600
 MAX_BRANDS = 8
 MAX_DOSE_FORMS = 8
 MAX_STRENGTHS = 10
-# Brands are looked up per ingredient, but RxNorm lists a combination product's brand under each
-# of its ingredients (Tribenzor is a "brand of amlodipine"). Each candidate brand is checked
-# for a second ingredient, so a line never calls a combination product a brand of one drug.
-MAX_BRANDS_CHECKED = 20
+# RxNorm lists a combination product's brand under each of its ingredients (Tribenzor is a
+# "brand of amlodipine"). The same `related.json` call also returns the branded drugs (SBD,
+# "amlodipine 5 MG Oral Tablet [Norvasc]"), and a brand is kept only if one of its branded
+# drugs has a single ingredient. That is one RxNav call per ingredient, not one per brand.
 
 _NUMBER = re.compile(r"\d+(?:\.\d+)?")
+_BRAND_TAG = re.compile(r"^(?P<product>.*?)\s*\[(?P<brand>[^\[\]]+)\]\s*$")
+
+
+def single_ingredient_brands(branded_drugs: list[Concept]) -> set[str]:
+    """Lowercase brand names that have at least one single-ingredient branded drug."""
+    out: set[str] = set()
+    for c in branded_drugs:
+        m = _BRAND_TAG.match(c.name)
+        # " / " separates ingredients in a product name; "1 MG/ML" is a strength.
+        if m and " / " not in m.group("product"):
+            out.add(m.group("brand").lower())
+    return out
 
 
 def cache_key(rxcui: str) -> str:
@@ -58,7 +70,7 @@ class RxNavFactsSource:
         self._cache = cache
         self._max = max_facts
 
-    async def facts(self, ingredient_rxcuis: list[str]) -> list[str]:
+    async def facts(self, ingredient_rxcuis: list[str]) -> list[RxFact]:
         rxcuis = list(dict.fromkeys(r for r in ingredient_rxcuis if r))
         if not rxcuis or self._max <= 0:
             return []
@@ -66,7 +78,10 @@ class RxNavFactsSource:
         # Interleave (first line of each ingredient, then the second, ...) so that when
         # max_facts cuts the list, every ingredient still has its brand line.
         merged = [
-            line for group in zip_longest(*per_ingredient) for line in group if line is not None
+            RxFact(rxcui=rxcuis[i], text=line)
+            for group in zip_longest(*per_ingredient)
+            for i, line in enumerate(group)
+            if line is not None
         ]
         return merged[: self._max]
 
@@ -93,18 +108,10 @@ class RxNavFactsSource:
         if related.ingredient is None:
             return []
         name = related.ingredient.name
-        own_key = ingredient_key([related.ingredient.rxcui])
 
-        candidates = sorted(related.brands, key=lambda c: (c.name.lower(), c.rxcui))
-        candidates = candidates[:MAX_BRANDS_CHECKED]
-        checked = await asyncio.gather(*(self._rx.ingredients(c.rxcui) for c in candidates))
+        single = single_ingredient_brands(related.branded_drugs)
         brands = sorted(
-            {
-                c.name
-                for c, ingredients in zip(candidates, checked, strict=True)
-                if ingredient_key([i.rxcui for i in ingredients]) == own_key
-            },
-            key=str.lower,
+            {c.name for c in related.brands if c.name.lower() in single}, key=str.lower
         )[:MAX_BRANDS]
 
         forms = sorted({c.name for c in related.dose_forms}, key=str.lower)[:MAX_DOSE_FORMS]

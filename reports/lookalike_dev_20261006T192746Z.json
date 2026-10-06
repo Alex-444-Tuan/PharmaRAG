@@ -3,12 +3,12 @@
   "split": "dev",
   "mode": "both",
   "runs": 3,
-  "timestamp": "2026-10-06T18:47:25Z",
+  "timestamp": "2026-10-06T19:27:46Z",
   "model_id": null,
-  "corpus_version": "f8f0f8f32f1155fd",
-  "thresholds_commit": "5deed9d171077285557696752cddcef31b151474",
+  "corpus_version": "24bdf02ae716c922",
+  "thresholds_commit": "0b8c7a8c71d4c1dcd0dc0d61b5a8431e0b6b85a6",
   "thresholds_dirty": false,
-  "git_head": "5b85145b03cdd247c04563759a76b722d581a356",
+  "git_head": "60ffc549af1e34685ed86f46ebd3a0bea06f6141",
   "thresholds": {
     "resolver": {
       "resolved_min": 0.9,
@@ -23,8 +23,8 @@
       "rrf_k": 60,
       "evidence_top_k": 8,
       "evidence_top_k_per_drug": 5,
-      "dense_min": 0.45,
-      "overlap_min": 2,
+      "dense_min": 0.7,
+      "overlap_min": 3,
       "max_facts": 10
     }
   },
@@ -61,10 +61,10 @@
             "kind": "misspelling",
             "outcome": "correct",
             "status": "resolved",
-            "match": "exact",
+            "match": "approximate",
             "resolved_key": "5553",
             "resolved_name": "hydroxyzine",
-            "score": 1.0,
+            "score": 0.9436,
             "candidates": [],
             "degraded": false
           },
@@ -353,10 +353,10 @@
             "kind": "misspelling",
             "outcome": "correct",
             "status": "resolved",
-            "match": "exact",
+            "match": "approximate",
             "resolved_key": "5553",
             "resolved_name": "hydroxyzine",
-            "score": 1.0,
+            "score": 0.9436,
             "candidates": [],
             "degraded": false
           },
@@ -645,10 +645,10 @@
             "kind": "misspelling",
             "outcome": "correct",
             "status": "resolved",
-            "match": "exact",
+            "match": "approximate",
             "resolved_key": "5553",
             "resolved_name": "hydroxyzine",
-            "score": 1.0,
+            "score": 0.9436,
             "candidates": [],
             "degraded": false
           },
@@ -955,7 +955,7 @@
     "embedding_model": "BAAI/bge-small-en-v1.5",
     "counts": {
       "total": 20,
-      "top1_wrong": 8,
+      "top1_wrong": 9,
       "any_top8_wrong": 20,
       "no_evidence": 0
     },
@@ -1006,10 +1006,10 @@
           "28439",
           "5521",
           "72143",
+          "11289",
+          "25480",
           "32624",
-          "301542",
-          "10582",
-          "11289"
+          "6472"
         ],
         "top1_wrong": true,
         "any_top8_wrong": true
@@ -1042,10 +1042,10 @@
           "2597",
           "135447",
           "1827",
-          "1819",
-          "1819",
+          "135447",
           "1551291",
-          "1819"
+          "51272",
+          "51272"
         ],
         "top1_wrong": true,
         "any_top8_wrong": true
@@ -1062,8 +1062,8 @@
           "4450",
           "6915",
           "88014",
-          "36437",
-          "86009"
+          "596",
+          "475968"
         ],
         "top1_wrong": true,
         "any_top8_wrong": true
@@ -1079,9 +1079,9 @@
           "140587",
           "18867",
           "140587",
-          "341248",
-          "32624",
-          "18631"
+          "1991302",
+          "18631",
+          "341248"
         ],
         "top1_wrong": true,
         "any_top8_wrong": true
@@ -1093,13 +1093,13 @@
         "top1_key": "187832",
         "top8_keys": [
           "187832",
-          "1819",
           "72302",
           "6691",
           "1040028",
           "89013",
           "19831",
-          "35636"
+          "35636",
+          "51272"
         ],
         "top1_wrong": true,
         "any_top8_wrong": true
@@ -1149,9 +1149,9 @@
           "32624",
           "35636",
           "35636",
-          "1991302",
-          "35636",
           "4278",
+          "35636",
+          "1991302",
           "32624",
           "35636"
         ],
@@ -1198,18 +1198,18 @@
         "question": "Can Prilosec be taken with other medicines that affect stomach acid?",
         "gold_ingredient_key": "7646",
         "kind": "brand",
-        "top1_key": "7646",
+        "top1_key": "72302",
         "top8_keys": [
+          "72302",
           "7646",
-          "7646",
-          "7646",
-          "7646",
+          "8703",
           "40790",
-          "7646",
-          "7646",
-          "72302"
+          "8703",
+          "40790",
+          "1114195",
+          "7646"
         ],
-        "top1_wrong": false,
+        "top1_wrong": true,
         "any_top8_wrong": true
       },
       {
@@ -1260,8 +1260,8 @@
           "8640",
           "6902",
           "2596",
-          "5470",
-          "72625"
+          "72625",
+          "3264"
         ],
         "top1_wrong": false,
         "any_top8_wrong": true
