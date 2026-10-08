@@ -1,0 +1,127 @@
+{
+  "timestamp": "2026-10-08T17:23:40Z",
+  "model_id": "claude-sonnet-5-5",
+  "corpus_version": "24bdf02ae716c922",
+  "claims": 40,
+  "claims_sha256": "d9780f73f936220f2710667781f83710f4ab1fd1ca6612d03c2c5b3c28f3d28a",
+  "usage": {
+    "calls": 28,
+    "approx_input_tokens": 34536,
+    "approx_output_tokens": 2611,
+    "note": "tokens estimated as characters / 4; thinking tokens are not counted"
+  },
+  "per_question": [
+    {
+      "pass": 1,
+      "question_id": "q01",
+      "status": "answered",
+      "evidence_ok": true,
+      "sentences": 2,
+      "cited_sentences": 2
+    },
+    {
+      "pass": 1,
+      "question_id": "q02",
+      "status": "answered",
+      "evidence_ok": true,
+      "sentences": 5,
+      "cited_sentences": 5
+    },
+    {
+      "pass": 1,
+      "question_id": "q03",
+      "status": "answered",
+      "evidence_ok": true,
+      "sentences": 9,
+      "cited_sentences": 9
+    },
+    {
+      "pass": 1,
+      "question_id": "q04",
+      "status": "answered",
+      "evidence_ok": true,
+      "sentences": 6,
+      "cited_sentences": 6
+    },
+    {
+      "pass": 1,
+      "question_id": "q05",
+      "status": "answered",
+      "evidence_ok": true,
+      "sentences": 3,
+      "cited_sentences": 3
+    },
+    {
+      "pass": 1,
+      "question_id": "q06",
+      "status": "answered",
+      "evidence_ok": true,
+      "sentences": 7,
+      "cited_sentences": 7
+    },
+    {
+      "pass": 1,
+      "question_id": "q07",
+      "status": "answered",
+      "evidence_ok": true,
+      "sentences": 6,
+      "cited_sentences": 6
+    },
+    {
+      "pass": 1,
+      "question_id": "q08",
+      "status": "answered",
+      "evidence_ok": true,
+      "sentences": 4,
+      "cited_sentences": 4
+    },
+    {
+      "pass": 1,
+      "question_id": "q09",
+      "status": "answered",
+      "evidence_ok": true,
+      "sentences": 10,
+      "cited_sentences": 10
+    },
+    {
+      "pass": 1,
+      "question_id": "q10",
+      "status": "insufficient_evidence",
+      "evidence_ok": true,
+      "sentences": 0,
+      "cited_sentences": 0
+    },
+    {
+      "pass": 1,
+      "question_id": "q11",
+      "status": "insufficient_evidence",
+      "evidence_ok": true,
+      "sentences": 0,
+      "cited_sentences": 0
+    },
+    {
+      "pass": 1,
+      "question_id": "q12",
+      "status": "answered",
+      "evidence_ok": true,
+      "sentences": 8,
+      "cited_sentences": 7
+    },
+    {
+      "pass": 1,
+      "question_id": "q13",
+      "status": "insufficient_evidence",
+      "evidence_ok": true,
+      "sentences": 0,
+      "cited_sentences": 0
+    },
+    {
+      "pass": 1,
+      "question_id": "q14",
+      "status": "insufficient_evidence",
+      "evidence_ok": true,
+      "sentences": 0,
+      "cited_sentences": 0
+    }
+  ]
+}

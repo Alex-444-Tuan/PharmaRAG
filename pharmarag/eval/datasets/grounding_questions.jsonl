@@ -1,0 +1,14 @@
+{"id": "q01", "question": "What is the usual starting dose of metformin for adults with type 2 diabetes?", "answerable": true, "drug": "metformin"}
+{"id": "q02", "question": "What are the contraindications for lisinopril?", "answerable": true, "drug": "lisinopril"}
+{"id": "q03", "question": "What are the most common side effects of sertraline?", "answerable": true, "drug": "sertraline"}
+{"id": "q04", "question": "Which medicines raise the bleeding risk when taken together with warfarin?", "answerable": true, "drug": "warfarin"}
+{"id": "q05", "question": "What is the maximum daily dose of tramadol for adults?", "answerable": true, "drug": "tramadol"}
+{"id": "q06", "question": "Can amlodipine be used during pregnancy?", "answerable": true, "drug": "amlodipine"}
+{"id": "q07", "question": "What should I know about stopping paroxetine suddenly?", "answerable": true, "drug": "paroxetine"}
+{"id": "q08", "question": "How should levothyroxine be taken in relation to food?", "answerable": true, "drug": "levothyroxine"}
+{"id": "q09", "question": "What does the fluoxetine label warn about suicidal thoughts in young people?", "answerable": true, "drug": "fluoxetine"}
+{"id": "q10", "question": "Is gabapentin effective for treating chronic lower back pain?", "answerable": false, "drug": "gabapentin"}
+{"id": "q11", "question": "Does apixaban lower the risk of dementia?", "answerable": false, "drug": "apixaban"}
+{"id": "q12", "question": "Is it safe to take ibuprofen every day if I drink alcohol regularly?", "answerable": false, "drug": "ibuprofen"}
+{"id": "q13", "question": "What is the half-life of omeprazole in people with Alzheimer's disease?", "answerable": false, "drug": "omeprazole"}
+{"id": "q14", "question": "Does Lipitor prevent dementia in older adults?", "answerable": false, "drug": "atorvastatin"}
