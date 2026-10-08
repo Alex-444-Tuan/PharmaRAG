@@ -6,6 +6,8 @@
 `--resolver-only` needs no LLM and no API key (RxNav is called unless `--offline`). Without it the
 whole graph runs through `run_ask` with EVAL_MODE on and needs the LLM_* settings.
 
+The `grounding` eval (hallucinated claims, spec 11.2) has its own actions; see grounding_cli.py.
+
 Reports go to reports/lookalike_<split>_<timestamp>.json with a .md summary beside it.
 The database is DATABASE_URL (use .../pharmarag_dev for the ingested corpus).
 """
@@ -21,7 +23,7 @@ from pathlib import Path
 from pharmarag.app.settings import REPO_ROOT, Settings, get_settings, load_thresholds
 from pharmarag.cache import InMemoryCache
 from pharmarag.db import connect, create_pool
-from pharmarag.eval import lookalike_run
+from pharmarag.eval import grounding_cli, lookalike_run
 from pharmarag.eval.report import write_report
 from pharmarag.resolver.cascade import CascadeResolver
 from pharmarag.resolver.local import PgLocalStore
@@ -48,7 +50,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="with --resolver-only: no RxNav calls (local alias table and trigram only)",
     )
     la.add_argument("--out-dir", type=Path, default=REPO_ROOT / "reports")
+    grounding_cli.add_parser(sub)
     args = p.parse_args(argv)
+    if args.eval == "grounding":
+        return args
     if args.runs < 1:
         p.error("--runs must be at least 1")
     if args.offline and not args.resolver_only:
@@ -122,6 +127,8 @@ async def _full(args: argparse.Namespace, settings: Settings) -> dict:
 
 
 async def main_async(args: argparse.Namespace) -> int:
+    if args.eval == "grounding":
+        return await grounding_cli.main_async(args)
     settings = get_settings()
     report = await (_resolver_only if args.resolver_only else _full)(args, settings)
     json_path, md_path = write_report(report, args.out_dir, lookalike_run.render_markdown(report))
