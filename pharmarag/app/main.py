@@ -82,6 +82,11 @@ async def sse_stream(events: AsyncIterator[dict], first: dict) -> AsyncIterator[
         yield sse_frame(
             {"event": "error", "data": {"status": 503, "detail": "a dependency is unavailable"}}
         )
+    except Exception:
+        # A bug (a crashed verifier, say) after sentences went out. Same shape as a 503: the
+        # client sees an `error` event and no `done`, never a silently cut stream.
+        logger.exception("request failed mid-stream")
+        yield sse_frame({"event": "error", "data": {"status": 500, "detail": "internal error"}})
     finally:
         await events.aclose()  # type: ignore[attr-defined]
 

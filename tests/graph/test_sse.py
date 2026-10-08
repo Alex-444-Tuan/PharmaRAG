@@ -468,3 +468,20 @@ async def test_non_stream_requests_are_untouched_by_the_sse_machinery(client_for
     r = await ask(client, stream=False)
     assert r.headers["content-type"] == "application/json"
     assert r.json()["answer"][0]["text"] == "Sentence A is true."
+
+
+async def test_a_crashing_verifier_after_a_release_ends_the_stream_with_an_error_event(
+    client_for, make_fake_llm
+):
+    class CrashesOnSecond(FakeVerifier):
+        async def verify_sentence(self, sentence, prepared):
+            if "Sentence C" in sentence.text:
+                raise RuntimeError("NLI model crashed")
+            return await super().verify_sentence(sentence, prepared)
+
+    llm = make_fake_llm([ASK, "Sentence A is true. [c1]\nSentence C is true. [c1]"])
+    client, _ = client_for(llm, CrashesOnSecond([["supported", "supported"]]))
+    r = await ask(client, stream=True)
+    events = parse_sse(r.text)
+    assert [n for n, _ in events] == ["drugs", "sentence", "error"]  # A was out; no `done` follows
+    assert events[-1][1] == {"status": 500, "detail": "internal error"}

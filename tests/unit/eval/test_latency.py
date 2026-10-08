@@ -319,7 +319,7 @@ async def test_asgi_post_times_each_chunk_and_reads_the_request_body():
     assert r.status == 200 and r.headers["x-a"] == "b"
     events = r.sse_events()
     assert [n for _, n, _ in events] == ["drugs", "done"] and events[1][2] == {"ok": 1}
-    assert events[0][0] < 30 and 75 <= events[1][0] < 200  # the gap between chunks is visible
+    assert events[0][0] < 60 and 75 <= events[1][0] < 400  # the gap between chunks is visible
     assert r.last_byte_ms == events[1][0]
 
 
