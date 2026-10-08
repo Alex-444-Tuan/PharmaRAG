@@ -23,6 +23,12 @@ def settings_pg(settings, pg_url):
     return settings.model_copy(update={"database_url": pg_url})
 
 
+@pytest.fixture(autouse=True)
+def _no_real_verifier(monkeypatch):
+    """The real factory loads an NLI model. Tests that care about it patch their own."""
+    monkeypatch.setattr(runtime_module, "build_verifier", not_implemented)
+
+
 async def test_factories_raising_not_implemented_leave_the_stages_off_and_log_it(
     settings_pg, make_fake_llm, fake_embedder, monkeypatch, caplog
 ):

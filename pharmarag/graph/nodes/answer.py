@@ -151,13 +151,17 @@ async def answer(state: RAGState, deps: Deps) -> dict:
         out["support_ratio"] = support_ratio(sentences)
     # SPEC: with the verifier off, `support_ratio` is not computed and nothing regenerates:
     # there are no verdicts to be low.
-    if sse and not early and not wants_regeneration(
-        verifier_flag=mode != "off",
-        ratio=out.get("support_ratio"),
-        sentences=sentences,
-        attempt=attempt,
-        thresholds=deps.thresholds,
-        released_early=False,
+    if (
+        sse
+        and not early
+        and not wants_regeneration(
+            verifier_flag=mode != "off",
+            ratio=out.get("support_ratio"),
+            sentences=sentences,
+            attempt=attempt,
+            thresholds=deps.thresholds,
+            released_early=False,
+        )
     ):
         publish(split_sentences(sentences, verifier_on=flags.verifier)[0])
     return {**out, "sentences": sentences}
