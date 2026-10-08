@@ -42,7 +42,7 @@ async def final_state(graph, deps, question, *, flags=None, pinned=None) -> dict
 
 
 def writer_prompts(llm) -> list[str]:
-    return [c["messages"][0]["content"] for c in llm.calls if c["kind"] == "complete"]
+    return [c["messages"][0]["content"] for c in llm.calls if c["kind"] == "stream"]
 
 
 # --- declined ----------------------------------------------------------------------------------
@@ -249,7 +249,7 @@ async def test_weak_evidence_then_rewrite_drops_sections_keeps_keys_and_succeeds
 
     assert state["response"]["status"] == "answered"
     assert state["response"]["meta"]["retrieval_attempts"] == 2
-    assert [c["kind"] for c in llm.calls] == ["structured", "structured", "complete"]
+    assert [c["kind"] for c in llm.calls] == ["structured", "structured", "stream"]
     # The rewrite saw the first query and the question as delimited data.
     assert "<previous_query>" in llm.calls[1]["messages"][0]["content"]
     # It dropped the section filter and changed the query, and nothing else.

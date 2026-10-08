@@ -72,6 +72,16 @@ class AnthropicLLM:
             api_key=api_key or None, timeout=timeout_s, max_retries=0
         )
         self.sampling_supported = _supports_sampling(model_id)
+        # Running totals for this client, so a script (the latency recording) can report what
+        # its real calls used. Not a billing record.
+        self.usage = {"calls": 0, "input_tokens": 0, "output_tokens": 0}
+
+    def _count(self, message: Any) -> None:
+        self.usage["calls"] += 1
+        usage = getattr(message, "usage", None)
+        if usage is not None:
+            self.usage["input_tokens"] += getattr(usage, "input_tokens", 0) or 0
+            self.usage["output_tokens"] += getattr(usage, "output_tokens", 0) or 0
 
     def _kwargs(
         self,
@@ -116,6 +126,7 @@ class AnthropicLLM:
         kw = self._kwargs(messages, system, temperature, max_tokens)
         with _map_errors():
             response = await self._client.messages.create(**kw)
+        self._count(response)
         truncated = self._check_stop(response.stop_reason, max_tokens)
         text = "".join(b.text for b in response.content if b.type == "text")
         return text + TRUNCATION_MARKER if truncated else text
@@ -134,6 +145,7 @@ class AnthropicLLM:
                 async for piece in stream.text_stream:
                     yield piece
                 final = await stream.get_final_message()
+        self._count(final)
         if self._check_stop(final.stop_reason, max_tokens):
             yield TRUNCATION_MARKER
 
@@ -152,6 +164,7 @@ class AnthropicLLM:
         }
         with _map_errors():
             response = await self._client.messages.create(**kw)
+        self._count(response)
         if self._check_stop(response.stop_reason, max_tokens):
             raise LLMOutputError("structured output truncated at max_tokens")
         text = "".join(b.text for b in response.content if b.type == "text")

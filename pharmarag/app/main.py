@@ -1,24 +1,31 @@
 """FastAPI app (spec section 10): /v1/ask (non-streaming), /v1/drugs/resolve, /v1/labels/{setid},
-/healthz."""
+/healthz.
 
+`POST /v1/ask` with `stream: true` answers with server-sent events (spec section 10)."""
+
+import json
+import logging
 import uuid
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from typing import Annotated
 
 import httpx
 import psycopg
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response
+from fastapi.responses import StreamingResponse
 from psycopg.rows import dict_row
 from psycopg_pool import PoolTimeout
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from pharmarag.app.runtime import Runtime, build_runtime, close_runtime
 from pharmarag.app.settings import Settings, get_settings
-from pharmarag.graph.run import run_ask
+from pharmarag.graph.run import run_ask, run_ask_stream
 from pharmarag.graph.state import Flags
 from pharmarag.llm.errors import LLMError
 from pharmarag.sections import SECTIONS
+
+logger = logging.getLogger(__name__)
 
 DAILYMED_URL = "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid={setid}"
 
@@ -49,6 +56,39 @@ def parse_eval_flags(header: str) -> Flags:
             raise HTTPException(422, f"invalid X-Eval-Flags entry: {part.strip()!r}")
         values[key] = raw in _ON
     return Flags(**values)
+
+
+_DEPENDENCY_ERRORS = (LLMError, psycopg.OperationalError, PoolTimeout)
+
+
+def sse_frame(event: dict) -> bytes:
+    """One server-sent event: `event: <name>` and one `data:` line of JSON."""
+    return f"event: {event['event']}\ndata: {json.dumps(event['data'], default=str)}\n\n".encode()
+
+
+async def sse_stream(events: AsyncIterator[dict], first: dict) -> AsyncIterator[bytes]:
+    """Frames for `first` and the rest of `events`.
+
+    The status line is already sent by now, so a later fault cannot become a 503. It becomes an
+    `error` event, the last one, and no `done` follows. A client treats a stream without `done`
+    as failed and shows nothing as final.
+    """
+    try:
+        yield sse_frame(first)
+        async for event in events:
+            yield sse_frame(event)
+    except _DEPENDENCY_ERRORS:
+        logger.warning("dependency failed mid-stream", exc_info=True)
+        yield sse_frame(
+            {"event": "error", "data": {"status": 503, "detail": "a dependency is unavailable"}}
+        )
+    except Exception:
+        # A bug (a crashed verifier, say) after sentences went out. Same shape as a 503: the
+        # client sees an `error` event and no `done`, never a silently cut stream.
+        logger.exception("request failed mid-stream")
+        yield sse_frame({"event": "error", "data": {"status": 500, "detail": "internal error"}})
+    finally:
+        await events.aclose()  # type: ignore[attr-defined]
 
 
 def get_runtime(request: Request) -> Runtime:
@@ -82,21 +122,46 @@ def create_app(
     async def healthz() -> dict:
         return {"status": "ok"}
 
-    @app.post("/v1/ask")
+    @app.post("/v1/ask", response_model=None)
     async def ask(
         body: AskRequest,
         response: Response,
         runtime: Annotated[Runtime, Depends(get_runtime)],
         x_eval_flags: Annotated[str | None, Header()] = None,
-    ) -> dict:
-        if body.stream:
-            raise HTTPException(501, "streaming is not implemented yet")
+    ) -> dict | StreamingResponse:
         # The header is honoured only in eval mode (FR-9, spec section 10).
         flags = Flags()
         if x_eval_flags is not None and runtime.deps.settings.eval_mode:
             flags = parse_eval_flags(x_eval_flags)
         request_id = uuid.uuid4().hex
         response.headers["X-Request-ID"] = request_id
+        if body.stream:
+            events = run_ask_stream(
+                runtime.graph,
+                runtime.deps,
+                question=body.question,
+                pinned_rxcuis=body.pinned_rxcuis,
+                flags=flags,
+                request_id=request_id,
+                debug=body.debug,
+            )
+            # Wait for the first event before committing to a 200: a fault before it (the
+            # analyze call) can still be a proper 503. Declined and other early exits send
+            # `done` first, which is fine.
+            try:
+                first = await anext(events)
+            except _DEPENDENCY_ERRORS as exc:
+                await events.aclose()
+                raise HTTPException(503, "a dependency is unavailable") from exc
+            return StreamingResponse(
+                sse_stream(events, first),
+                media_type="text/event-stream",
+                headers={
+                    "X-Request-ID": request_id,
+                    "Cache-Control": "no-cache",
+                    "X-Accel-Buffering": "no",
+                },
+            )
         try:
             return await run_ask(
                 runtime.graph,
@@ -107,7 +172,7 @@ def create_app(
                 request_id=request_id,
                 debug=body.debug,
             )
-        except (LLMError, psycopg.OperationalError, PoolTimeout) as exc:
+        except _DEPENDENCY_ERRORS as exc:
             raise HTTPException(503, "a dependency is unavailable") from exc
 
     @app.get("/v1/drugs/resolve")

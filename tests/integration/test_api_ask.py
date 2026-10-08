@@ -176,14 +176,6 @@ async def test_debug_flag_adds_debug_payload(make_client):
     assert debug["debug"]["flags"] == {"resolver": True, "verifier": True}
 
 
-async def test_stream_true_is_not_implemented_yet(make_client):
-    client, graph = make_client(eval_mode=False)
-    async with client:
-        r = await client.post("/v1/ask", json={"question": "q", "stream": True})
-    assert r.status_code == 501
-    assert graph.states == []
-
-
 @pytest.mark.parametrize(
     "error", [LLMUnavailableError("down"), psycopg.OperationalError("db down")]
 )
