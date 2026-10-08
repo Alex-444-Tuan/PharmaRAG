@@ -1,0 +1,1855 @@
+{
+  "eval": "lookalike",
+  "split": "test",
+  "mode": "both",
+  "runs": 5,
+  "timestamp": "2026-10-08T16:18:06Z",
+  "model_id": "claude-sonnet-5-5",
+  "corpus_version": "24bdf02ae716c922",
+  "thresholds_commit": "980367d8eae4348b179e53e98b66ecc53082caf7",
+  "thresholds_dirty": false,
+  "git_head": "ceb7849f2ca70d2549ba25f049a703cc95832f38",
+  "thresholds": {
+    "resolver": {
+      "resolved_min": 0.9,
+      "margin": 0.05,
+      "ambiguous_min": 0.8,
+      "trigram_min": 0.4,
+      "trigram_k": 5,
+      "max_candidates": 3
+    },
+    "retrieval": {
+      "top_k_per_branch": 20,
+      "rrf_k": 60,
+      "evidence_top_k": 8,
+      "evidence_top_k_per_drug": 5,
+      "dense_min": 0.7,
+      "overlap_min": 3,
+      "max_facts": 10
+    }
+  },
+  "dataset": {
+    "file": "lookalike_test.jsonl",
+    "sha256": "71f96645e017c5739ede6dfd1d16498c7501d4f24f1d885a34f63e47352351f0"
+  },
+  "resolver_only": false,
+  "n_queries": 15,
+  "kinds": {
+    "misspelling": 8,
+    "brand": 4,
+    "correct_partner": 3
+  },
+  "baseline": {
+    "runs": [
+      {
+        "counts": {
+          "correct": 10,
+          "clarified": 0,
+          "other": 3,
+          "wrong_drug": 2,
+          "not_recognised": 0,
+          "not_covered": 0,
+          "clarify_without_gold": 0,
+          "misinterpreted": 2,
+          "total": 15
+        },
+        "rows": [
+          {
+            "question": "What is the usual adult dose of hydroxazine for itching?",
+            "gold_ingredient_key": "5553",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "5553"
+            ]
+          },
+          {
+            "question": "What are the warnings for quinidene in patients with atrial fibrillation?",
+            "gold_ingredient_key": "9068",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "9068"
+            ]
+          },
+          {
+            "question": "What is the maximum daily dose of glypuride for type 2 diabetes?",
+            "gold_ingredient_key": "4815",
+            "kind": "misspelling",
+            "outcome": "wrong_drug",
+            "status": "answered",
+            "cited_keys": [
+              "4821",
+              "25789",
+              "4815"
+            ]
+          },
+          {
+            "question": "What are the contraindications of predisolone?",
+            "gold_ingredient_key": "8638",
+            "kind": "misspelling",
+            "outcome": "other",
+            "status": "insufficient_evidence",
+            "cited_keys": []
+          },
+          {
+            "question": "Should patients be tested for HLA-B*1502 before starting carbamezapine?",
+            "gold_ingredient_key": "2002",
+            "kind": "misspelling",
+            "outcome": "wrong_drug",
+            "status": "answered",
+            "cited_keys": [
+              "2002",
+              "32624"
+            ]
+          },
+          {
+            "question": "What is the recommended dose of lorazapam for anxiety?",
+            "gold_ingredient_key": "6470",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "6470"
+            ]
+          },
+          {
+            "question": "What is the maximum daily dose of tizanadine for spasticity?",
+            "gold_ingredient_key": "57258",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "57258"
+            ]
+          },
+          {
+            "question": "Can nifedapine be used for chronic stable angina?",
+            "gold_ingredient_key": "7417",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "7417",
+              "7417"
+            ]
+          },
+          {
+            "question": "Can Celebrex be taken by patients with a sulfonamide allergy?",
+            "gold_ingredient_key": "140587",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "140587",
+              "140587"
+            ]
+          },
+          {
+            "question": "What is the risk of serious skin rash with Lamictel?",
+            "gold_ingredient_key": "28439",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "28439",
+              "28439"
+            ]
+          },
+          {
+            "question": "Can Toprol be stopped abruptly in patients with heart disease?",
+            "gold_ingredient_key": "6918",
+            "kind": "brand",
+            "outcome": "other",
+            "status": "insufficient_evidence",
+            "cited_keys": []
+          },
+          {
+            "question": "What symptoms can occur when Paxill is discontinued?",
+            "gold_ingredient_key": "32937",
+            "kind": "brand",
+            "outcome": "other",
+            "status": "insufficient_evidence",
+            "cited_keys": []
+          },
+          {
+            "question": "What is the recommended dose of tiagabine for partial seizures?",
+            "gold_ingredient_key": "31914",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "31914",
+              "31914",
+              "31914",
+              "31914"
+            ]
+          },
+          {
+            "question": "What is the starting dose of clomipramine for obsessive-compulsive disorder?",
+            "gold_ingredient_key": "2597",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "2597"
+            ]
+          },
+          {
+            "question": "How is azacitidine administered for myelodysplastic syndromes?",
+            "gold_ingredient_key": "1251",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "1251",
+              "1251",
+              "1251",
+              "1251"
+            ]
+          }
+        ]
+      },
+      {
+        "counts": {
+          "correct": 10,
+          "clarified": 0,
+          "other": 4,
+          "wrong_drug": 1,
+          "not_recognised": 0,
+          "not_covered": 0,
+          "clarify_without_gold": 0,
+          "misinterpreted": 1,
+          "total": 15
+        },
+        "rows": [
+          {
+            "question": "What is the usual adult dose of hydroxazine for itching?",
+            "gold_ingredient_key": "5553",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "5553",
+              "5553"
+            ]
+          },
+          {
+            "question": "What are the warnings for quinidene in patients with atrial fibrillation?",
+            "gold_ingredient_key": "9068",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "9068",
+              "9068"
+            ]
+          },
+          {
+            "question": "What is the maximum daily dose of glypuride for type 2 diabetes?",
+            "gold_ingredient_key": "4815",
+            "kind": "misspelling",
+            "outcome": "other",
+            "status": "insufficient_evidence",
+            "cited_keys": []
+          },
+          {
+            "question": "What are the contraindications of predisolone?",
+            "gold_ingredient_key": "8638",
+            "kind": "misspelling",
+            "outcome": "other",
+            "status": "insufficient_evidence",
+            "cited_keys": []
+          },
+          {
+            "question": "Should patients be tested for HLA-B*1502 before starting carbamezapine?",
+            "gold_ingredient_key": "2002",
+            "kind": "misspelling",
+            "outcome": "wrong_drug",
+            "status": "answered",
+            "cited_keys": [
+              "2002",
+              "32624",
+              "32624"
+            ]
+          },
+          {
+            "question": "What is the recommended dose of lorazapam for anxiety?",
+            "gold_ingredient_key": "6470",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "6470"
+            ]
+          },
+          {
+            "question": "What is the maximum daily dose of tizanadine for spasticity?",
+            "gold_ingredient_key": "57258",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "57258"
+            ]
+          },
+          {
+            "question": "Can nifedapine be used for chronic stable angina?",
+            "gold_ingredient_key": "7417",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "7417",
+              "7417"
+            ]
+          },
+          {
+            "question": "Can Celebrex be taken by patients with a sulfonamide allergy?",
+            "gold_ingredient_key": "140587",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "140587",
+              "140587"
+            ]
+          },
+          {
+            "question": "What is the risk of serious skin rash with Lamictel?",
+            "gold_ingredient_key": "28439",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "28439",
+              "28439",
+              "28439"
+            ]
+          },
+          {
+            "question": "Can Toprol be stopped abruptly in patients with heart disease?",
+            "gold_ingredient_key": "6918",
+            "kind": "brand",
+            "outcome": "other",
+            "status": "insufficient_evidence",
+            "cited_keys": []
+          },
+          {
+            "question": "What symptoms can occur when Paxill is discontinued?",
+            "gold_ingredient_key": "32937",
+            "kind": "brand",
+            "outcome": "other",
+            "status": "insufficient_evidence",
+            "cited_keys": []
+          },
+          {
+            "question": "What is the recommended dose of tiagabine for partial seizures?",
+            "gold_ingredient_key": "31914",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "31914",
+              "31914",
+              "31914",
+              "31914"
+            ]
+          },
+          {
+            "question": "What is the starting dose of clomipramine for obsessive-compulsive disorder?",
+            "gold_ingredient_key": "2597",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "2597"
+            ]
+          },
+          {
+            "question": "How is azacitidine administered for myelodysplastic syndromes?",
+            "gold_ingredient_key": "1251",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "1251",
+              "1251",
+              "1251"
+            ]
+          }
+        ]
+      },
+      {
+        "counts": {
+          "correct": 10,
+          "clarified": 0,
+          "other": 4,
+          "wrong_drug": 1,
+          "not_recognised": 0,
+          "not_covered": 0,
+          "clarify_without_gold": 0,
+          "misinterpreted": 1,
+          "total": 15
+        },
+        "rows": [
+          {
+            "question": "What is the usual adult dose of hydroxazine for itching?",
+            "gold_ingredient_key": "5553",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "5553"
+            ]
+          },
+          {
+            "question": "What are the warnings for quinidene in patients with atrial fibrillation?",
+            "gold_ingredient_key": "9068",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "9068"
+            ]
+          },
+          {
+            "question": "What is the maximum daily dose of glypuride for type 2 diabetes?",
+            "gold_ingredient_key": "4815",
+            "kind": "misspelling",
+            "outcome": "other",
+            "status": "insufficient_evidence",
+            "cited_keys": []
+          },
+          {
+            "question": "What are the contraindications of predisolone?",
+            "gold_ingredient_key": "8638",
+            "kind": "misspelling",
+            "outcome": "other",
+            "status": "insufficient_evidence",
+            "cited_keys": []
+          },
+          {
+            "question": "Should patients be tested for HLA-B*1502 before starting carbamezapine?",
+            "gold_ingredient_key": "2002",
+            "kind": "misspelling",
+            "outcome": "wrong_drug",
+            "status": "answered",
+            "cited_keys": [
+              "2002",
+              "32624",
+              "32624"
+            ]
+          },
+          {
+            "question": "What is the recommended dose of lorazapam for anxiety?",
+            "gold_ingredient_key": "6470",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "6470"
+            ]
+          },
+          {
+            "question": "What is the maximum daily dose of tizanadine for spasticity?",
+            "gold_ingredient_key": "57258",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "57258"
+            ]
+          },
+          {
+            "question": "Can nifedapine be used for chronic stable angina?",
+            "gold_ingredient_key": "7417",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "7417",
+              "7417"
+            ]
+          },
+          {
+            "question": "Can Celebrex be taken by patients with a sulfonamide allergy?",
+            "gold_ingredient_key": "140587",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "140587",
+              "140587"
+            ]
+          },
+          {
+            "question": "What is the risk of serious skin rash with Lamictel?",
+            "gold_ingredient_key": "28439",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "28439",
+              "28439"
+            ]
+          },
+          {
+            "question": "Can Toprol be stopped abruptly in patients with heart disease?",
+            "gold_ingredient_key": "6918",
+            "kind": "brand",
+            "outcome": "other",
+            "status": "insufficient_evidence",
+            "cited_keys": []
+          },
+          {
+            "question": "What symptoms can occur when Paxill is discontinued?",
+            "gold_ingredient_key": "32937",
+            "kind": "brand",
+            "outcome": "other",
+            "status": "insufficient_evidence",
+            "cited_keys": []
+          },
+          {
+            "question": "What is the recommended dose of tiagabine for partial seizures?",
+            "gold_ingredient_key": "31914",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "31914",
+              "31914",
+              "31914",
+              "31914"
+            ]
+          },
+          {
+            "question": "What is the starting dose of clomipramine for obsessive-compulsive disorder?",
+            "gold_ingredient_key": "2597",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "2597"
+            ]
+          },
+          {
+            "question": "How is azacitidine administered for myelodysplastic syndromes?",
+            "gold_ingredient_key": "1251",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "1251",
+              "1251",
+              "1251"
+            ]
+          }
+        ]
+      },
+      {
+        "counts": {
+          "correct": 10,
+          "clarified": 0,
+          "other": 3,
+          "wrong_drug": 2,
+          "not_recognised": 0,
+          "not_covered": 0,
+          "clarify_without_gold": 0,
+          "misinterpreted": 2,
+          "total": 15
+        },
+        "rows": [
+          {
+            "question": "What is the usual adult dose of hydroxazine for itching?",
+            "gold_ingredient_key": "5553",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "5553"
+            ]
+          },
+          {
+            "question": "What are the warnings for quinidene in patients with atrial fibrillation?",
+            "gold_ingredient_key": "9068",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "9068",
+              "9068"
+            ]
+          },
+          {
+            "question": "What is the maximum daily dose of glypuride for type 2 diabetes?",
+            "gold_ingredient_key": "4815",
+            "kind": "misspelling",
+            "outcome": "wrong_drug",
+            "status": "answered",
+            "cited_keys": [
+              "4821",
+              "25789",
+              "4815"
+            ]
+          },
+          {
+            "question": "What are the contraindications of predisolone?",
+            "gold_ingredient_key": "8638",
+            "kind": "misspelling",
+            "outcome": "other",
+            "status": "insufficient_evidence",
+            "cited_keys": []
+          },
+          {
+            "question": "Should patients be tested for HLA-B*1502 before starting carbamezapine?",
+            "gold_ingredient_key": "2002",
+            "kind": "misspelling",
+            "outcome": "wrong_drug",
+            "status": "answered",
+            "cited_keys": [
+              "2002",
+              "32624",
+              "32624"
+            ]
+          },
+          {
+            "question": "What is the recommended dose of lorazapam for anxiety?",
+            "gold_ingredient_key": "6470",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "6470"
+            ]
+          },
+          {
+            "question": "What is the maximum daily dose of tizanadine for spasticity?",
+            "gold_ingredient_key": "57258",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "57258"
+            ]
+          },
+          {
+            "question": "Can nifedapine be used for chronic stable angina?",
+            "gold_ingredient_key": "7417",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "7417",
+              "7417"
+            ]
+          },
+          {
+            "question": "Can Celebrex be taken by patients with a sulfonamide allergy?",
+            "gold_ingredient_key": "140587",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "140587",
+              "140587"
+            ]
+          },
+          {
+            "question": "What is the risk of serious skin rash with Lamictel?",
+            "gold_ingredient_key": "28439",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "28439",
+              "28439"
+            ]
+          },
+          {
+            "question": "Can Toprol be stopped abruptly in patients with heart disease?",
+            "gold_ingredient_key": "6918",
+            "kind": "brand",
+            "outcome": "other",
+            "status": "insufficient_evidence",
+            "cited_keys": []
+          },
+          {
+            "question": "What symptoms can occur when Paxill is discontinued?",
+            "gold_ingredient_key": "32937",
+            "kind": "brand",
+            "outcome": "other",
+            "status": "insufficient_evidence",
+            "cited_keys": []
+          },
+          {
+            "question": "What is the recommended dose of tiagabine for partial seizures?",
+            "gold_ingredient_key": "31914",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "31914",
+              "31914",
+              "31914",
+              "31914"
+            ]
+          },
+          {
+            "question": "What is the starting dose of clomipramine for obsessive-compulsive disorder?",
+            "gold_ingredient_key": "2597",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "2597"
+            ]
+          },
+          {
+            "question": "How is azacitidine administered for myelodysplastic syndromes?",
+            "gold_ingredient_key": "1251",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "1251",
+              "1251",
+              "1251"
+            ]
+          }
+        ]
+      },
+      {
+        "counts": {
+          "correct": 9,
+          "clarified": 0,
+          "other": 4,
+          "wrong_drug": 2,
+          "not_recognised": 0,
+          "not_covered": 0,
+          "clarify_without_gold": 0,
+          "misinterpreted": 2,
+          "total": 15
+        },
+        "rows": [
+          {
+            "question": "What is the usual adult dose of hydroxazine for itching?",
+            "gold_ingredient_key": "5553",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "5553",
+              "5553"
+            ]
+          },
+          {
+            "question": "What are the warnings for quinidene in patients with atrial fibrillation?",
+            "gold_ingredient_key": "9068",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "9068"
+            ]
+          },
+          {
+            "question": "What is the maximum daily dose of glypuride for type 2 diabetes?",
+            "gold_ingredient_key": "4815",
+            "kind": "misspelling",
+            "outcome": "wrong_drug",
+            "status": "answered",
+            "cited_keys": [
+              "4821",
+              "25789",
+              "4815"
+            ]
+          },
+          {
+            "question": "What are the contraindications of predisolone?",
+            "gold_ingredient_key": "8638",
+            "kind": "misspelling",
+            "outcome": "other",
+            "status": "insufficient_evidence",
+            "cited_keys": []
+          },
+          {
+            "question": "Should patients be tested for HLA-B*1502 before starting carbamezapine?",
+            "gold_ingredient_key": "2002",
+            "kind": "misspelling",
+            "outcome": "wrong_drug",
+            "status": "answered",
+            "cited_keys": [
+              "2002",
+              "32624"
+            ]
+          },
+          {
+            "question": "What is the recommended dose of lorazapam for anxiety?",
+            "gold_ingredient_key": "6470",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "6470"
+            ]
+          },
+          {
+            "question": "What is the maximum daily dose of tizanadine for spasticity?",
+            "gold_ingredient_key": "57258",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "57258"
+            ]
+          },
+          {
+            "question": "Can nifedapine be used for chronic stable angina?",
+            "gold_ingredient_key": "7417",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "7417",
+              "7417"
+            ]
+          },
+          {
+            "question": "Can Celebrex be taken by patients with a sulfonamide allergy?",
+            "gold_ingredient_key": "140587",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "140587",
+              "140587"
+            ]
+          },
+          {
+            "question": "What is the risk of serious skin rash with Lamictel?",
+            "gold_ingredient_key": "28439",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "28439",
+              "28439",
+              "28439"
+            ]
+          },
+          {
+            "question": "Can Toprol be stopped abruptly in patients with heart disease?",
+            "gold_ingredient_key": "6918",
+            "kind": "brand",
+            "outcome": "other",
+            "status": "insufficient_evidence",
+            "cited_keys": []
+          },
+          {
+            "question": "What symptoms can occur when Paxill is discontinued?",
+            "gold_ingredient_key": "32937",
+            "kind": "brand",
+            "outcome": "other",
+            "status": "insufficient_evidence",
+            "cited_keys": []
+          },
+          {
+            "question": "What is the recommended dose of tiagabine for partial seizures?",
+            "gold_ingredient_key": "31914",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "31914",
+              "31914",
+              "31914",
+              "31914"
+            ]
+          },
+          {
+            "question": "What is the starting dose of clomipramine for obsessive-compulsive disorder?",
+            "gold_ingredient_key": "2597",
+            "kind": "correct_partner",
+            "outcome": "other",
+            "status": "insufficient_evidence",
+            "cited_keys": []
+          },
+          {
+            "question": "How is azacitidine administered for myelodysplastic syndromes?",
+            "gold_ingredient_key": "1251",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "1251",
+              "1251",
+              "1251"
+            ]
+          }
+        ]
+      }
+    ],
+    "misinterpreted": {
+      "values": [
+        2,
+        1,
+        1,
+        2,
+        2
+      ],
+      "min": 1,
+      "max": 2,
+      "mean": 1.6
+    },
+    "clarified": {
+      "values": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "min": 0,
+      "max": 0,
+      "mean": 0
+    }
+  },
+  "system": {
+    "runs": [
+      {
+        "counts": {
+          "correct": 12,
+          "clarified": 3,
+          "other": 0,
+          "wrong_drug": 0,
+          "not_recognised": 0,
+          "not_covered": 0,
+          "clarify_without_gold": 0,
+          "misinterpreted": 0,
+          "total": 15
+        },
+        "rows": [
+          {
+            "question": "What is the usual adult dose of hydroxazine for itching?",
+            "gold_ingredient_key": "5553",
+            "kind": "misspelling",
+            "outcome": "clarified",
+            "status": "needs_clarification",
+            "cited_keys": []
+          },
+          {
+            "question": "What are the warnings for quinidene in patients with atrial fibrillation?",
+            "gold_ingredient_key": "9068",
+            "kind": "misspelling",
+            "outcome": "clarified",
+            "status": "needs_clarification",
+            "cited_keys": []
+          },
+          {
+            "question": "What is the maximum daily dose of glypuride for type 2 diabetes?",
+            "gold_ingredient_key": "4815",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "4815",
+              "4815"
+            ]
+          },
+          {
+            "question": "What are the contraindications of predisolone?",
+            "gold_ingredient_key": "8638",
+            "kind": "misspelling",
+            "outcome": "clarified",
+            "status": "needs_clarification",
+            "cited_keys": []
+          },
+          {
+            "question": "Should patients be tested for HLA-B*1502 before starting carbamezapine?",
+            "gold_ingredient_key": "2002",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "2002"
+            ]
+          },
+          {
+            "question": "What is the recommended dose of lorazapam for anxiety?",
+            "gold_ingredient_key": "6470",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "6470"
+            ]
+          },
+          {
+            "question": "What is the maximum daily dose of tizanadine for spasticity?",
+            "gold_ingredient_key": "57258",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "57258"
+            ]
+          },
+          {
+            "question": "Can nifedapine be used for chronic stable angina?",
+            "gold_ingredient_key": "7417",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "7417",
+              "7417"
+            ]
+          },
+          {
+            "question": "Can Celebrex be taken by patients with a sulfonamide allergy?",
+            "gold_ingredient_key": "140587",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "140587",
+              "140587"
+            ]
+          },
+          {
+            "question": "What is the risk of serious skin rash with Lamictel?",
+            "gold_ingredient_key": "28439",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "28439",
+              "28439"
+            ]
+          },
+          {
+            "question": "Can Toprol be stopped abruptly in patients with heart disease?",
+            "gold_ingredient_key": "6918",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "6918",
+              "6918",
+              "6918"
+            ]
+          },
+          {
+            "question": "What symptoms can occur when Paxill is discontinued?",
+            "gold_ingredient_key": "32937",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "32937",
+              "32937"
+            ]
+          },
+          {
+            "question": "What is the recommended dose of tiagabine for partial seizures?",
+            "gold_ingredient_key": "31914",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "31914",
+              "31914",
+              "31914",
+              "31914",
+              "31914"
+            ]
+          },
+          {
+            "question": "What is the starting dose of clomipramine for obsessive-compulsive disorder?",
+            "gold_ingredient_key": "2597",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "2597",
+              "2597",
+              "2597"
+            ]
+          },
+          {
+            "question": "How is azacitidine administered for myelodysplastic syndromes?",
+            "gold_ingredient_key": "1251",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "1251",
+              "1251",
+              "1251",
+              "1251",
+              "1251"
+            ]
+          }
+        ]
+      },
+      {
+        "counts": {
+          "correct": 12,
+          "clarified": 3,
+          "other": 0,
+          "wrong_drug": 0,
+          "not_recognised": 0,
+          "not_covered": 0,
+          "clarify_without_gold": 0,
+          "misinterpreted": 0,
+          "total": 15
+        },
+        "rows": [
+          {
+            "question": "What is the usual adult dose of hydroxazine for itching?",
+            "gold_ingredient_key": "5553",
+            "kind": "misspelling",
+            "outcome": "clarified",
+            "status": "needs_clarification",
+            "cited_keys": []
+          },
+          {
+            "question": "What are the warnings for quinidene in patients with atrial fibrillation?",
+            "gold_ingredient_key": "9068",
+            "kind": "misspelling",
+            "outcome": "clarified",
+            "status": "needs_clarification",
+            "cited_keys": []
+          },
+          {
+            "question": "What is the maximum daily dose of glypuride for type 2 diabetes?",
+            "gold_ingredient_key": "4815",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "4815",
+              "4815"
+            ]
+          },
+          {
+            "question": "What are the contraindications of predisolone?",
+            "gold_ingredient_key": "8638",
+            "kind": "misspelling",
+            "outcome": "clarified",
+            "status": "needs_clarification",
+            "cited_keys": []
+          },
+          {
+            "question": "Should patients be tested for HLA-B*1502 before starting carbamezapine?",
+            "gold_ingredient_key": "2002",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "2002"
+            ]
+          },
+          {
+            "question": "What is the recommended dose of lorazapam for anxiety?",
+            "gold_ingredient_key": "6470",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "6470"
+            ]
+          },
+          {
+            "question": "What is the maximum daily dose of tizanadine for spasticity?",
+            "gold_ingredient_key": "57258",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "57258"
+            ]
+          },
+          {
+            "question": "Can nifedapine be used for chronic stable angina?",
+            "gold_ingredient_key": "7417",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "7417",
+              "7417"
+            ]
+          },
+          {
+            "question": "Can Celebrex be taken by patients with a sulfonamide allergy?",
+            "gold_ingredient_key": "140587",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "140587",
+              "140587"
+            ]
+          },
+          {
+            "question": "What is the risk of serious skin rash with Lamictel?",
+            "gold_ingredient_key": "28439",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "28439",
+              "28439",
+              "28439"
+            ]
+          },
+          {
+            "question": "Can Toprol be stopped abruptly in patients with heart disease?",
+            "gold_ingredient_key": "6918",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "6918",
+              "6918",
+              "6918"
+            ]
+          },
+          {
+            "question": "What symptoms can occur when Paxill is discontinued?",
+            "gold_ingredient_key": "32937",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "32937",
+              "32937"
+            ]
+          },
+          {
+            "question": "What is the recommended dose of tiagabine for partial seizures?",
+            "gold_ingredient_key": "31914",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "31914",
+              "31914",
+              "31914",
+              "31914",
+              "31914"
+            ]
+          },
+          {
+            "question": "What is the starting dose of clomipramine for obsessive-compulsive disorder?",
+            "gold_ingredient_key": "2597",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "2597",
+              "2597",
+              "2597"
+            ]
+          },
+          {
+            "question": "How is azacitidine administered for myelodysplastic syndromes?",
+            "gold_ingredient_key": "1251",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "1251",
+              "1251",
+              "1251",
+              "1251",
+              "1251"
+            ]
+          }
+        ]
+      },
+      {
+        "counts": {
+          "correct": 12,
+          "clarified": 3,
+          "other": 0,
+          "wrong_drug": 0,
+          "not_recognised": 0,
+          "not_covered": 0,
+          "clarify_without_gold": 0,
+          "misinterpreted": 0,
+          "total": 15
+        },
+        "rows": [
+          {
+            "question": "What is the usual adult dose of hydroxazine for itching?",
+            "gold_ingredient_key": "5553",
+            "kind": "misspelling",
+            "outcome": "clarified",
+            "status": "needs_clarification",
+            "cited_keys": []
+          },
+          {
+            "question": "What are the warnings for quinidene in patients with atrial fibrillation?",
+            "gold_ingredient_key": "9068",
+            "kind": "misspelling",
+            "outcome": "clarified",
+            "status": "needs_clarification",
+            "cited_keys": []
+          },
+          {
+            "question": "What is the maximum daily dose of glypuride for type 2 diabetes?",
+            "gold_ingredient_key": "4815",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "4815"
+            ]
+          },
+          {
+            "question": "What are the contraindications of predisolone?",
+            "gold_ingredient_key": "8638",
+            "kind": "misspelling",
+            "outcome": "clarified",
+            "status": "needs_clarification",
+            "cited_keys": []
+          },
+          {
+            "question": "Should patients be tested for HLA-B*1502 before starting carbamezapine?",
+            "gold_ingredient_key": "2002",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "2002"
+            ]
+          },
+          {
+            "question": "What is the recommended dose of lorazapam for anxiety?",
+            "gold_ingredient_key": "6470",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "6470"
+            ]
+          },
+          {
+            "question": "What is the maximum daily dose of tizanadine for spasticity?",
+            "gold_ingredient_key": "57258",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "57258"
+            ]
+          },
+          {
+            "question": "Can nifedapine be used for chronic stable angina?",
+            "gold_ingredient_key": "7417",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "7417",
+              "7417"
+            ]
+          },
+          {
+            "question": "Can Celebrex be taken by patients with a sulfonamide allergy?",
+            "gold_ingredient_key": "140587",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "140587",
+              "140587"
+            ]
+          },
+          {
+            "question": "What is the risk of serious skin rash with Lamictel?",
+            "gold_ingredient_key": "28439",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "28439",
+              "28439",
+              "28439"
+            ]
+          },
+          {
+            "question": "Can Toprol be stopped abruptly in patients with heart disease?",
+            "gold_ingredient_key": "6918",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "6918",
+              "6918"
+            ]
+          },
+          {
+            "question": "What symptoms can occur when Paxill is discontinued?",
+            "gold_ingredient_key": "32937",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "32937",
+              "32937"
+            ]
+          },
+          {
+            "question": "What is the recommended dose of tiagabine for partial seizures?",
+            "gold_ingredient_key": "31914",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "31914",
+              "31914",
+              "31914",
+              "31914",
+              "31914"
+            ]
+          },
+          {
+            "question": "What is the starting dose of clomipramine for obsessive-compulsive disorder?",
+            "gold_ingredient_key": "2597",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "2597",
+              "2597",
+              "2597"
+            ]
+          },
+          {
+            "question": "How is azacitidine administered for myelodysplastic syndromes?",
+            "gold_ingredient_key": "1251",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "1251",
+              "1251",
+              "1251",
+              "1251",
+              "1251"
+            ]
+          }
+        ]
+      },
+      {
+        "counts": {
+          "correct": 12,
+          "clarified": 3,
+          "other": 0,
+          "wrong_drug": 0,
+          "not_recognised": 0,
+          "not_covered": 0,
+          "clarify_without_gold": 0,
+          "misinterpreted": 0,
+          "total": 15
+        },
+        "rows": [
+          {
+            "question": "What is the usual adult dose of hydroxazine for itching?",
+            "gold_ingredient_key": "5553",
+            "kind": "misspelling",
+            "outcome": "clarified",
+            "status": "needs_clarification",
+            "cited_keys": []
+          },
+          {
+            "question": "What are the warnings for quinidene in patients with atrial fibrillation?",
+            "gold_ingredient_key": "9068",
+            "kind": "misspelling",
+            "outcome": "clarified",
+            "status": "needs_clarification",
+            "cited_keys": []
+          },
+          {
+            "question": "What is the maximum daily dose of glypuride for type 2 diabetes?",
+            "gold_ingredient_key": "4815",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "4815",
+              "4815"
+            ]
+          },
+          {
+            "question": "What are the contraindications of predisolone?",
+            "gold_ingredient_key": "8638",
+            "kind": "misspelling",
+            "outcome": "clarified",
+            "status": "needs_clarification",
+            "cited_keys": []
+          },
+          {
+            "question": "Should patients be tested for HLA-B*1502 before starting carbamezapine?",
+            "gold_ingredient_key": "2002",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "2002"
+            ]
+          },
+          {
+            "question": "What is the recommended dose of lorazapam for anxiety?",
+            "gold_ingredient_key": "6470",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "6470"
+            ]
+          },
+          {
+            "question": "What is the maximum daily dose of tizanadine for spasticity?",
+            "gold_ingredient_key": "57258",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "57258"
+            ]
+          },
+          {
+            "question": "Can nifedapine be used for chronic stable angina?",
+            "gold_ingredient_key": "7417",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "7417",
+              "7417"
+            ]
+          },
+          {
+            "question": "Can Celebrex be taken by patients with a sulfonamide allergy?",
+            "gold_ingredient_key": "140587",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "140587",
+              "140587"
+            ]
+          },
+          {
+            "question": "What is the risk of serious skin rash with Lamictel?",
+            "gold_ingredient_key": "28439",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "28439",
+              "28439",
+              "28439"
+            ]
+          },
+          {
+            "question": "Can Toprol be stopped abruptly in patients with heart disease?",
+            "gold_ingredient_key": "6918",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "6918",
+              "6918"
+            ]
+          },
+          {
+            "question": "What symptoms can occur when Paxill is discontinued?",
+            "gold_ingredient_key": "32937",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "32937",
+              "32937"
+            ]
+          },
+          {
+            "question": "What is the recommended dose of tiagabine for partial seizures?",
+            "gold_ingredient_key": "31914",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "31914",
+              "31914",
+              "31914",
+              "31914"
+            ]
+          },
+          {
+            "question": "What is the starting dose of clomipramine for obsessive-compulsive disorder?",
+            "gold_ingredient_key": "2597",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "2597",
+              "2597",
+              "2597"
+            ]
+          },
+          {
+            "question": "How is azacitidine administered for myelodysplastic syndromes?",
+            "gold_ingredient_key": "1251",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "1251",
+              "1251",
+              "1251"
+            ]
+          }
+        ]
+      },
+      {
+        "counts": {
+          "correct": 12,
+          "clarified": 3,
+          "other": 0,
+          "wrong_drug": 0,
+          "not_recognised": 0,
+          "not_covered": 0,
+          "clarify_without_gold": 0,
+          "misinterpreted": 0,
+          "total": 15
+        },
+        "rows": [
+          {
+            "question": "What is the usual adult dose of hydroxazine for itching?",
+            "gold_ingredient_key": "5553",
+            "kind": "misspelling",
+            "outcome": "clarified",
+            "status": "needs_clarification",
+            "cited_keys": []
+          },
+          {
+            "question": "What are the warnings for quinidene in patients with atrial fibrillation?",
+            "gold_ingredient_key": "9068",
+            "kind": "misspelling",
+            "outcome": "clarified",
+            "status": "needs_clarification",
+            "cited_keys": []
+          },
+          {
+            "question": "What is the maximum daily dose of glypuride for type 2 diabetes?",
+            "gold_ingredient_key": "4815",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "4815",
+              "4815"
+            ]
+          },
+          {
+            "question": "What are the contraindications of predisolone?",
+            "gold_ingredient_key": "8638",
+            "kind": "misspelling",
+            "outcome": "clarified",
+            "status": "needs_clarification",
+            "cited_keys": []
+          },
+          {
+            "question": "Should patients be tested for HLA-B*1502 before starting carbamezapine?",
+            "gold_ingredient_key": "2002",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "2002"
+            ]
+          },
+          {
+            "question": "What is the recommended dose of lorazapam for anxiety?",
+            "gold_ingredient_key": "6470",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "6470"
+            ]
+          },
+          {
+            "question": "What is the maximum daily dose of tizanadine for spasticity?",
+            "gold_ingredient_key": "57258",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "57258"
+            ]
+          },
+          {
+            "question": "Can nifedapine be used for chronic stable angina?",
+            "gold_ingredient_key": "7417",
+            "kind": "misspelling",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "7417",
+              "7417"
+            ]
+          },
+          {
+            "question": "Can Celebrex be taken by patients with a sulfonamide allergy?",
+            "gold_ingredient_key": "140587",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "140587",
+              "140587"
+            ]
+          },
+          {
+            "question": "What is the risk of serious skin rash with Lamictel?",
+            "gold_ingredient_key": "28439",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "28439",
+              "28439"
+            ]
+          },
+          {
+            "question": "Can Toprol be stopped abruptly in patients with heart disease?",
+            "gold_ingredient_key": "6918",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "6918",
+              "6918"
+            ]
+          },
+          {
+            "question": "What symptoms can occur when Paxill is discontinued?",
+            "gold_ingredient_key": "32937",
+            "kind": "brand",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "32937",
+              "32937"
+            ]
+          },
+          {
+            "question": "What is the recommended dose of tiagabine for partial seizures?",
+            "gold_ingredient_key": "31914",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "31914",
+              "31914",
+              "31914",
+              "31914",
+              "31914"
+            ]
+          },
+          {
+            "question": "What is the starting dose of clomipramine for obsessive-compulsive disorder?",
+            "gold_ingredient_key": "2597",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "2597",
+              "2597",
+              "2597"
+            ]
+          },
+          {
+            "question": "How is azacitidine administered for myelodysplastic syndromes?",
+            "gold_ingredient_key": "1251",
+            "kind": "correct_partner",
+            "outcome": "correct",
+            "status": "answered",
+            "cited_keys": [
+              "1251",
+              "1251",
+              "1251",
+              "1251"
+            ]
+          }
+        ]
+      }
+    ],
+    "misinterpreted": {
+      "values": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "min": 0,
+      "max": 0,
+      "mean": 0
+    },
+    "clarified": {
+      "values": [
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "min": 3,
+      "max": 3,
+      "mean": 3
+    }
+  },
+  "metric": {
+    "definition": "(B - S) / B with B, S the misinterpreted counts of baseline, system",
+    "per_run": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "of_means": 1.0,
+    "baseline_misinterpreted": [
+      2,
+      1,
+      1,
+      2,
+      2
+    ],
+    "system_misinterpreted": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "system_clarified": [
+      3,
+      3,
+      3,
+      3,
+      3
+    ]
+  }
+}
