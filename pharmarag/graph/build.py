@@ -36,6 +36,7 @@ from pharmarag.graph.routing import (
     route_after_resolve,
 )
 from pharmarag.graph.state import RAGState
+from pharmarag.grounding.stream import resolve_verify_mode
 from pharmarag.llm.errors import LLMUnavailableError
 
 NodeFn = Callable[[RAGState, Deps], Awaitable[dict]]
@@ -104,7 +105,13 @@ def build_graph(deps: Deps, *, llm_retry: RetryPolicy | None = None):
     for branch in BRANCHES:
         g.add_edge("rewrite_query", branch)
     g.add_conditional_edges(
-        "answer", partial(route_after_answer, thresholds=thresholds), ["answer", "finalize"]
+        "answer",
+        partial(
+            route_after_answer,
+            thresholds=thresholds,
+            verify_mode=resolve_verify_mode(deps.settings),
+        ),
+        ["answer", "finalize"],
     )
     g.add_edge("finalize", END)
     return g.compile()

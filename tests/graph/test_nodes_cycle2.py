@@ -176,12 +176,43 @@ def _answered(ratio, attempt, *, verifier=True, n=2):
 
 def test_route_after_answer(thresholds):
     lo = thresholds.grounding.support_ratio_min
-    assert route_after_answer(_answered(lo - 0.01, 1), thresholds) == "answer"
-    assert route_after_answer(_answered(lo, 1), thresholds) == "finalize"
-    assert route_after_answer(_answered(1.0, 1), thresholds) == "finalize"
-    assert route_after_answer(_answered(0.0, 2), thresholds) == "finalize"  # NFR-6
-    assert route_after_answer(_answered(0.0, 1, verifier=False), thresholds) == "finalize"
-    assert route_after_answer(_answered(0.0, 1, n=0), thresholds) == "finalize"
+
+    def route(state, *, sse=False, mode="sequential"):
+        config = {"configurable": {"sse": sse}}
+        return route_after_answer(state, config, thresholds=thresholds, verify_mode=mode)
+
+    assert route(_answered(lo - 0.01, 1)) == "answer"
+    assert route(_answered(lo, 1)) == "finalize"
+    assert route(_answered(1.0, 1)) == "finalize"
+    assert route(_answered(0.0, 2)) == "finalize"  # NFR-6
+    assert route(_answered(0.0, 1, verifier=False)) == "finalize"
+    assert route(_answered(0.0, 1, n=0)) == "finalize"
+
+
+def _with_verdicts(*verdicts, attempt=1):
+    return {
+        "flags": Flags(verifier=True),
+        "generation_attempt": attempt,
+        "support_ratio": sum(v == "supported" for v in verdicts) / len(verdicts),
+        "sentences": [
+            Sentence(text=f"s{i}", citations=["c1"], verdict=v) for i, v in enumerate(verdicts)
+        ],
+    }
+
+
+def test_route_after_answer_never_regenerates_once_sse_stream_released_a_sentence(thresholds):
+    def route(state, *, sse, mode):
+        config = {"configurable": {"sse": sse}}
+        return route_after_answer(state, config, thresholds=thresholds, verify_mode=mode)
+
+    low = _with_verdicts("supported", "unsupported", "unsupported")  # ratio 0.33
+    # Same state, four request kinds. Only SSE + stream has already shown the supported one.
+    assert route(low, sse=False, mode="stream") == "answer"
+    assert route(low, sse=True, mode="sequential") == "answer"  # nothing shown yet: buffered
+    assert route(low, sse=True, mode="stream") == "finalize"  # released: the draft is final
+    # Nothing released (every sentence rejected): regeneration cannot contradict anything.
+    none_supported = _with_verdicts("unsupported", "contradicted")
+    assert route(none_supported, sse=True, mode="stream") == "answer"
 
 
 # --- fetch_rx_facts ----------------------------------------------------------------------------
@@ -409,11 +440,11 @@ async def test_answer_rejects_a_verifier_that_drops_sentences(deps, make_fake_ll
             return sentences[:1]
 
     llm = make_fake_llm(["A. [c1]\nB. [c1]"])
+    sequential = deps(llm, verifier=Dropping())
+    sequential.settings = sequential.settings.model_copy(update={"verify_mode": "sequential"})
     with pytest.raises(RuntimeError, match="verdicts"):
-        await answer(
-            {"question": "q", "evidence": [chunk()], "flags": Flags(verifier=True)},
-            deps(llm, verifier=Dropping()),
-        )
+        state = {"question": "q", "evidence": [chunk()], "flags": Flags(verifier=True)}
+        await answer(state, sequential)
 
 
 # --- finalize ----------------------------------------------------------------------------------

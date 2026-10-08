@@ -95,12 +95,18 @@ class FakeRxFacts:
 
 
 class FakeVerifier:
-    """Scripted verdicts, one entry per `verify` call.
+    """Scripted verdicts, one entry per generation attempt.
 
     An entry is a list of verdicts (one per sentence, in order) or a callable
     (sentences) -> list of verdicts. Sentences that already carry a verdict other than
     "unverified" (the writer's no_citation ones) come back unchanged, as the contract says.
     The last entry repeats when the script runs out.
+
+    It speaks both verification paths: `verify` (sequential mode) is one attempt; `prepare`
+    followed by `verify_sentence` calls (stream mode) is one attempt too. `calls` has one record
+    per attempt that verified something, so tests can count attempts in either mode. `prepares`
+    counts `prepare` calls, which stream mode makes before it knows whether the writer will
+    produce any sentence at all.
     """
 
     def __init__(
@@ -108,29 +114,56 @@ class FakeVerifier:
     ):
         self.script = list(script)
         self.calls: list[dict] = []
+        self.prepares: list[dict] = []
+        self._attempts = 0
+        self._cursor: dict[int, int] = {}
+
+    def _entry(self, attempt: int):
+        return self.script[min(attempt, len(self.script) - 1)]
+
+    def _verdict_for(self, s: Sentence, v: Verdict) -> Sentence:
+        if s.verdict != "unverified":
+            return s
+        return s.model_copy(
+            update={
+                "verdict": v,
+                "score": 0.93 if v == "supported" else 0.1,
+                "span": f"{s.citations[0]}:0" if v == "supported" and s.citations else None,
+            }
+        )
 
     async def verify(
         self, sentences: list[Sentence], evidence: list[Chunk], facts: list[Fact]
     ) -> list[Sentence]:
+        attempt = self._attempts
+        self._attempts += 1
         self.calls.append({"sentences": list(sentences), "evidence": evidence, "facts": facts})
-        entry = self.script[min(len(self.calls) - 1, len(self.script) - 1)]
+        entry = self._entry(attempt)
         verdicts = entry(sentences) if callable(entry) else list(entry)
         assert len(verdicts) == len(sentences), "FakeVerifier script does not match sentence count"
-        out: list[Sentence] = []
-        for s, v in zip(sentences, verdicts, strict=True):
-            if s.verdict != "unverified":
-                out.append(s)
-                continue
-            out.append(
-                s.model_copy(
-                    update={
-                        "verdict": v,
-                        "score": 0.93 if v == "supported" else 0.1,
-                        "span": f"{s.citations[0]}:0" if v == "supported" and s.citations else None,
-                    }
-                )
-            )
-        return out
+        return [self._verdict_for(s, v) for s, v in zip(sentences, verdicts, strict=True)]
+
+    async def prepare(self, evidence: list[Chunk], facts: list[Fact]):
+        attempt = self._attempts
+        self._attempts += 1
+        self.prepares.append({"evidence": evidence, "facts": facts})
+        return {"attempt": attempt, "evidence": evidence, "facts": facts}
+
+    async def verify_sentence(self, sentence: Sentence, prepared) -> Sentence:
+        attempt = prepared["attempt"]
+        if attempt not in self._cursor:
+            self._cursor[attempt] = 0
+            self.calls.append({"sentences": [], "evidence": prepared["evidence"]})
+        entry = self._entry(attempt)
+        i = self._cursor[attempt]
+        self._cursor[attempt] += 1
+        self.calls[-1]["sentences"].append(sentence)
+        if sentence.verdict != "unverified":
+            return sentence
+        # The script lists a verdict for every sentence of the attempt, including the ones the
+        # writer already marked (those are not passed here), so index by the attempt's position.
+        verdicts = entry([sentence]) if callable(entry) else list(entry)
+        return self._verdict_for(sentence, verdicts[min(i, len(verdicts) - 1)])
 
 
 # --- scripted LLM replies shared by the route tests -------------------------------------------

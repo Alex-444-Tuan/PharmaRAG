@@ -113,50 +113,118 @@ def _split_line(line: str) -> list[str]:
     return segments
 
 
+_MARKER_BODY = TRUNCATION_MARKER.lstrip("\n")
+
+
+class LineSplitter:
+    """Incremental splitter of the writer's reply into complete lines.
+
+    Feed it text pieces as they stream in. A line is returned only once the next line has
+    started, never at its own newline. The reason is the truncation marker: a provider cut at
+    max_tokens appends "\n<<TRUNCATED_AT_MAX_TOKENS>>", whose first character is also a
+    newline, so a line that looks finished can in fact be the cut-off one. Holding a line until
+    the next non-blank text arrives (and that text is not the start of the marker) means a line
+    handed out here is never one the batch parser would drop. The cost is one token interval of
+    delay before a line is released, and none for the last line, which `finish` returns.
+
+    The batch parser (`parse_writer_output`) uses this same class, so the streaming and the
+    non-streaming path cannot disagree about where lines end (mode equivalence, spec section 9).
+    """
+
+    def __init__(self) -> None:
+        self._buf = ""
+        self._done = False
+        self.truncated = False
+
+    def feed(self, piece: str) -> list[str]:
+        if self._done:
+            return []
+        self._buf += piece
+        if TRUNCATION_MARKER in self._buf:
+            self.truncated = True
+            self._done = True
+            text = self._buf.split(TRUNCATION_MARKER)[0]
+            self._buf = ""
+            lines = [ln for ln in text.splitlines() if ln.strip()]
+            # The last line is the one the provider cut off: it may be incomplete, and a cut-off
+            # dose is worse than a missing one.
+            return lines[:-1]
+        out: list[str] = []
+        while (i := self._buf.find("\n")) >= 0:
+            rest = self._buf[i + 1 :]
+            probe = rest.strip()
+            if not probe or _MARKER_BODY.startswith(probe):
+                break  # next line not started yet, or maybe the marker: keep holding
+            line, self._buf = self._buf[:i], rest
+            if line.strip():
+                out.append(line)
+        return out
+
+    def finish(self) -> list[str]:
+        """The lines still held when the stream ended normally."""
+        if self._done:
+            return []
+        self._done = True
+        lines = [ln for ln in self._buf.splitlines() if ln.strip()]
+        self._buf = ""
+        return lines
+
+
+def parse_line(line: str, valid: set[str]) -> list[Sentence]:
+    """The sentences of one writer line (a line may hold several), with citations checked.
+
+    A sentence's trailing bracket groups are its citations. Ids not in `valid` are dropped. A
+    sentence left with no valid citation is `unsupported` with reason `no_citation`. The
+    INSUFFICIENT line gives no sentences.
+    """
+    line = _LEADING_MARKER.sub("", line).strip()
+    if line.strip(" .").upper() == INSUFFICIENT:
+        return []
+    sentences: list[Sentence] = []
+    for segment in _split_line(line):
+        segment = segment.strip()
+        citations: list[str] = []
+        body = segment
+        m = _CITATION_TAIL.search(segment)
+        if m:
+            body = segment[: m.start()].strip()
+            for cid in _CITATION_ID.findall(m.group(1)):
+                cid = cid.lower()
+                if cid in valid and cid not in citations:
+                    citations.append(cid)
+        if not body:
+            continue
+        if citations:
+            sentences.append(Sentence(text=body, citations=citations))
+        else:
+            sentences.append(
+                Sentence(text=body, citations=[], verdict="unsupported", reason="no_citation")
+            )
+    return sentences
+
+
+def valid_ids(evidence: Sequence[Chunk], facts: Sequence[Fact]) -> set[str]:
+    return {c.id for c in evidence} | {f.id for f in facts}
+
+
 def parse_writer_output(
     text: str, evidence: Sequence[Chunk], facts: Sequence[Fact]
 ) -> WriterResult:
     """Parse the writer's reply, one sentence per line (a line may hold several).
 
-    A sentence's trailing bracket groups are its citations. Ids not in `evidence` or `facts`
-    are dropped. A sentence left with no valid citation is `unsupported` with reason
-    `no_citation`. A reply that is only INSUFFICIENT, or that has no sentences, is
-    `insufficient`. If the provider marked the reply as cut at max_tokens, the last line is
-    dropped, because it may be incomplete (and a cut-off dose is worse than a missing one).
+    If the provider marked the reply as cut at max_tokens, the last line is dropped, because it
+    may be incomplete. A reply that is only INSUFFICIENT, or that has no sentences, is
+    `insufficient`.
     """
-    valid = {c.id for c in evidence} | {f.id for f in facts}
-    truncated = TRUNCATION_MARKER in text
-    if truncated:
-        text = text.split(TRUNCATION_MARKER)[0]
-    lines = [ln for ln in text.splitlines() if ln.strip()]
-    if truncated and lines:
-        lines.pop()
-    sentences: list[Sentence] = []
-    for line in lines:
-        line = _LEADING_MARKER.sub("", line).strip()
-        if line.strip(" .").upper() == INSUFFICIENT:
-            continue
-        for segment in _split_line(line):
-            segment = segment.strip()
-            citations: list[str] = []
-            body = segment
-            m = _CITATION_TAIL.search(segment)
-            if m:
-                body = segment[: m.start()].strip()
-                for cid in _CITATION_ID.findall(m.group(1)):
-                    cid = cid.lower()
-                    if cid in valid and cid not in citations:
-                        citations.append(cid)
-            if not body:
-                continue
-            if citations:
-                sentences.append(Sentence(text=body, citations=citations))
-            else:
-                sentences.append(
-                    Sentence(text=body, citations=[], verdict="unsupported", reason="no_citation")
-                )
+    valid = valid_ids(evidence, facts)
+    splitter = LineSplitter()
+    lines = [*splitter.feed(text), *splitter.finish()]
+    sentences = [s for line in lines for s in parse_line(line, valid)]
     return WriterResult(
-        sentences=sentences, insufficient=not sentences, raw=text, truncated=truncated
+        sentences=sentences,
+        insufficient=not sentences,
+        raw=text.split(TRUNCATION_MARKER)[0],
+        truncated=splitter.truncated,
     )
 
 

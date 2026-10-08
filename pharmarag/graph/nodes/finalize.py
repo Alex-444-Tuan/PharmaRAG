@@ -77,6 +77,25 @@ def _drug_entry(r: Resolution) -> dict:
     }
 
 
+def drug_entries(resolutions: list[Resolution]) -> list[dict]:
+    """The `drugs` list of the response and of the SSE `drugs` event.
+
+    A `not_covered` drug is listed too: the client says "X is not in the corpus" by name.
+    """
+    return [
+        _drug_entry(r) for r in resolutions if r.status in ("resolved", "not_covered") and r.name
+    ]
+
+
+def answer_item(s: Sentence) -> dict:
+    """One entry of the response `answer` list, also the payload of an SSE `sentence` event."""
+    return {
+        "text": s.text,
+        "citations": s.citations,
+        "support": {"span": s.span, "score": s.score} if s.span else None,
+    }
+
+
 def _candidates(resolutions: list[Resolution]) -> tuple[str | None, list[dict]]:
     """The first ambiguous mention and its up-to-3 candidates, for `needs_clarification`.
 
@@ -123,20 +142,8 @@ async def finalize(state: RAGState, deps: Deps) -> dict:
     # facts could have been cited.
     attempt = state.get("retrieval_attempt", 1)
     facts = [f for f in state.get("rx_facts", []) if f.retrieval_attempt == attempt]
-    # A `not_covered` drug is listed too: the client says "X is not in the corpus" by name.
-    drugs = [
-        _drug_entry(r)
-        for r in state.get("resolutions", [])
-        if r.status in ("resolved", "not_covered") and r.name
-    ]
-    answer = [
-        {
-            "text": s.text,
-            "citations": s.citations,
-            "support": {"span": s.span, "score": s.score} if s.span else None,
-        }
-        for s in shown
-    ]
+    drugs = drug_entries(state.get("resolutions", []))
+    answer = [answer_item(s) for s in shown]
     response = {
         "status": status,
         "drugs": drugs,

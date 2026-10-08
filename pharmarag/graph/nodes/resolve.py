@@ -5,6 +5,8 @@ downstream sees a raw drug name, and nothing downstream ranks without the key (F
 """
 
 from pharmarag.graph.deps import Deps
+from pharmarag.graph.events import emitter
+from pharmarag.graph.nodes.finalize import drug_entries
 from pharmarag.graph.state import Flags, RAGState, Resolution, Status
 from pharmarag.retrieval.scope import FilterRequiredError
 
@@ -76,6 +78,9 @@ async def resolve(state: RAGState, deps: Deps) -> dict:
             f"resolver returned {len(resolutions)} resolutions for {len(mentions)} mentions"
         )
 
+    # SSE: the client learns which drugs the question was matched to as soon as that is known,
+    # before retrieval starts. It is sent for early exits too (clarification, not covered).
+    emitter()({"event": "drugs", "data": drug_entries(resolutions)})
     out: dict = {"resolutions": resolutions, "ingredient_keys": ingredient_keys_of(resolutions)}
     status = stop_status(resolutions)
     if status:

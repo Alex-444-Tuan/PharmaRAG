@@ -11,6 +11,7 @@ from pharmarag.db import create_pool
 from pharmarag.graph.build import build_graph
 from pharmarag.graph.deps import Deps
 from pharmarag.grounding.base import Verifier
+from pharmarag.grounding.factory import build_verifier
 from pharmarag.llm.base import LLMClient
 from pharmarag.llm.factory import get_llm
 from pharmarag.models.embedder import Embedder, SentenceTransformerEmbedder
@@ -53,19 +54,23 @@ async def build_runtime(
     cache: Cache | None = None,
     resolver: Resolver | None | _Build = BUILD,
     rx_facts: RxFactsSource | None | _Build = BUILD,
-    verifier: Verifier | None = None,
+    verifier: Verifier | None | _Build = BUILD,
 ) -> Runtime:
     """Load the embedder, open the DB pool, create the LLM client, compile the graph.
 
     The injectable arguments let tests and the eval harness skip the model download and the
     network. `resolver` and `rx_facts` default to the real ones from
-    `pharmarag.resolver.factory`; pass a fake, or None for "no such stage". The verifier is None
-    until cycle 3.
+    `pharmarag.resolver.factory`, and the verifier the real one from
+    `pharmarag.grounding.factory`; pass a fake, or None for "no such stage".
 
     Outside EVAL_MODE a build with no resolver does not start (RuntimeError). Without a resolver
     the request flag is forced off and every query runs unfiltered over the whole corpus (FR-3),
     which is the AT-1 baseline and must never be what production serves. In eval mode a missing
     resolver is allowed, so the baseline can be measured.
+
+    The verifier follows the same rule (FR-6). Outside EVAL_MODE a build with no verifier does
+    not start, and neither does VERIFY_MODE=off: answers would reach users unchecked. In eval
+    mode a missing verifier is the AT-2 baseline.
     """
     if embedder is None:
         embedder = await asyncio.to_thread(
@@ -86,6 +91,24 @@ async def build_runtime(
         raise RuntimeError(
             "no drug resolver: refusing to start, because requests would run unfiltered "
             "(FR-3). Set EVAL_MODE=true to run the resolver-off baseline on purpose."
+        )
+    if isinstance(verifier, _Build):
+        # Loads the NLI model and runs a warm-up inference: off the event loop.
+        try:
+            verifier = await asyncio.to_thread(
+                _from_factory,
+                lambda: build_verifier(settings, thresholds, embedder),
+                "verifier",
+                settings,
+            )
+        except BaseException:
+            await pool.close()
+            raise
+    if not settings.eval_mode and (verifier is None or settings.verify_mode == "off"):
+        await pool.close()
+        raise RuntimeError(
+            "no grounding verifier: refusing to start, because answers would reach users "
+            "unchecked (FR-6). Set EVAL_MODE=true to run the verifier-off baseline on purpose."
         )
     if isinstance(rx_facts, _Build):
         rx_facts = _from_factory(
