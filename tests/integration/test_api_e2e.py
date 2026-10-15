@@ -51,6 +51,7 @@ async def test_ask_end_to_end_with_lifespan_warmup_and_pool(
             llm=llm,
             resolver=FakeResolver({"hydroxyzine": resolved("hydroxyzine", "1", "hydroxyzine")}),
             rx_facts=FakeRxFacts({"1": ["Brand: Atarax"]}),
+            verifier=None,  # never load the real NLI model in a test
         )
 
     app = create_app(s, runtime_factory=factory)

@@ -45,6 +45,7 @@ class Recording:
     # (text piece, milliseconds since the writer call started) in arrival order. The first
     # entry's time is the time to first token.
     pieces: list[tuple[str, float]] = field(default_factory=list)
+    group: str = "latency"  # "latency" (AT-3 set) or "regen" (grounding questions)
     model_id: str = ""
     corpus_version: str = ""
     recorded_at: str = ""

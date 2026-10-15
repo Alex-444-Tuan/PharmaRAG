@@ -229,7 +229,7 @@ def test_per_node_timings_are_summarised_per_mode():
 def test_no_complete_pairs_gives_an_empty_headline_not_a_crash():
     only_off = [sample("q0", r, "off", 1000.0) for r in range(3)]
     stats = build_stats(only_off, n_boot=50, seed=0)
-    assert stats["headline"] == {"pairs": 0}
+    assert stats["headline"] == {"pairs": 0, "questions": 0}
     report = {
         "split": "replay_fake",
         "timestamp": "2026-01-01T00:00:00Z",
@@ -257,7 +257,7 @@ def test_markdown_states_the_verdict_and_the_conditions():
         "stats": stats,
     }
     md = render_markdown(report)
-    assert "AT-3 PASS" in md and "abc123" in md and "claude-sonnet-5-5" in md
+    assert "AT-3 PASS (point estimate)" in md and "abc123" in md and "claude-sonnet-5-5" in md
     assert "30-80 ms" in md and "Time to first visible sentence" in md
     assert "| stream |" in md and "| sequential |" in md and "| off |" in md
 
@@ -431,3 +431,197 @@ def test_cli_requires_a_mode_and_a_warmup_rep():
         lat.parse_args(["--replay", "--reps", "1"])
     args = lat.parse_args(["--replay", "--reps", "5"])
     assert args.replay and not args.record and args.verifier == "fake" and args.reps == 5
+
+
+# --- the verdict states what it is (review fix 3) -----------------------------------------------
+
+
+def test_at3_label_says_point_estimate_and_flags_a_ci_that_reaches_past_the_limit():
+    off, stream = [1000.0] * 20, [1020.0] * 20  # +2% at both percentiles: inside the limits
+    clear = at3_check(off, stream, ci_upper_relative={"p50": 0.04, "p95": 0.08})
+    assert clear["label"] == "PASS (point estimate)" and clear["pass"]
+    assert clear["ci_upper_exceeds_limit"] == {"p50": False, "p95": False}
+
+    wide = at3_check(off, stream, ci_upper_relative={"p50": 0.04, "p95": 0.112})
+    assert wide["pass"] and wide["label"] == "PASS (point estimate)"  # the point estimate passes
+    assert wide["ci_upper_exceeds_limit"] == {
+        "p50": False,
+        "p95": True,
+    }  # but the CI says maybe not
+
+    both = at3_check(off, stream, ci_upper_relative={"p50": 0.0501, "p95": 0.1001})
+    assert both["ci_upper_exceeds_limit"] == {"p50": True, "p95": True}
+
+    assert at3_check(off, [1100.0] * 20)["label"] == "FAIL"
+    assert at3_check(off, stream)["ci_upper_exceeds_limit"] == {"p50": False, "p95": False}
+
+
+def noisy_grid(questions=8, reps=3):
+    """Stream is +2% on every request, but questions differ a lot: a wide interval."""
+    out = []
+    for q in range(questions):
+        base = 2000 + 900 * (q % 4)  # four very different question lengths
+        for r in range(reps):
+            out.append(sample(f"q{q}", r, "off", base + r))
+            out.append(sample(f"q{q}", r, "sequential", base * 1.1 + r))
+            out.append(sample(f"q{q}", r, "stream", base * 1.02 + r))
+    return out
+
+
+def test_the_report_text_flags_an_interval_that_exceeds_the_limit():
+    stats = build_stats(noisy_grid(), n_boot=300, seed=0)
+    a = stats["headline"]["at3"]
+    assert a["pass"] and a["ci_upper_relative"]["p95"] is not None
+    # Force the case regardless of the random draw: edit the stats the way the math would.
+    a["ci_upper_exceeds_limit"]["p95"] = True
+    a["ci_upper_relative"]["p95"] = 0.112
+    report = {
+        "split": "replay_fake",
+        "timestamp": "t",
+        "corpus_version": "c",
+        "model_id": "m",
+        "runs": 3,
+        "config": {"verifier": "fake", "questions": 8, "note": "n"},
+        "stats": stats,
+    }
+    md = render_markdown(report)
+    assert "AT-3 PASS (point estimate)" in md
+    assert "CI upper bound exceeds the limit at p95" in md and "+11.2% > +10%" in md
+    assert "CI upper bound exceeds the limit at p50" not in md
+
+
+def test_headline_is_reported_with_and_without_truncated_recordings():
+    samples = grid(questions=6, reps=3)
+    cut = frozenset({"q0", "q1", "q2", "q3"})
+    # Four recordings hit the token cap, and stream looks great on them (little left to verify).
+    for s in samples:
+        if s.qid in cut and s.mode == "stream" and s.transport == "json":
+            s.total_ms -= 900
+    stats = build_stats(samples, n_boot=100, seed=0, truncated_qids=cut)
+    all_q, kept = stats["headline"], stats["headline_excluding_truncated"]
+    assert all_q["questions"] == 6 and kept["questions"] == 2
+    assert kept["excluded_truncated_questions"] == sorted(cut)
+    assert kept["pairs"] == 2 * 2
+    # The truncated questions pull stream down, so excluding them shows the honest figure.
+    assert all_q["at3"]["p50_ratio_minus_1"] < -0.3
+    assert kept["at3"]["p50_ratio_minus_1"] == pytest.approx(0.01, abs=0.005)
+    report = {
+        "split": "replay_fake",
+        "timestamp": "t",
+        "corpus_version": "c",
+        "model_id": "m",
+        "runs": 3,
+        "config": {"verifier": "fake", "questions": 6, "note": "n"},
+        "stats": stats,
+    }
+    md = render_markdown(report)
+    assert md.count("paired requests") == 2 and "(4 questions excluded)" in md
+
+
+def test_with_no_truncated_recordings_both_headlines_agree():
+    stats = build_stats(grid(), n_boot=100, seed=0)
+    kept = stats["headline_excluding_truncated"]
+    assert kept["excluded_truncated_questions"] == []
+    assert kept["pairs"] == stats["headline"]["pairs"]
+    assert kept["off"] == stats["headline"]["off"]
+
+
+# --- regeneration is measured on the grounding questions (review fix 5) ---------------------------
+
+
+def regen_sample(qid, rep, mode, total, gen):
+    s = sample(qid, rep, mode, total, gen=gen)
+    s.group = "regen"
+    return s
+
+
+def test_regeneration_rate_and_latency_come_from_the_regen_set_only():
+    samples = grid(questions=3, reps=2)  # AT-3 set: nobody regenerates
+    for rep in (0, 1):
+        for q in range(4):
+            for mode in lat.MODES:
+                regenerated = q == 0 and rep == 1  # one of the 4 x 1 measured requests
+                samples.append(
+                    regen_sample(
+                        f"g{q}",
+                        rep,
+                        mode,
+                        9000.0 if regenerated else 4000.0,
+                        2 if regenerated else 1,
+                    )
+                )
+    stats = build_stats(samples, n_boot=50, seed=0)
+    rs = stats["regeneration_set"]
+    for mode in lat.MODES:
+        assert rs[mode]["requests"] == 4 and rs[mode]["regenerated"] == 1
+        assert rs[mode]["rate"] == 0.25
+        assert rs[mode]["latency_regenerated"]["p50"] == 9000.0
+        assert rs[mode]["latency_not_regenerated"]["p50"] == 4000.0
+    # They neither enter the AT-3 headline nor its regeneration bookkeeping.
+    assert stats["headline"]["pairs"] == 3 * 1
+    assert stats["modes"]["stream"]["regeneration"]["count"] == 0
+    assert stats["sse"]["time_to_first_sentence"]["n"] == 3
+
+
+def test_no_regen_set_means_no_regen_section():
+    assert build_stats(grid(), n_boot=50, seed=0)["regeneration_set"] is None
+
+
+def test_the_regen_section_is_in_the_markdown():
+    samples = grid(questions=3, reps=2) + [regen_sample("g0", 1, m, 5000.0, 1) for m in lat.MODES]
+    stats = build_stats(samples, n_boot=50, seed=0)
+    report = {
+        "split": "replay_real",
+        "timestamp": "t",
+        "corpus_version": "c",
+        "model_id": "m",
+        "runs": 2,
+        "config": {"verifier": "real", "questions": 3, "note": "n", "regen_note": "REGEN NOTE"},
+        "stats": stats,
+    }
+    md = render_markdown(report)
+    assert "Regeneration on the grounding questions" in md and "REGEN NOTE" in md
+
+
+def test_cli_accepts_the_regen_questions_file(tmp_path):
+    args = lat.parse_args(["--replay", "--regen-questions", str(tmp_path / "g.jsonl")])
+    assert args.regen_questions == tmp_path / "g.jsonl"
+    assert lat.parse_args(["--replay"]).regen_questions is None
+
+
+def test_the_grounding_question_file_is_readable_and_its_ids_do_not_collide_with_the_latency_set():
+    path = lat.DATASETS / "grounding_questions.jsonl"
+    rows = lat.load_questions(path)
+    assert rows and all({"id", "question"} <= set(r) for r in rows)
+    assert not {r["id"] for r in rows} & {r["id"] for r in lat.load_questions()}
+
+
+# --- the fake verifier in batches (review fix 2) -----------------------------------------------
+
+
+async def test_sleep_verifier_batch_costs_less_than_n_calls_and_gives_the_same_verdicts():
+    import time
+
+    v = SleepVerifier(per_sentence_ms=(80, 80), prepare_ms=0, batch_factor=0.25)
+    sentences = [Sentence(text=f"Sentence {i}.", citations=["c1"]) for i in range(4)]
+    one_by_one = [await v.verify_sentence(s, None) for s in sentences]
+    t0 = time.perf_counter()
+    batch = await v.verify_many(sentences, None)
+    took = time.perf_counter() - t0
+    assert batch == one_by_one
+    assert 0.08 + 0.25 * 3 * 0.08 - 0.005 <= took < 4 * 0.08  # 140 ms, not 320 ms
+
+
+async def test_sleep_verifier_batch_leaves_marked_sentences_alone_and_can_reject():
+    v = SleepVerifier(per_sentence_ms=(1, 1), prepare_ms=0, reject=lambda t: "bad" in t)
+    marked = Sentence(text="no cite", citations=[], verdict="unsupported", reason="no_citation")
+    out = await v.verify_many(
+        [
+            Sentence(text="good", citations=["c1"]),
+            Sentence(text="bad one", citations=["c1"]),
+            marked,
+        ],
+        None,
+    )
+    assert [s.verdict for s in out] == ["supported", "unsupported", "unsupported"]
+    assert out[2] is marked

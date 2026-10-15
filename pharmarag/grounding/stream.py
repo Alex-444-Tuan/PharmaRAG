@@ -179,15 +179,44 @@ async def _generate_stream(
             queue.put_nowait(None)
 
     async def checker() -> None:
+        # One batch per wake-up: the line that was waited for, plus every line the writer queued
+        # in the meantime. The real API delivers lines in bursts, so 3 or 4 sentences can be
+        # waiting when the stream ends; checking them one by one put N model calls after the last
+        # token. Now it is one NLI batch (`verify_many`). Order and FR-6 are untouched: verdicts
+        # come back in order, and only `supported` ones are released, in order.
         nonlocal released
         prepared: PreparedEvidence = await prepare_task
-        while (sentence := await queue.get()) is not None:
-            if sentence.verdict == "unverified":
-                sentence = await verifier.verify_sentence(sentence, prepared)
-            verified.append(sentence)
-            if sentence.verdict == "supported" and release is not None:
-                release(sentence)
-                released += 1
+        done = False
+        while not done:
+            first = await queue.get()
+            if first is None:
+                return
+            batch = [first]
+            while not queue.empty():
+                nxt = queue.get_nowait()
+                if nxt is None:
+                    done = True
+                    break
+                batch.append(nxt)
+            todo = [s for s in batch if s.verdict == "unverified"]
+            if len(todo) > 1:
+                checked = await verifier.verify_many(todo, prepared)
+                if len(checked) != len(todo):
+                    raise RuntimeError(
+                        f"verifier returned {len(checked)} verdicts for {len(todo)} sentences"
+                    )
+            elif todo:
+                checked = [await verifier.verify_sentence(todo[0], prepared)]
+            else:
+                checked = []
+            results = iter(checked)
+            for sentence in batch:
+                if sentence.verdict == "unverified":
+                    sentence = next(results)
+                verified.append(sentence)
+                if sentence.verdict == "supported" and release is not None:
+                    release(sentence)
+                    released += 1
 
     writer_task = asyncio.create_task(writer())
     checker_task = asyncio.create_task(checker())

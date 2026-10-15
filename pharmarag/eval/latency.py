@@ -47,6 +47,7 @@ from pharmarag.graph.build import build_graph
 from pharmarag.graph.run import run_ask
 from pharmarag.graph.state import Chunk, Fact, Flags, Sentence
 from pharmarag.grounding.base import PreparedEvidence, Verifier
+from pharmarag.llm.errors import TRUNCATION_MARKER
 from pharmarag.llm.factory import get_llm
 from pharmarag.llm.replay import Recording, RecordingLLM, ReplayLLM, load_recordings
 
@@ -134,18 +135,37 @@ def diff_stat(q: float, *, relative: bool) -> Callable[[list[float], list[float]
     return stat
 
 
-def at3_check(off: Sequence[float], stream: Sequence[float]) -> dict:
+def at3_check(
+    off: Sequence[float],
+    stream: Sequence[float],
+    ci_upper_relative: dict[str, float] | None = None,
+) -> dict:
     """AT-3: stream p50 within 5% of off and p95 within 10% (spec section 11.3). Slower only:
-    stream being faster than off is not a failure."""
+    stream being faster than off is not a failure.
+
+    The verdict is on the point estimates. `ci_upper_relative` (the upper end of the 95% interval
+    of stream/off - 1, per percentile) adds the other half of the story: when that upper end is
+    above the limit the data cannot rule out a failure, and the label says so. A PASS here is
+    "the measured difference is inside the limit", never "the interval is inside the limit".
+    """
     off50, off95 = percentile(off, 50), percentile(off, 95)
     st50, st95 = percentile(stream, 50), percentile(stream, 95)
     r50, r95 = st50 / off50 - 1, st95 / off95 - 1
+    point_pass = r50 <= P50_TOLERANCE and r95 <= P95_TOLERANCE
+    exceeds = {
+        "p50": bool(ci_upper_relative) and ci_upper_relative["p50"] > P50_TOLERANCE,
+        "p95": bool(ci_upper_relative) and ci_upper_relative["p95"] > P95_TOLERANCE,
+    }
+    label = "PASS (point estimate)" if point_pass else "FAIL"
     return {
         "p50_ratio_minus_1": round(r50, 4),
         "p95_ratio_minus_1": round(r95, 4),
         "p50_pass": r50 <= P50_TOLERANCE,
         "p95_pass": r95 <= P95_TOLERANCE,
-        "pass": r50 <= P50_TOLERANCE and r95 <= P95_TOLERANCE,
+        "pass": point_pass,
+        "label": label,
+        "ci_upper_relative": ci_upper_relative,
+        "ci_upper_exceeds_limit": exceeds,
         "limits": {"p50": P50_TOLERANCE, "p95": P95_TOLERANCE},
     }
 
@@ -251,10 +271,20 @@ class SleepVerifier:
     """
 
     def __init__(
-        self, *, per_sentence_ms: tuple[float, float] = (30.0, 80.0), prepare_ms: float = 150.0
+        self,
+        *,
+        per_sentence_ms: tuple[float, float] = (30.0, 80.0),
+        prepare_ms: float = 150.0,
+        batch_factor: float = 0.3,
+        reject: Callable[[str], bool] | None = None,
     ) -> None:
         self.per_sentence_ms = per_sentence_ms
         self.prepare_ms = prepare_ms
+        # A batch of k sentences costs the slowest one plus `batch_factor` of the others: one NLI
+        # forward pass over k short pairs is cheaper than k passes, but not free. This is an
+        # assumption, stated in the report, until the real verifier is measured.
+        self.batch_factor = batch_factor
+        self.reject = reject
 
     def delay_ms(self, text: str) -> float:
         lo, hi = self.per_sentence_ms
@@ -268,6 +298,11 @@ class SleepVerifier:
         if sentence.verdict != "unverified":
             return sentence
         await asyncio.sleep(self.delay_ms(sentence.text) / 1000)
+        return self._verdict(sentence)
+
+    def _verdict(self, sentence: Sentence) -> Sentence:
+        if self.reject is not None and self.reject(sentence.text):
+            return sentence.model_copy(update={"verdict": "unsupported", "score": 0.05})
         return sentence.model_copy(
             update={
                 "verdict": "supported",
@@ -275,6 +310,16 @@ class SleepVerifier:
                 "span": f"{sentence.citations[0]}:0" if sentence.citations else None,
             }
         )
+
+    async def verify_many(
+        self, sentences: list[Sentence], prepared: PreparedEvidence
+    ) -> list[Sentence]:
+        todo = [s for s in sentences if s.verdict == "unverified"]
+        if todo:
+            delays = [self.delay_ms(s.text) for s in todo]
+            cost = max(delays) + self.batch_factor * (sum(delays) - max(delays))
+            await asyncio.sleep(cost / 1000)
+        return [self._verdict(s) if s.verdict == "unverified" else s for s in sentences]
 
     async def verify(
         self, sentences: list[Sentence], evidence: list[Chunk], facts: list[Fact]
@@ -284,7 +329,10 @@ class SleepVerifier:
 
     def describe(self) -> str:
         lo, hi = self.per_sentence_ms
-        return f"fake: {lo:.0f}-{hi:.0f} ms per sentence, {self.prepare_ms:.0f} ms prepare"
+        return (
+            f"fake: {lo:.0f}-{hi:.0f} ms per sentence, {self.prepare_ms:.0f} ms prepare, "
+            f"a batch costs the slowest + {self.batch_factor:.0%} of the others"
+        )
 
 
 # --- the measurement ---------------------------------------------------------------------------
@@ -303,6 +351,7 @@ class Sample:
     node_ms: dict[str, float] = field(default_factory=dict)
     sentences: int = 0
     error: str | None = None
+    group: str = "latency"  # "latency" (AT-3 set) or "regen" (grounding questions, section 11.3)
 
     @property
     def regenerated(self) -> bool:
@@ -367,6 +416,7 @@ async def run_measurements(
     reps: int,
     sse: bool,
     progress: Callable[[str], None] = lambda _: None,
+    group: str = "latency",
 ) -> list[Sample]:
     """Every question, every rep, the three modes back to back in a rotating order.
 
@@ -378,17 +428,17 @@ async def run_measurements(
     for rep in range(reps):
         for qi, q in enumerate(questions):
             for mode in _rotate(MODES, rep + qi):
-                samples.append(
-                    await measure(
-                        apps[mode], q["question"], sse=False, qid=q["id"], rep=rep, mode=mode
-                    )
+                sample = await measure(
+                    apps[mode], q["question"], sse=False, qid=q["id"], rep=rep, mode=mode
                 )
+                sample.group = group
+                samples.append(sample)
             if sse:
-                samples.append(
-                    await measure(
-                        apps["stream"], q["question"], sse=True, qid=q["id"], rep=rep, mode="stream"
-                    )
+                sample = await measure(
+                    apps["stream"], q["question"], sse=True, qid=q["id"], rep=rep, mode="stream"
                 )
+                sample.group = group
+                samples.append(sample)
         progress(f"rep {rep + 1}/{reps} done")
     return samples
 
@@ -396,14 +446,80 @@ async def run_measurements(
 # --- the report ---------------------------------------------------------------------------------
 
 
+def _headline(complete: dict[tuple[str, int], dict[str, Sample]], n_boot: int, seed: int) -> dict:
+    """Percentiles per mode, the stream - off difference with its interval, and the AT-3 check,
+    over paired requests (one per mode) that did not regenerate."""
+    headline: dict = {"pairs": len(complete), "questions": len({k[0] for k in complete})}
+    if not complete:
+        return headline
+    off = [g["off"].total_ms for g in complete.values()]
+    stream = [g["stream"].total_ms for g in complete.values()]
+    headline["off"] = summarize(off)
+    headline["sequential"] = summarize([g["sequential"].total_ms for g in complete.values()])
+    headline["stream"] = summarize(stream)
+    by_question: dict[str, Cluster] = {}
+    for (qid, _), g in sorted(complete.items()):
+        by_question.setdefault(qid, []).append((g["off"].total_ms, g["stream"].total_ms))
+    clusters = list(by_question.values())
+    diff = {}
+    for name, q in (("p50", 50), ("p95", 95)):
+        lo, hi = bootstrap_ci(clusters, diff_stat(q, relative=False), n_boot=n_boot, seed=seed)
+        rlo, rhi = bootstrap_ci(clusters, diff_stat(q, relative=True), n_boot=n_boot, seed=seed)
+        point = percentile(stream, q) - percentile(off, q)
+        diff[name] = {
+            "stream_minus_off_ms": round(point, 2),
+            "ci95_ms": [round(lo, 2), round(hi, 2)],
+            "ci95_relative": [round(rlo, 4), round(rhi, 4)],
+        }
+    headline["stream_minus_off"] = diff
+    seq = [g["sequential"].total_ms for g in complete.values()]
+    headline["sequential_minus_off_p50_ms"] = round(percentile(seq, 50) - percentile(off, 50), 2)
+    headline["at3"] = at3_check(
+        off,
+        stream,
+        ci_upper_relative={n: diff[n]["ci95_relative"][1] for n in ("p50", "p95")},
+    )
+    return headline
+
+
+def _regen_section(samples: Sequence[Sample]) -> dict:
+    """Regeneration on the grounding questions (spec section 11.3): how often a request
+    regenerated, and what a regenerated request cost compared with one that did not."""
+    out: dict = {}
+    for mode in MODES:
+        mine = [s for s in samples if s.mode == mode]
+        regen = [s for s in mine if s.regenerated]
+        clean = [s for s in mine if not s.regenerated]
+        out[mode] = {
+            "requests": len(mine),
+            "regenerated": len(regen),
+            "rate": round(len(regen) / len(mine), 4) if mine else None,
+            "latency_regenerated": summarize([s.total_ms for s in regen]),
+            "latency_not_regenerated": summarize([s.total_ms for s in clean]),
+        }
+    return out
+
+
 def build_stats(
-    samples: Sequence[Sample], *, n_boot: int, seed: int, discard_reps: int = 1
+    samples: Sequence[Sample],
+    *,
+    n_boot: int,
+    seed: int,
+    discard_reps: int = 1,
+    truncated_qids: frozenset[str] = frozenset(),
 ) -> dict:
-    """Turn raw samples into the report body. Pure: the tests feed it hand-made samples."""
+    """Turn raw samples into the report body. Pure: the tests feed it hand-made samples.
+
+    `truncated_qids` are the questions whose recorded answer hit the output token cap. The
+    headline is reported twice, with and without them: a truncated answer drops its last
+    sentence, so it has less verification work left at the end of the stream, which flatters the
+    stream mode.
+    """
     measured = [s for s in samples if s.rep >= discard_reps]
     errors = [s for s in measured if not s.usable]
     ok = [s for s in measured if s.usable]
-    json_ok = [s for s in ok if s.transport == "json"]
+    latency_ok = [s for s in ok if s.group == "latency"]
+    json_ok = [s for s in latency_ok if s.transport == "json"]
 
     by_mode: dict[str, dict] = {}
     for mode in MODES:
@@ -436,42 +552,23 @@ def build_stats(
         for key, g in groups.items()
         if set(g) == set(MODES) and not any(x.regenerated for x in g.values())
     }
-    headline: dict = {"pairs": len(complete)}
-    if complete:
-        off = [g["off"].total_ms for g in complete.values()]
-        headline["off"] = summarize(off)
-        for mode in ("sequential", "stream"):
-            headline[mode] = summarize([g[mode].total_ms for g in complete.values()])
-        by_question: dict[str, Cluster] = {}
-        for (qid, _), g in sorted(complete.items()):
-            by_question.setdefault(qid, []).append((g["off"].total_ms, g["stream"].total_ms))
-        clusters = list(by_question.values())
-        diff = {}
-        for name, q in (("p50", 50), ("p95", 95)):
-            lo, hi = bootstrap_ci(clusters, diff_stat(q, relative=False), n_boot=n_boot, seed=seed)
-            rlo, rhi = bootstrap_ci(clusters, diff_stat(q, relative=True), n_boot=n_boot, seed=seed)
-            point = percentile([c[1] for cl in clusters for c in cl], q) - percentile(
-                [c[0] for cl in clusters for c in cl], q
-            )
-            diff[name] = {
-                "stream_minus_off_ms": round(point, 2),
-                "ci95_ms": [round(lo, 2), round(hi, 2)],
-                "ci95_relative": [round(rlo, 4), round(rhi, 4)],
-            }
-        headline["stream_minus_off"] = diff
-        seq_off = [g["sequential"].total_ms for g in complete.values()]
-        headline["sequential_minus_off_p50_ms"] = round(
-            percentile(seq_off, 50) - percentile(off, 50), 2
-        )
-        headline["at3"] = at3_check(off, [g["stream"].total_ms for g in complete.values()])
+    headline = _headline(complete, n_boot, seed)
+    kept = {k: g for k, g in complete.items() if k[0] not in truncated_qids}
+    headline_kept = _headline(kept, n_boot, seed)
+    headline_kept["excluded_truncated_questions"] = sorted(
+        {k[0] for k in complete if k[0] in truncated_qids}
+    )
 
-    sse_ok = [s for s in ok if s.transport == "sse" and not s.regenerated]
+    sse_ok = [s for s in latency_ok if s.transport == "sse" and not s.regenerated]
+    regen_set = [s for s in ok if s.group == "regen" and s.transport == "json"]
     return {
         "discarded_reps": discard_reps,
         "measured_requests": len(measured),
         "errors": [dataclasses.asdict(s) | {"regenerated": s.regenerated} for s in errors],
         "modes": by_mode,
         "headline": headline,
+        "headline_excluding_truncated": headline_kept,
+        "regeneration_set": _regen_section(regen_set) if regen_set else None,
         "sse": {
             "note": "Time to first visible sentence in `stream` mode over SSE. Not part of AT-3.",
             "time_to_first_sentence": summarize(
@@ -480,6 +577,51 @@ def build_stats(
             "time_to_done": summarize([s.total_ms for s in sse_ok]),
         },
     }
+
+
+def _headline_markdown(title: str, h: dict) -> list[str]:
+    if not h.get("pairs"):
+        return [f"## {title}", "", "**No complete pairs: nothing to compare.**", ""]
+    d, a = h["stream_minus_off"], h["at3"]
+    out = [
+        f"## {title} ({h['pairs']} paired requests, {h['questions']} questions)",
+        "",
+        "| mode | n | p50 ms | p95 ms | mean ms |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+    for mode in MODES:
+        r = h[mode]
+        out.append(f"| {mode} | {r['n']} | {r['p50']} | {r['p95']} | {r['mean']} |")
+    out += [
+        "",
+        "Stream minus off, bootstrap 95% interval (questions resampled):",
+        "",
+        "| statistic | difference ms | 95% CI ms | 95% CI relative |",
+        "| --- | --- | --- | --- |",
+    ]
+    for name in ("p50", "p95"):
+        out.append(
+            f"| {name} | {d[name]['stream_minus_off_ms']} | {d[name]['ci95_ms']} "
+            f"| {d[name]['ci95_relative']} |"
+        )
+    out += [
+        "",
+        f"Sequential minus off at p50: {h['sequential_minus_off_p50_ms']} ms "
+        "(what the verifier would cost without the in-stream design).",
+        "",
+        f"**AT-3 {a['label']}**: stream p50 is {a['p50_ratio_minus_1']:+.1%} of off "
+        f"(limit +{P50_TOLERANCE:.0%}), stream p95 is {a['p95_ratio_minus_1']:+.1%} "
+        f"(limit +{P95_TOLERANCE:.0%}).",
+    ]
+    for name, limit in (("p50", P50_TOLERANCE), ("p95", P95_TOLERANCE)):
+        if a["ci_upper_exceeds_limit"][name]:
+            out.append(
+                f"- **CI upper bound exceeds the limit at {name}**: "
+                f"{a['ci_upper_relative'][name]:+.1%} > +{limit:.0%}. The data cannot rule out "
+                "a failure at this percentile."
+            )
+    out.append("")
+    return out
 
 
 def render_markdown(report: dict) -> str:
@@ -498,40 +640,17 @@ def render_markdown(report: dict) -> str:
         f"- {report['config']['note']}",
         "",
     ]
-    if not h.get("pairs"):
-        return "\n".join([*out, "**No complete pairs: nothing to compare.**", ""])
+    out += _headline_markdown("Headline: all recorded questions, no regeneration", h)
+    hk = st["headline_excluding_truncated"]
+    cut = hk.get("excluded_truncated_questions", [])
+    out += _headline_markdown(
+        f"Headline without answers cut at the output token cap ({len(cut)} questions excluded)", hk
+    )
     out += [
-        f"## Headline: requests without regeneration ({h['pairs']} paired requests)",
+        "Answers that hit the cap lose their last sentence, so they leave less to verify at the "
+        "end of the stream, which flatters the stream mode. Both headlines are reported.",
         "",
-        "| mode | n | p50 ms | p95 ms | mean ms |",
-        "| --- | --- | --- | --- | --- |",
-    ]
-    for mode in MODES:
-        r = h[mode]
-        out.append(f"| {mode} | {r['n']} | {r['p50']} | {r['p95']} | {r['mean']} |")
-    d, a = h["stream_minus_off"], h["at3"]
-    out += [
-        "",
-        "Stream minus off, bootstrap 95% interval (questions resampled):",
-        "",
-        "| statistic | difference ms | 95% CI ms | 95% CI relative |",
-        "| --- | --- | --- | --- |",
-    ]
-    for name in ("p50", "p95"):
-        out.append(
-            f"| {name} | {d[name]['stream_minus_off_ms']} | {d[name]['ci95_ms']} "
-            f"| {d[name]['ci95_relative']} |"
-        )
-    out += [
-        "",
-        f"Sequential minus off at p50: {h['sequential_minus_off_p50_ms']} ms "
-        "(what the verifier would cost without the in-stream design).",
-        "",
-        f"**AT-3 {'PASS' if a['pass'] else 'FAIL'}**: stream p50 is "
-        f"{a['p50_ratio_minus_1']:+.1%} of off (limit +{P50_TOLERANCE:.0%}), stream p95 is "
-        f"{a['p95_ratio_minus_1']:+.1%} (limit +{P95_TOLERANCE:.0%}).",
-        "",
-        "## Answer node and regeneration",
+        "## Answer node and regeneration (AT-3 question set)",
         "",
         "| mode | answer node p50 ms | answer node p95 ms | requests | regenerated | "
         "regeneration rate | regenerated p50 ms |",
@@ -544,6 +663,24 @@ def render_markdown(report: dict) -> str:
             f"| {m['regeneration']['count']} | {m['regeneration']['rate']} "
             f"| {m['regeneration']['latency']['p50']} |"
         )
+    rs = st.get("regeneration_set")
+    if rs:
+        out += [
+            "",
+            "## Regeneration on the grounding questions (spec section 11.3)",
+            "",
+            report["config"].get("regen_note", ""),
+            "",
+            "| mode | requests | regenerated | rate | regenerated p50 ms | "
+            "not regenerated p50 ms |",
+            "| --- | --- | --- | --- | --- | --- |",
+        ]
+        for mode in MODES:
+            r = rs[mode]
+            out.append(
+                f"| {mode} | {r['requests']} | {r['regenerated']} | {r['rate']} "
+                f"| {r['latency_regenerated']['p50']} | {r['latency_not_regenerated']['p50']} |"
+            )
     s = st["sse"]
     out += [
         "",
@@ -591,6 +728,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="replay the analyze reply instantly instead of after its recorded latency",
     )
     p.add_argument("--force", action="store_true", help="with --record: re-record every question")
+    p.add_argument(
+        "--regen-questions",
+        type=Path,
+        default=None,
+        help="JSONL of grounding questions (id, question): the regeneration rate and the latency "
+        "of regenerated requests are measured on these (spec section 11.3)",
+    )
     p.add_argument("--recordings", type=Path, default=RECORDINGS_FILE)
     p.add_argument("--boot", type=int, default=5000, help="bootstrap resamples")
     p.add_argument("--seed", type=int, default=0)
@@ -612,7 +756,12 @@ def _write_recordings(path: Path, recs: Sequence[Recording]) -> None:
 async def record(args: argparse.Namespace, settings: Settings) -> None:
     """One real run per question through the real graph, writer only (verifier off)."""
     settings = settings.model_copy(update={"eval_mode": True})
-    questions = load_questions(QUESTIONS_FILE, args.questions)
+    questions = [(q, "latency") for q in load_questions(QUESTIONS_FILE, args.questions)]
+    if args.regen_questions:
+        questions += [(q, "regen") for q in load_questions(args.regen_questions, args.questions)]
+    ids = [q["id"] for q, _ in questions]
+    if len(ids) != len(set(ids)):
+        sys.exit("question ids must be unique across the latency and regeneration sets")
     existing = (
         {r.id: r for r in load_recordings(args.recordings)} if args.recordings.exists() else {}
     )
@@ -628,24 +777,29 @@ async def record(args: argparse.Namespace, settings: Settings) -> None:
             conn_version = await corpus_version(conn)
         finally:
             await conn.close()
-        for q in questions:
+        for q, group in questions:
             if q["id"] in existing and not args.force:
                 continue
             out = await run_ask(
                 runtime.graph, runtime.deps, question=q["question"], flags=Flags(verifier=False)
             )
             rec = llm.recording_for(q["id"], q["question"])
+            # The AT-3 set must be answerable in one pass. The grounding questions include
+            # unanswerable ones (the writer says INSUFFICIENT), which are still worth replaying;
+            # what cannot be replayed is a request whose retrieval was retried (a second,
+            # unrecorded structured call) or that never reached the writer.
             usable = (
                 rec is not None
-                and out["status"] == "answered"
                 and out["meta"]["retrieval_attempts"] == 1
                 and out["meta"]["generation_attempts"] == 1
+                and (group == "regen" or out["status"] == "answered")
             )
             print(f"{q['id']}: {out['status']} {'recorded' if usable else 'SKIPPED'}", flush=True)
             if usable:
                 assert rec is not None
                 existing[q["id"]] = dataclasses.replace(
                     rec,
+                    group=group,
                     model_id=llm.model_id,
                     corpus_version=conn_version,
                     recorded_at=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -666,14 +820,24 @@ async def replay(args: argparse.Namespace, settings: Settings) -> dict:
     settings = settings.model_copy(update={"eval_mode": True, "verify_mode": "stream"})
     thresholds: Thresholds = load_thresholds(settings.thresholds_path)
     questions = load_questions(QUESTIONS_FILE, args.questions)
+    regen_questions = (
+        load_questions(args.regen_questions, args.questions) if args.regen_questions else []
+    )
     recordings = {r.id: r for r in load_recordings(args.recordings)}
     missing = [q["id"] for q in questions if q["id"] not in recordings]
     if missing:
         sys.exit(f"no recording for {missing}; run with --record first")
+    # A grounding question that could not be recorded (it never reached the writer, or its
+    # retrieval was retried) is left out and named in the report.
+    regen_skipped = [q["id"] for q in regen_questions if q["id"] not in recordings]
+    regen_questions = [q for q in regen_questions if q["id"] in recordings]
     model_id = recordings[questions[0]["id"]].model_id or "unknown"
+    truncated_qids = frozenset(
+        q["id"] for q in questions if TRUNCATION_MARKER in recordings[q["id"]].text
+    )
 
     llm = ReplayLLM(
-        [recordings[q["id"]] for q in questions],
+        [recordings[q["id"]] for q in [*questions, *regen_questions]],
         model_id=model_id,
         replay_analysis_delay=not args.no_analysis_delay,
     )
@@ -697,6 +861,17 @@ async def replay(args: argparse.Namespace, settings: Settings) -> dict:
             sse=not args.no_sse,
             progress=lambda msg: print(f"{msg} ({time.perf_counter() - t0:.0f}s)", flush=True),
         )
+        if regen_questions:
+            samples += await run_measurements(
+                apps,
+                regen_questions,
+                reps=args.reps,
+                sse=False,
+                group="regen",
+                progress=lambda msg: print(
+                    f"regen set: {msg} ({time.perf_counter() - t0:.0f}s)", flush=True
+                ),
+            )
         conn = await connect(settings.database_url)
         try:
             corpus = await corpus_version(conn)
@@ -725,10 +900,30 @@ async def replay(args: argparse.Namespace, settings: Settings) -> dict:
         "bootstrap": {"resamples": args.boot, "seed": args.seed, "unit": "question"},
         "note": (
             "Replay: recorded analyze reply and writer tokens with recorded timing; resolver on "
-            "the local alias table; no RxNav facts; no answer cache exists in this build."
+            "the local alias table (no RxNav); rx_facts=None, so the RxNorm facts branch returns "
+            "no facts and the writer prompt has no [r] blocks; no answer cache exists in this "
+            "build."
+        ),
+        "rx_facts": None,
+        "truncated_recordings": sorted(truncated_qids),
+        "regen_questions": [q["id"] for q in regen_questions],
+        "regen_questions_not_recorded": regen_skipped,
+        "regen_note": (
+            "Grounding questions replayed in the three modes. A regenerated request replays the "
+            "first recording a second time (the second attempt's prompt differs, its text is not "
+            "recorded), so its latency is the cost of a second writer call, not a measurement "
+            "of the strict prompt."
+            + (
+                " The fake verifier accepts every sentence, so no request regenerates: "
+                "the rate is 0 by construction; run with --verifier real."
+                if args.verifier == "fake"
+                else ""
+            )
         ),
     }
-    report["stats"] = build_stats(samples, n_boot=args.boot, seed=args.seed)
+    report["stats"] = build_stats(
+        samples, n_boot=args.boot, seed=args.seed, truncated_qids=truncated_qids
+    )
     report["samples"] = [dataclasses.asdict(s) for s in samples]
     return report
 

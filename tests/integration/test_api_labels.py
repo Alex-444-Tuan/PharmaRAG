@@ -21,7 +21,8 @@ async def client(settings, pg_url, make_fake_llm, fake_embedder):
     llm = make_fake_llm([])
 
     async def factory(st):
-        return await build_runtime(st, embedder=fake_embedder, llm=llm)
+        # verifier=None: never load the real NLI model in a test (baseline build, eval mode)
+        return await build_runtime(st, embedder=fake_embedder, llm=llm, verifier=None)
 
     app = create_app(s, runtime_factory=factory)
     async with app.router.lifespan_context(app):
@@ -104,7 +105,8 @@ async def test_degraded_app_serves_ask_as_the_baseline_and_resolve_as_503(
     s = settings.model_copy(update={"database_url": pg_url})
 
     async def factory(st):
-        return await build_runtime(st, embedder=fake_embedder, llm=llm)
+        # verifier=None: never load the real NLI model in a test (baseline build, eval mode)
+        return await build_runtime(st, embedder=fake_embedder, llm=llm, verifier=None)
 
     app = create_app(s, runtime_factory=factory)
     async with app.router.lifespan_context(app):

@@ -115,6 +115,7 @@ class FakeVerifier:
         self.script = list(script)
         self.calls: list[dict] = []
         self.prepares: list[dict] = []
+        self.batches: list[list[str]] = []  # texts of each verify_many call
         self._attempts = 0
         self._cursor: dict[int, int] = {}
 
@@ -164,6 +165,13 @@ class FakeVerifier:
         # writer already marked (those are not passed here), so index by the attempt's position.
         verdicts = entry([sentence]) if callable(entry) else list(entry)
         return self._verdict_for(sentence, verdicts[min(i, len(verdicts) - 1)])
+
+    async def verify_many(self, sentences: list[Sentence], prepared) -> list[Sentence]:
+        """One batch: same results, same order as `verify_sentence` on each. The stream path
+        passes only the sentences the writer left unverified, so in stream mode a list script is
+        indexed over those (a writer-marked sentence in the middle does not take an index)."""
+        self.batches.append([s.text for s in sentences])
+        return [await self.verify_sentence(s, prepared) for s in sentences]
 
 
 # --- scripted LLM replies shared by the route tests -------------------------------------------
