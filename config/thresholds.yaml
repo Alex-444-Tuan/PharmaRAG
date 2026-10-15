@@ -38,7 +38,9 @@ grounding:           # spec section 9
   nearest_spans: 3
   premise_context: cascade    # span+neighbour, then span alone on a miss (review round 5)
   premise_heading: sub        # subsection title prefixed to the premise (review round 5)
-  # entail_min is re-tuned on dev after the cycle-3 fix round and committed before --score.
+  # entail_min re-checked 2026-10-15 on the 114-claim dev set (shipped cascade incl. union stage):
+  # 0.70 -> FR 4/66 (6.1%), reduction 47/48; 0.60 -> FR 3/66, same reduction. Dev has no H claim
+  # between ~0.35 and 0.95, so it cannot separate them; spec value 0.70 kept. Frozen for --score.
 
 graph:               # NFR-6
   max_retrieval_attempts: 2
