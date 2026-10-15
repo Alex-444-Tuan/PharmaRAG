@@ -165,10 +165,27 @@ async def run_tune(
             p_contra = propose_contradict(contra_sweep, thresholds.grounding.contradict_min)
             proposed = _with(proposed, contradict_min=p_contra)
             prop = summarise(score_analyses(labelled, analyses, proposed))
+            # The same claims without the "heading" kind. That kind was built to need the heading
+            # in the premise, so results with it flatter a heading-prefixed verifier.
+            keep = [i for i, lc in enumerate(labelled) if lc.claim.kind != "heading"]
+            sub_l = [labelled[i] for i in keep]
+            sub_a = [analyses[i] for i in keep]
+            sub_sweep = sweep_entail(sub_l, sub_a, thresholds.grounding)
+            sub_entail = propose_entail(sub_sweep, thresholds.grounding.entail_min)
+            sub_prop = _with(thresholds.grounding, entail_min=sub_entail)
             report["modes"][mode] = {
                 "current_summary": cur,
                 "proposed": {"entail_min": p_entail, "contradict_min": p_contra},
                 "proposed_summary": prop,
+                "without_heading_kind": {
+                    "claims": len(sub_l),
+                    "current_summary": summarise(
+                        score_analyses(sub_l, sub_a, thresholds.grounding)
+                    ),
+                    "at_proposed_summary": summarise(score_analyses(sub_l, sub_a, proposed)),
+                    "own_proposed_entail_min": sub_entail,
+                    "own_proposed_summary": summarise(score_analyses(sub_l, sub_a, sub_prop)),
+                },
                 "entail_sweep": entail_sweep,
                 "contradict_sweep": contra_sweep,
             }
@@ -200,6 +217,41 @@ async def run_tune(
 async def _both(verifier: GroundingVerifier, labelled: Sequence[LabelledClaim]) -> list[Analysis]:
     verifier.context = "both"
     return await analyse_all(verifier, [lc.claim for lc in labelled])
+
+
+def _slice_lines(m: dict, report: dict) -> list[str]:
+    """Per-kind results at the current and proposed thresholds, and the run without the
+    heading-dependent kind."""
+    cur, prop = m["current_summary"], m["proposed_summary"]
+    w = m["without_heading_kind"]
+    kinds = sorted(cur["by_kind"])
+    lines = [
+        "Per kind, claims passed as `supported` (S kinds should pass, H kinds should not):",
+        "",
+        "| kind | claims | passed at current | passed at proposed |",
+        "|---|---|---|---|",
+        *(
+            f"| {k} | {cur['by_kind'][k]['n']} | {cur['by_kind'][k]['passed']} "
+            f"| {prop['by_kind'][k]['passed']} |"
+            for k in kinds
+        ),
+        "",
+        f"Without the `heading` kind ({w['claims']} claims; that kind was built to need the "
+        "heading):",
+        "",
+        "| thresholds | precision | recall | false-reject | reduction |",
+        "|---|---|---|---|---|",
+    ]
+    for label, s in (
+        (f"current ({report['current']['entail_min']})", w["current_summary"]),
+        (f"proposed above ({m['proposed']['entail_min']})", w["at_proposed_summary"]),
+        (f"own proposal ({w['own_proposed_entail_min']})", w["own_proposed_summary"]),
+    ):
+        lines.append(
+            f"| {label} | {s['precision_text']} | {s['recall_text']} | {s['at2b_text']} "
+            f"| {s['reduction_text']} |"
+        )
+    return [*lines, ""]
 
 
 def render_markdown(report: dict) -> str:
@@ -251,6 +303,7 @@ def render_markdown(report: dict) -> str:
             f"| {prop['precision_text']} | {prop['recall_text']} | {prop['at2b_text']} "
             f"| {prop['reduction_text']} |",
             "",
+            *_slice_lines(m, report),
             "entail_min sweep:",
             "",
             "| entail_min | precision | recall | false-reject | reduction |",

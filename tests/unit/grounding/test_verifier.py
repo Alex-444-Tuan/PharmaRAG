@@ -20,6 +20,7 @@ from pharmarag.grounding.verifier import (
     Analysis,
     CrossEncoderNLI,
     GroundingVerifier,
+    PremiseScore,
     decide,
     resolve_label_indices,
     softmax,
@@ -28,7 +29,13 @@ from pharmarag.models.embedder import FakeEmbedder
 
 SETID = "00000000-0000-0000-0000-000000000001"
 TH = GroundingThresholds(
-    entail_min=0.70, contradict_min=0.80, support_ratio_min=0.8, candidate_spans=5, nearest_spans=3
+    entail_min=0.70,
+    contradict_min=0.80,
+    support_ratio_min=0.8,
+    candidate_spans=5,
+    nearest_spans=3,
+    premise_context="neighbour",
+    premise_heading="none",
 )
 
 
@@ -113,14 +120,11 @@ def sent(text: str, cites=("c1",), **kw) -> Sentence:
 
 
 def an(entail=None, contra=None, missing=(), cands=("c1:0",)) -> Analysis:
-    return Analysis(
-        candidates=list(cands),
-        missing=list(missing),
-        best_entail=entail,
-        best_entail_span="c1:0",
-        best_contra=contra,
-        best_contra_span="c1:1",
-    )
+    """An analysis whose best entailment is on span c1:0 and best contradiction on c1:1."""
+    premises = []
+    if entail is not None:
+        premises = [PremiseScore("c1:0", entail, 0.0), PremiseScore("c1:1", 0.0, contra or 0.0)]
+    return Analysis(candidates=list(cands), missing=list(missing), premises=premises)
 
 
 def test_supported_at_exactly_entail_min():

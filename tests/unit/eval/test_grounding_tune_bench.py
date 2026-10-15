@@ -6,7 +6,7 @@ from pharmarag.eval import grounding_bench as gb
 from pharmarag.eval import grounding_tune as gt
 from pharmarag.eval.grounding_data import Claim
 from pharmarag.eval.grounding_score import LabelledClaim
-from pharmarag.grounding.verifier import Analysis, GroundingVerifier
+from pharmarag.grounding.verifier import Analysis, GroundingVerifier, PremiseScore
 from pharmarag.models.embedder import FakeEmbedder
 from tests.unit.grounding.test_verifier import TH, FakeNLI, make_chunk
 
@@ -83,7 +83,7 @@ def labelled(label, cid):
 
 
 def analysis(entail, contra):
-    return Analysis(["c1:0"], [], entail, "c1:0", contra, "c1:0")
+    return Analysis(["c1:0"], [], [PremiseScore("c1:0", entail, contra)])
 
 
 def test_entail_sweep_moves_with_the_threshold():

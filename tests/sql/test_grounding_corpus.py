@@ -53,21 +53,26 @@ async def test_real_chunk_spans_slice_to_nonempty_unique_records(corpus_conn):
         assert all(r.section == chunk.section_title for r in recs)
 
 
-async def test_the_three_nearest_spans_are_always_candidates_on_real_evidence(corpus_conn):
-    import numpy as np
-
+async def test_the_three_nearest_spans_of_the_cited_drug_are_candidates_on_real_evidence(
+    corpus_conn,
+):
     from pharmarag.graph.state import Sentence
 
-    chunks = await real_chunks(corpus_conn, n=8)
+    chunks = await real_chunks(corpus_conn, n=40)
     emb = FakeEmbedder()
     v = GroundingVerifier(emb, FakeNLI(lambda p, h: (0.9, 0.0)), TH)
     prepared = await v.prepare(chunks, [])
+    cited = chunks[2]  # c3
     sentence = Sentence(text="Take with food and avoid alcohol.", citations=["c3"])
     analysis = await v.analyse_sentence(sentence, prepared)
     sims = prepared.matrix @ emb.embed_documents([sentence.text])[0]
-    nearest = [prepared.records[i].id for i in np.argsort(-sims, kind="stable")[:3]]
+    mine = [i for i, r in enumerate(prepared.records) if r.ingredient_key == cited.ingredient_key]
+    nearest = [prepared.records[i].id for i in sorted(mine, key=lambda i: -sims[i])[:3]]
     assert set(nearest) <= set(analysis.candidates)
-    assert len(analysis.candidates) == TH.candidate_spans
+    assert 1 <= len(analysis.candidates) <= TH.candidate_spans
+    # every candidate is the cited drug's: other drugs' spans never enter uncited
+    by_id = {r.id: r for r in prepared.records}
+    assert {by_id[c].ingredient_key for c in analysis.candidates} == {cited.ingredient_key}
 
 
 async def test_the_frozen_dev_set_is_reproduced_byte_for_byte_by_the_script(corpus_conn, tmp_path):

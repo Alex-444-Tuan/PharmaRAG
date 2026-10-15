@@ -29,6 +29,7 @@ from psycopg import AsyncConnection
 from pharmarag.eval import perturb
 from pharmarag.eval.grounding_data import Claim
 from pharmarag.graph.state import Chunk, Span
+from pharmarag.grounding.numeric import header_unit
 
 SEED = 20261008
 N_DRUGS = 45
@@ -45,6 +46,13 @@ PLAN: dict[str, int] = {
     "frequency": 5,
     "population": 5,
     "overclaim": 6,
+    # Harder supported kinds that mimic real writer output (cycle 3 review): the sentence is not a
+    # copy of one label sentence.
+    "tallman": 6,  # drug name in tall-man lettering in the label, plain in the sentence
+    "combine": 8,  # two non-adjacent sentences of one chunk in one claim
+    "row_restate": 8,  # a table row restated as prose
+    # And its hallucinated twin: the same prose with one number changed.
+    "row_numeric": 6,
 }
 LABEL_OF = {
     "verbatim": "S",
@@ -57,7 +65,15 @@ LABEL_OF = {
     "frequency": "H",
     "population": "H",
     "overclaim": "H",
+    "tallman": "S",
+    "combine": "S",
+    "row_restate": "S",
+    "row_numeric": "H",
 }
+# Labels whose drug names are in tall-man lettering (hydrALAZINE, PredniSONE). They are always in
+# the sample, because a random sample of 45 drugs may hold none.
+TALLMAN_KEYS = ("5470", "8640")
+TALLMAN_NAMES = ("hydralazine", "prednisone")
 # Sections where claims are common in real answers.
 SECTIONS = (
     "34067-9",  # indications
@@ -105,6 +121,8 @@ async def load_drugs(conn: AsyncConnection, rng: random.Random, n: int) -> list[
     labels = await cur.fetchall()
     labels = sorted(labels, key=lambda r: r[0])
     rng.shuffle(labels)
+    forced = [r for r in labels if r[0] in TALLMAN_KEYS]
+    labels = forced + [r for r in labels if r[0] not in TALLMAN_KEYS]
     drugs: list[DrugChunks] = []
     for key, title, setid, ver in labels[: n * 2]:
         cur = await conn.execute(
@@ -169,6 +187,69 @@ def heading_prefix(subsection_title: str | None) -> tuple[str, str] | None:
     return None
 
 
+_TALLMAN_TOKEN = re.compile(r"\b[A-Za-z]*[a-z][A-Za-z]*[A-Z]{2,}[A-Za-z]*\b")
+
+
+def tallman_name(text: str) -> str | None:
+    """The tall-man drug name in `text` (hydrALAZINE, PredniSONE), or None."""
+    for m in _TALLMAN_TOKEN.finditer(text):
+        if m.group(0).lower() in TALLMAN_NAMES:
+            return m.group(0)
+    return None
+
+
+def plain_name(text: str, name: str) -> str:
+    """`text` with the tall-man `name` in ordinary casing, as a writer types it."""
+    plain = name.lower()
+    if text.startswith(name):
+        plain = plain.capitalize()
+    return text.replace(name, plain)
+
+
+def row_spans(chunk: Chunk) -> list[tuple[Span, str]]:
+    """Table-row spans: "Header (unit): value; Header (unit): value", short enough to restate."""
+    out = []
+    for sp in chunk.spans:
+        text = chunk.text[sp.start : sp.end].strip()
+        cells = [c.partition(": ") for c in text.split("; ")]
+        if len(cells) >= 2 and all(sep for _, sep, _ in cells) and len(text.split()) <= 80:
+            out.append((sp, text))
+    return out
+
+
+_VALUE = re.compile(r"^[<>\u2265\u2264=~ ]*\d[\d.,]*(?: (?:to|-|\u2013|or) \d[\d.,]*)?$")
+
+
+def row_sentence(row: str, rng: random.Random) -> str | None:
+    """A table row restated as a sentence, the way a writer would put one cell in prose.
+
+    "Adverse Reaction: Arthralgia; % 10 mg N=3,908: 8.9" -> "Arthralgia occurred in 8.9% of
+    patients in the 10 mg group." and "Renal Function Creatinine Clearance (mL/min): >30 to 59;
+    Total Daily Dose Range (mg/day): 400 to 1400" -> "For renal function creatinine clearance
+    >30 to 59 mL/min, the total daily dose range is 400 to 1400 mg/day."
+    """
+    cells = [c.partition(": ") for c in row.split("; ")]
+    h0, _, v0 = cells[0]
+    cols = [(h, v) for h, _, v in cells[1:] if _VALUE.match(v.strip())]
+    if not cols or len(v0) > 40:
+        return None
+    h, v = rng.choice(cols)
+    v = v.strip()
+    if h.startswith("%"):
+        group = re.sub(r"\s*N=.*$", "", h[1:]).strip()
+        if not group or len(v0.split()) > 6:
+            return None
+        return f"{v0} occurred in {v}% of patients in the {group} group."
+    unit = header_unit(h)
+    base = re.sub(r"\s*\([^()]*\)\s*$", "", h).strip().lower()
+    if not unit or not base:
+        return None
+    unit0 = header_unit(h0)
+    base0 = re.sub(r"\s*\([^()]*\)\s*$", "", h0).strip().lower()
+    where = f"{v0.strip()} {unit0}" if unit0 and _VALUE.match(v0.strip()) else v0.strip()
+    return f"For {base0} {where}, the {base} is {v} {unit}."
+
+
 def _first_word(title: str) -> str:
     return re.split(r"[\s(]", title.strip().lower(), maxsplit=1)[0]
 
@@ -185,10 +266,16 @@ def make_claim(
     pool = drug.chunks
     if kind == "heading":
         pool = [c for c in drug.chunks if heading_prefix(c.subsection_title)]
-        if not pool:
-            return None
+    elif kind in ("row_restate", "row_numeric"):
+        pool = [c for c in drug.chunks if row_spans(c)]
+    elif kind == "tallman":
+        pool = [c for c in drug.chunks if any(tallman_name(t) for _, t in usable_span_texts(c))]
+    if not pool:
+        return None
     cited = rng.choice(pool)
-    spans = usable_span_texts(cited)
+    spans = row_spans(cited) if kind in ("row_restate", "row_numeric") else usable_span_texts(cited)
+    if kind == "tallman":
+        spans = [(sp, t) for sp, t in spans if tallman_name(t)]
     if not spans:
         return None
     sp, text = rng.choice(spans)
@@ -213,6 +300,21 @@ def make_claim(
             return None  # the sentence already says it; the heading adds nothing
         sentence = f"{prefix}, {perturb.lower_first(text)}"
         meta["heading"] = cited.subsection_title
+    elif kind == "tallman":
+        sentence = plain_name(text, tallman_name(text))  # type: ignore[arg-type]
+        meta["tallman"] = tallman_name(text)
+    elif kind == "combine":
+        far = [t for s2, t in spans if abs(s2.i - sp.i) >= 2]
+        if not far:
+            return None
+        other_text = rng.choice(far)
+        sentence = f"{text.rstrip('.')}, and {perturb.lower_first(other_text)}"
+        meta["source_sentence_2"] = other_text
+    elif kind in ("row_restate", "row_numeric"):
+        sentence = row_sentence(text, rng)
+        if sentence and kind == "row_numeric":
+            meta["restated"] = sentence
+            sentence = perturb.change_number(sentence, texts, rng)
     elif kind == "join":
         nxt = {s.i: t for s, t in spans}.get(sp.i + 1)
         if not nxt:
@@ -250,7 +352,7 @@ def make_claim(
         meta["moved_from"] = other.title
     else:
         raise ValueError(kind)
-    if not sentence or (kind not in ("verbatim", "join") and sentence == text):
+    if not sentence or (kind not in ("verbatim", "join", "tallman") and sentence == text):
         return None
     used.add((cited.chunk_id, sp.i))
     return Claim(

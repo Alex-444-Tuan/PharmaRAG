@@ -125,7 +125,7 @@ class FakeDeps:
     def __init__(self, verifier_available=False, eval_mode=True):
         from types import SimpleNamespace
 
-        self.settings = SimpleNamespace(eval_mode=eval_mode)
+        self.settings = SimpleNamespace(eval_mode=eval_mode, verify_mode="stream")
         self.thresholds = SimpleNamespace(
             graph=SimpleNamespace(recursion_limit=12),
             retrieval=SimpleNamespace(max_facts=10),

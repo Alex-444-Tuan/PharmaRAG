@@ -24,6 +24,8 @@ class SpanRecord:
     context: str  # span plus one neighbour sentence: the NLI premise
     section: str = ""  # section title of the chunk, as filed in the label
     subsection: str = ""  # subsection title, or ""
+    ingredient_key: str = ""  # the chunk's drug ("" for a RxNorm fact)
+    rxcui: str = ""  # the fact's ingredient RxCUI ("" for a label span)
 
 
 def build_spans(evidence: Sequence[Chunk], facts: Sequence[Fact]) -> list[SpanRecord]:
@@ -56,12 +58,39 @@ def build_spans(evidence: Sequence[Chunk], facts: Sequence[Fact]) -> list[SpanRe
                     context=context,
                     section=chunk.section_title or "",
                     subsection=chunk.subsection_title or "",
+                    ingredient_key=chunk.ingredient_key,
                 )
             )
     for fact in facts:
         text = fact.text.strip()
         if text:
-            out.append(SpanRecord(id=fact.id, source=fact.id, text=text, context=text))
+            out.append(
+                SpanRecord(id=fact.id, source=fact.id, text=text, context=text, rxcui=fact.rxcui)
+            )
+    return out
+
+
+def eligible_for_nearest(records: Sequence[SpanRecord], citations: Sequence[str]) -> list[bool]:
+    """Which spans the nearest-k search may pick: those of the drugs the sentence cites.
+
+    In a two-drug answer a sentence about drug A must not be "supported" by the nearest span of
+    drug B (a dose that happens to match, a similar warning). The cited chunks' `ingredient_key`s
+    (and the RxCUIs of cited facts) name the drugs; a chunk is eligible when its key is one of
+    them or shares an ingredient with one. A sentence that cites nothing known is unrestricted.
+    """
+    cited = set(citations)
+    keys = {r.ingredient_key for r in records if r.source in cited and r.ingredient_key}
+    rxcuis = {r.rxcui for r in records if r.source in cited and r.rxcui}
+    for key in keys:
+        rxcuis.update(key.split("+"))
+    if not keys and not rxcuis:
+        return [True] * len(records)
+    out = []
+    for r in records:
+        if r.ingredient_key:
+            out.append(r.ingredient_key in keys or bool(set(r.ingredient_key.split("+")) & rxcuis))
+        else:
+            out.append(r.rxcui in rxcuis)
     return out
 
 
@@ -77,15 +106,18 @@ def select_candidates(
     """Indices into `records` of the candidate spans, best cosine first.
 
     Union of (a) every span whose source is in `citations` and (b) the `nearest_spans` highest
-    cosine spans over all evidence, then the top `candidate_spans` of that union by cosine.
-    Vectors are L2-normalised, so cosine is a dot product. Ties keep evidence order.
+    cosine spans among the cited drugs' evidence (`eligible_for_nearest`), then the top
+    `candidate_spans` of that union by cosine. Vectors are L2-normalised, so cosine is a dot
+    product. Ties keep evidence order.
     """
     if not records:
         return []
     sims = span_matrix @ sentence_vec
     cited = set(citations)
     chosen = {i for i, r in enumerate(records) if r.source in cited}
-    nearest = sorted(range(len(records)), key=lambda i: (-float(sims[i]), i))[:nearest_spans]
+    ok = eligible_for_nearest(records, citations)
+    pool = [i for i in range(len(records)) if ok[i]]
+    nearest = sorted(pool, key=lambda i: (-float(sims[i]), i))[:nearest_spans]
     chosen.update(nearest)
     ranked = sorted(chosen, key=lambda i: (-float(sims[i]), i))
     return ranked[:candidate_spans]

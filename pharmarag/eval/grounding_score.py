@@ -23,10 +23,11 @@ from psycopg import AsyncConnection
 
 from pharmarag.app.settings import GroundingThresholds, Thresholds
 from pharmarag.eval import grounding_data as gd
+from pharmarag.eval import report as report_mod
 from pharmarag.eval.grounding_data import Claim, Label
 from pharmarag.eval.report import base_meta, corpus_version
 from pharmarag.graph.state import Sentence
-from pharmarag.grounding.verifier import Analysis, GroundingVerifier, decide
+from pharmarag.grounding.verifier import Analysis, GroundingVerifier, verdict_fields
 
 AT2_TARGET = 0.73
 AT2B_MAX = 0.10
@@ -121,17 +122,17 @@ def score_analyses(
 ) -> list[Scored]:
     rows = []
     for lc, a in zip(labelled, analyses, strict=True):
-        verdict, reason = decide(a, thresholds)
+        f = verdict_fields(a, thresholds)
         rows.append(
             Scored(
                 claim_id=lc.claim.id,
                 label=lc.label,
                 origin=lc.origin,
                 kind=lc.claim.kind,
-                verdict=verdict,
-                reason=reason,
-                score=a.best_entail,
-                span=a.best_entail_span,
+                verdict=f["verdict"],
+                reason=f["reason"],
+                score=f["score"],
+                span=f["span"],
                 best_contra=a.best_contra,
                 sentence=lc.claim.sentence,
             )
@@ -228,6 +229,11 @@ def build_report(
     report["note"] = note
     report["runs_note"] = "The verifier is deterministic, so one run; there is no LLM in scoring."
     report["summary"] = summarise(rows)
+    if report["thresholds_dirty"] is True:
+        # The numbers were produced with thresholds that are not committed, so nobody can
+        # reproduce them from a commit: the result does not count (spec section 11).
+        report["summary"]["at2_valid"] = False
+        report["summary"]["invalid_reason"] = "config/thresholds.yaml has uncommitted changes"
     report["rows"] = [r.__dict__ for r in rows]
     return report
 
@@ -267,7 +273,9 @@ def render_markdown(report: dict) -> str:
         f"AT-2b guard: {'PASS' if s['at2b_pass'] else 'FAIL'}. "
         f"AT-2: {'MET' if s['at2_met'] else 'NOT MET'}. "
         f"AT-2 counts as a result only when the guard passes: "
-        f"{'valid' if s['at2_valid'] else 'NOT VALID'}.",
+        f"{'valid' if s['at2_valid'] else 'NOT VALID'}"
+        + (f" ({s['invalid_reason']})" if s.get("invalid_reason") else "")
+        + ".",
         "",
         "## By claim kind",
         "",
@@ -287,6 +295,33 @@ def _p(x: float | None) -> str:
     return "n/a" if x is None else f"{100 * x:.1f}%"
 
 
+class ScoreRefused(RuntimeError):
+    """Test-set scoring was asked to run with settings it must not choose."""
+
+
+def check_scoring_is_frozen(verifier: GroundingVerifier, thresholds: Thresholds) -> None:
+    """Refuse to score the test claims unless the verifier is exactly the frozen one.
+
+    Spec section 11: thresholds are tuned on dev only and frozen by commit before a test-set run.
+    The premise mode, the heading, the candidate count and the thresholds are all in
+    `config/thresholds.yaml`, so a verifier that differs from it, or a thresholds file with
+    uncommitted edits, would let the test run pick its own settings.
+    """
+    g = thresholds.grounding
+    if verifier.thresholds != g:
+        raise ScoreRefused("the verifier's thresholds differ from config/thresholds.yaml")
+    if (verifier.context, verifier.heading) != (g.premise_context, g.premise_heading):
+        raise ScoreRefused(
+            f"premise mode {verifier.context}/{verifier.heading} differs from the frozen "
+            f"{g.premise_context}/{g.premise_heading}"
+        )
+    if report_mod.thresholds_provenance().get("thresholds_dirty") is True:
+        raise ScoreRefused(
+            "config/thresholds.yaml has uncommitted changes; commit them before scoring the "
+            "test set (spec section 11)"
+        )
+
+
 async def run_score(
     *,
     verifier: GroundingVerifier,
@@ -297,6 +332,7 @@ async def run_score(
     """Score the frozen test claims with the human labels (and top-up, if any)."""
     from pharmarag.eval.grounding_labels import read_labels
 
+    check_scoring_is_frozen(verifier, thresholds)
     claims = gd.load_claims(gd.TEST_CLAIMS)
     labels = read_labels(gd.TEST_LABELS)
     topup = gd.load_claims(gd.TEST_TOPUP) if gd.TEST_TOPUP.exists() else []

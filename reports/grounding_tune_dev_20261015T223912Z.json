@@ -1,0 +1,2425 @@
+{
+  "eval": "grounding_tune",
+  "split": "dev",
+  "mode": "threshold_sweep",
+  "runs": 1,
+  "timestamp": "2026-10-15T22:39:12Z",
+  "model_id": null,
+  "corpus_version": "n/a (evidence snapshots are stored in the dev file)",
+  "thresholds_commit": "2d429da86c4567ff9671b7d5192c4493a8c6be48",
+  "thresholds_dirty": false,
+  "git_head": "2d429da86c4567ff9671b7d5192c4493a8c6be48",
+  "thresholds": {
+    "resolver": {
+      "resolved_min": 0.9,
+      "margin": 0.05,
+      "ambiguous_min": 0.8,
+      "trigram_min": 0.4,
+      "trigram_k": 5,
+      "max_candidates": 3
+    },
+    "retrieval": {
+      "top_k_per_branch": 20,
+      "rrf_k": 60,
+      "evidence_top_k": 8,
+      "evidence_top_k_per_drug": 5,
+      "dense_min": 0.7,
+      "overlap_min": 3,
+      "max_facts": 10
+    }
+  },
+  "dataset": {
+    "file": "grounding_dev.jsonl",
+    "sha256": "2cd8d438c8232c227576c814a24cd506d170dfa0c7b639cee6b29270dba14125"
+  },
+  "nli_model": "cross-encoder/nli-deberta-v3-small",
+  "embedding_model": "BAAI/bge-small-en-v1.5",
+  "current": {
+    "entail_min": 0.7,
+    "contradict_min": 0.8,
+    "support_ratio_min": 0.8,
+    "candidate_spans": 3,
+    "nearest_spans": 3,
+    "premise_context": "cascade",
+    "premise_heading": "sub"
+  },
+  "candidate_spans_used": 3,
+  "heading_mode": "sub",
+  "claims": {
+    "S": 66,
+    "H": 48
+  },
+  "modes": {
+    "neighbour": {
+      "current_summary": {
+        "claims": 114,
+        "origin": {
+          "S:synthetic": 66,
+          "H:synthetic": 48
+        },
+        "B_hallucinated": 48,
+        "S_hallucinated_passed": 1,
+        "reduction": 0.9791666666666666,
+        "reduction_text": "47/48 = 97.9%",
+        "supported_total": 66,
+        "supported_false_rejected": 13,
+        "at2b_false_reject_rate": 0.19696969696969696,
+        "at2b_text": "13/66 = 19.7%",
+        "at2b_pass": false,
+        "at2_target": 0.73,
+        "at2_met": true,
+        "at2_valid": false,
+        "precision_supported": 0.9814814814814815,
+        "precision_text": "53/54 = 98.1%",
+        "recall_supported": 0.803030303030303,
+        "recall_text": "53/66 = 80.3%",
+        "by_kind": {
+          "S:join": {
+            "n": 6,
+            "passed": 5
+          },
+          "S:verbatim": {
+            "n": 14,
+            "passed": 12
+          },
+          "H:numeric": {
+            "n": 10,
+            "passed": 0
+          },
+          "S:rewrite": {
+            "n": 14,
+            "passed": 13
+          },
+          "S:heading": {
+            "n": 10,
+            "passed": 10
+          },
+          "H:other_drug": {
+            "n": 8,
+            "passed": 0
+          },
+          "H:negation": {
+            "n": 8,
+            "passed": 0
+          },
+          "H:population": {
+            "n": 5,
+            "passed": 0
+          },
+          "H:row_numeric": {
+            "n": 6,
+            "passed": 0
+          },
+          "S:combine": {
+            "n": 8,
+            "passed": 0
+          },
+          "S:row_restate": {
+            "n": 8,
+            "passed": 7
+          },
+          "H:overclaim": {
+            "n": 6,
+            "passed": 1
+          },
+          "S:tallman": {
+            "n": 6,
+            "passed": 6
+          },
+          "H:frequency": {
+            "n": 5,
+            "passed": 0
+          }
+        },
+        "rejection_reasons": {
+          "numeric_mismatch": 23,
+          "low_entailment": 16,
+          "nli_contradiction": 21
+        }
+      },
+      "proposed": {
+        "entail_min": 0.6,
+        "contradict_min": 0.8
+      },
+      "proposed_summary": {
+        "claims": 114,
+        "origin": {
+          "S:synthetic": 66,
+          "H:synthetic": 48
+        },
+        "B_hallucinated": 48,
+        "S_hallucinated_passed": 1,
+        "reduction": 0.9791666666666666,
+        "reduction_text": "47/48 = 97.9%",
+        "supported_total": 66,
+        "supported_false_rejected": 12,
+        "at2b_false_reject_rate": 0.18181818181818182,
+        "at2b_text": "12/66 = 18.2%",
+        "at2b_pass": false,
+        "at2_target": 0.73,
+        "at2_met": true,
+        "at2_valid": false,
+        "precision_supported": 0.9818181818181818,
+        "precision_text": "54/55 = 98.2%",
+        "recall_supported": 0.8181818181818182,
+        "recall_text": "54/66 = 81.8%",
+        "by_kind": {
+          "S:join": {
+            "n": 6,
+            "passed": 5
+          },
+          "S:verbatim": {
+            "n": 14,
+            "passed": 12
+          },
+          "H:numeric": {
+            "n": 10,
+            "passed": 0
+          },
+          "S:rewrite": {
+            "n": 14,
+            "passed": 13
+          },
+          "S:heading": {
+            "n": 10,
+            "passed": 10
+          },
+          "H:other_drug": {
+            "n": 8,
+            "passed": 0
+          },
+          "H:negation": {
+            "n": 8,
+            "passed": 0
+          },
+          "H:population": {
+            "n": 5,
+            "passed": 0
+          },
+          "H:row_numeric": {
+            "n": 6,
+            "passed": 0
+          },
+          "S:combine": {
+            "n": 8,
+            "passed": 1
+          },
+          "S:row_restate": {
+            "n": 8,
+            "passed": 7
+          },
+          "H:overclaim": {
+            "n": 6,
+            "passed": 1
+          },
+          "S:tallman": {
+            "n": 6,
+            "passed": 6
+          },
+          "H:frequency": {
+            "n": 5,
+            "passed": 0
+          }
+        },
+        "rejection_reasons": {
+          "numeric_mismatch": 23,
+          "low_entailment": 15,
+          "nli_contradiction": 21
+        }
+      },
+      "without_heading_kind": {
+        "claims": 104,
+        "current_summary": {
+          "claims": 104,
+          "origin": {
+            "S:synthetic": 56,
+            "H:synthetic": 48
+          },
+          "B_hallucinated": 48,
+          "S_hallucinated_passed": 1,
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "supported_total": 56,
+          "supported_false_rejected": 13,
+          "at2b_false_reject_rate": 0.23214285714285715,
+          "at2b_text": "13/56 = 23.2%",
+          "at2b_pass": false,
+          "at2_target": 0.73,
+          "at2_met": true,
+          "at2_valid": false,
+          "precision_supported": 0.9772727272727273,
+          "precision_text": "43/44 = 97.7%",
+          "recall_supported": 0.7678571428571429,
+          "recall_text": "43/56 = 76.8%",
+          "by_kind": {
+            "S:join": {
+              "n": 6,
+              "passed": 5
+            },
+            "S:verbatim": {
+              "n": 14,
+              "passed": 12
+            },
+            "H:numeric": {
+              "n": 10,
+              "passed": 0
+            },
+            "S:rewrite": {
+              "n": 14,
+              "passed": 13
+            },
+            "H:other_drug": {
+              "n": 8,
+              "passed": 0
+            },
+            "H:negation": {
+              "n": 8,
+              "passed": 0
+            },
+            "H:population": {
+              "n": 5,
+              "passed": 0
+            },
+            "H:row_numeric": {
+              "n": 6,
+              "passed": 0
+            },
+            "S:combine": {
+              "n": 8,
+              "passed": 0
+            },
+            "S:row_restate": {
+              "n": 8,
+              "passed": 7
+            },
+            "H:overclaim": {
+              "n": 6,
+              "passed": 1
+            },
+            "S:tallman": {
+              "n": 6,
+              "passed": 6
+            },
+            "H:frequency": {
+              "n": 5,
+              "passed": 0
+            }
+          },
+          "rejection_reasons": {
+            "numeric_mismatch": 23,
+            "low_entailment": 16,
+            "nli_contradiction": 21
+          }
+        },
+        "at_proposed_summary": {
+          "claims": 104,
+          "origin": {
+            "S:synthetic": 56,
+            "H:synthetic": 48
+          },
+          "B_hallucinated": 48,
+          "S_hallucinated_passed": 1,
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "supported_total": 56,
+          "supported_false_rejected": 12,
+          "at2b_false_reject_rate": 0.21428571428571427,
+          "at2b_text": "12/56 = 21.4%",
+          "at2b_pass": false,
+          "at2_target": 0.73,
+          "at2_met": true,
+          "at2_valid": false,
+          "precision_supported": 0.9777777777777777,
+          "precision_text": "44/45 = 97.8%",
+          "recall_supported": 0.7857142857142857,
+          "recall_text": "44/56 = 78.6%",
+          "by_kind": {
+            "S:join": {
+              "n": 6,
+              "passed": 5
+            },
+            "S:verbatim": {
+              "n": 14,
+              "passed": 12
+            },
+            "H:numeric": {
+              "n": 10,
+              "passed": 0
+            },
+            "S:rewrite": {
+              "n": 14,
+              "passed": 13
+            },
+            "H:other_drug": {
+              "n": 8,
+              "passed": 0
+            },
+            "H:negation": {
+              "n": 8,
+              "passed": 0
+            },
+            "H:population": {
+              "n": 5,
+              "passed": 0
+            },
+            "H:row_numeric": {
+              "n": 6,
+              "passed": 0
+            },
+            "S:combine": {
+              "n": 8,
+              "passed": 1
+            },
+            "S:row_restate": {
+              "n": 8,
+              "passed": 7
+            },
+            "H:overclaim": {
+              "n": 6,
+              "passed": 1
+            },
+            "S:tallman": {
+              "n": 6,
+              "passed": 6
+            },
+            "H:frequency": {
+              "n": 5,
+              "passed": 0
+            }
+          },
+          "rejection_reasons": {
+            "numeric_mismatch": 23,
+            "low_entailment": 15,
+            "nli_contradiction": 21
+          }
+        },
+        "own_proposed_entail_min": 0.6,
+        "own_proposed_summary": {
+          "claims": 104,
+          "origin": {
+            "S:synthetic": 56,
+            "H:synthetic": 48
+          },
+          "B_hallucinated": 48,
+          "S_hallucinated_passed": 1,
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "supported_total": 56,
+          "supported_false_rejected": 12,
+          "at2b_false_reject_rate": 0.21428571428571427,
+          "at2b_text": "12/56 = 21.4%",
+          "at2b_pass": false,
+          "at2_target": 0.73,
+          "at2_met": true,
+          "at2_valid": false,
+          "precision_supported": 0.9777777777777777,
+          "precision_text": "44/45 = 97.8%",
+          "recall_supported": 0.7857142857142857,
+          "recall_text": "44/56 = 78.6%",
+          "by_kind": {
+            "S:join": {
+              "n": 6,
+              "passed": 5
+            },
+            "S:verbatim": {
+              "n": 14,
+              "passed": 12
+            },
+            "H:numeric": {
+              "n": 10,
+              "passed": 0
+            },
+            "S:rewrite": {
+              "n": 14,
+              "passed": 13
+            },
+            "H:other_drug": {
+              "n": 8,
+              "passed": 0
+            },
+            "H:negation": {
+              "n": 8,
+              "passed": 0
+            },
+            "H:population": {
+              "n": 5,
+              "passed": 0
+            },
+            "H:row_numeric": {
+              "n": 6,
+              "passed": 0
+            },
+            "S:combine": {
+              "n": 8,
+              "passed": 1
+            },
+            "S:row_restate": {
+              "n": 8,
+              "passed": 7
+            },
+            "H:overclaim": {
+              "n": 6,
+              "passed": 1
+            },
+            "S:tallman": {
+              "n": 6,
+              "passed": 6
+            },
+            "H:frequency": {
+              "n": 5,
+              "passed": 0
+            }
+          },
+          "rejection_reasons": {
+            "numeric_mismatch": 23,
+            "low_entailment": 15,
+            "nli_contradiction": 21
+          }
+        }
+      },
+      "entail_sweep": [
+        {
+          "entail_min": 0.05,
+          "false_reject_rate": 0.16666666666666666,
+          "false_reject": "11/66 = 16.7%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9821428571428571,
+          "precision_text": "55/56 = 98.2%",
+          "recall": 0.8333333333333334,
+          "recall_text": "55/66 = 83.3%"
+        },
+        {
+          "entail_min": 0.1,
+          "false_reject_rate": 0.18181818181818182,
+          "false_reject": "12/66 = 18.2%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9818181818181818,
+          "precision_text": "54/55 = 98.2%",
+          "recall": 0.8181818181818182,
+          "recall_text": "54/66 = 81.8%"
+        },
+        {
+          "entail_min": 0.15,
+          "false_reject_rate": 0.18181818181818182,
+          "false_reject": "12/66 = 18.2%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9818181818181818,
+          "precision_text": "54/55 = 98.2%",
+          "recall": 0.8181818181818182,
+          "recall_text": "54/66 = 81.8%"
+        },
+        {
+          "entail_min": 0.2,
+          "false_reject_rate": 0.18181818181818182,
+          "false_reject": "12/66 = 18.2%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9818181818181818,
+          "precision_text": "54/55 = 98.2%",
+          "recall": 0.8181818181818182,
+          "recall_text": "54/66 = 81.8%"
+        },
+        {
+          "entail_min": 0.25,
+          "false_reject_rate": 0.18181818181818182,
+          "false_reject": "12/66 = 18.2%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9818181818181818,
+          "precision_text": "54/55 = 98.2%",
+          "recall": 0.8181818181818182,
+          "recall_text": "54/66 = 81.8%"
+        },
+        {
+          "entail_min": 0.3,
+          "false_reject_rate": 0.18181818181818182,
+          "false_reject": "12/66 = 18.2%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9818181818181818,
+          "precision_text": "54/55 = 98.2%",
+          "recall": 0.8181818181818182,
+          "recall_text": "54/66 = 81.8%"
+        },
+        {
+          "entail_min": 0.35,
+          "false_reject_rate": 0.18181818181818182,
+          "false_reject": "12/66 = 18.2%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9818181818181818,
+          "precision_text": "54/55 = 98.2%",
+          "recall": 0.8181818181818182,
+          "recall_text": "54/66 = 81.8%"
+        },
+        {
+          "entail_min": 0.4,
+          "false_reject_rate": 0.18181818181818182,
+          "false_reject": "12/66 = 18.2%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9818181818181818,
+          "precision_text": "54/55 = 98.2%",
+          "recall": 0.8181818181818182,
+          "recall_text": "54/66 = 81.8%"
+        },
+        {
+          "entail_min": 0.45,
+          "false_reject_rate": 0.18181818181818182,
+          "false_reject": "12/66 = 18.2%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9818181818181818,
+          "precision_text": "54/55 = 98.2%",
+          "recall": 0.8181818181818182,
+          "recall_text": "54/66 = 81.8%"
+        },
+        {
+          "entail_min": 0.5,
+          "false_reject_rate": 0.18181818181818182,
+          "false_reject": "12/66 = 18.2%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9818181818181818,
+          "precision_text": "54/55 = 98.2%",
+          "recall": 0.8181818181818182,
+          "recall_text": "54/66 = 81.8%"
+        },
+        {
+          "entail_min": 0.55,
+          "false_reject_rate": 0.18181818181818182,
+          "false_reject": "12/66 = 18.2%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9818181818181818,
+          "precision_text": "54/55 = 98.2%",
+          "recall": 0.8181818181818182,
+          "recall_text": "54/66 = 81.8%"
+        },
+        {
+          "entail_min": 0.6,
+          "false_reject_rate": 0.18181818181818182,
+          "false_reject": "12/66 = 18.2%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9818181818181818,
+          "precision_text": "54/55 = 98.2%",
+          "recall": 0.8181818181818182,
+          "recall_text": "54/66 = 81.8%"
+        },
+        {
+          "entail_min": 0.65,
+          "false_reject_rate": 0.19696969696969696,
+          "false_reject": "13/66 = 19.7%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9814814814814815,
+          "precision_text": "53/54 = 98.1%",
+          "recall": 0.803030303030303,
+          "recall_text": "53/66 = 80.3%"
+        },
+        {
+          "entail_min": 0.7,
+          "false_reject_rate": 0.19696969696969696,
+          "false_reject": "13/66 = 19.7%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9814814814814815,
+          "precision_text": "53/54 = 98.1%",
+          "recall": 0.803030303030303,
+          "recall_text": "53/66 = 80.3%"
+        },
+        {
+          "entail_min": 0.75,
+          "false_reject_rate": 0.19696969696969696,
+          "false_reject": "13/66 = 19.7%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9814814814814815,
+          "precision_text": "53/54 = 98.1%",
+          "recall": 0.803030303030303,
+          "recall_text": "53/66 = 80.3%"
+        },
+        {
+          "entail_min": 0.8,
+          "false_reject_rate": 0.19696969696969696,
+          "false_reject": "13/66 = 19.7%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9814814814814815,
+          "precision_text": "53/54 = 98.1%",
+          "recall": 0.803030303030303,
+          "recall_text": "53/66 = 80.3%"
+        },
+        {
+          "entail_min": 0.85,
+          "false_reject_rate": 0.21212121212121213,
+          "false_reject": "14/66 = 21.2%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9811320754716981,
+          "precision_text": "52/53 = 98.1%",
+          "recall": 0.7878787878787878,
+          "recall_text": "52/66 = 78.8%"
+        },
+        {
+          "entail_min": 0.9,
+          "false_reject_rate": 0.21212121212121213,
+          "false_reject": "14/66 = 21.2%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9811320754716981,
+          "precision_text": "52/53 = 98.1%",
+          "recall": 0.7878787878787878,
+          "recall_text": "52/66 = 78.8%"
+        },
+        {
+          "entail_min": 0.95,
+          "false_reject_rate": 0.21212121212121213,
+          "false_reject": "14/66 = 21.2%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9811320754716981,
+          "precision_text": "52/53 = 98.1%",
+          "recall": 0.7878787878787878,
+          "recall_text": "52/66 = 78.8%"
+        },
+        {
+          "entail_min": 0.97,
+          "false_reject_rate": 0.2878787878787879,
+          "false_reject": "19/66 = 28.8%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9791666666666666,
+          "precision_text": "47/48 = 97.9%",
+          "recall": 0.7121212121212122,
+          "recall_text": "47/66 = 71.2%"
+        },
+        {
+          "entail_min": 0.99,
+          "false_reject_rate": 0.5454545454545454,
+          "false_reject": "36/66 = 54.5%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.967741935483871,
+          "precision_text": "30/31 = 96.8%",
+          "recall": 0.45454545454545453,
+          "recall_text": "30/66 = 45.5%"
+        }
+      ],
+      "contradict_sweep": [
+        {
+          "contradict_min": 0.5,
+          "contradicted": 22,
+          "contradicted_on_supported": 1,
+          "precision": 0.9545454545454546,
+          "precision_text": "21/22 = 95.5%",
+          "hallucinated_flagged_contradicted": "21/48 = 43.8%"
+        },
+        {
+          "contradict_min": 0.55,
+          "contradicted": 22,
+          "contradicted_on_supported": 1,
+          "precision": 0.9545454545454546,
+          "precision_text": "21/22 = 95.5%",
+          "hallucinated_flagged_contradicted": "21/48 = 43.8%"
+        },
+        {
+          "contradict_min": 0.6,
+          "contradicted": 22,
+          "contradicted_on_supported": 1,
+          "precision": 0.9545454545454546,
+          "precision_text": "21/22 = 95.5%",
+          "hallucinated_flagged_contradicted": "21/48 = 43.8%"
+        },
+        {
+          "contradict_min": 0.65,
+          "contradicted": 22,
+          "contradicted_on_supported": 1,
+          "precision": 0.9545454545454546,
+          "precision_text": "21/22 = 95.5%",
+          "hallucinated_flagged_contradicted": "21/48 = 43.8%"
+        },
+        {
+          "contradict_min": 0.7,
+          "contradicted": 22,
+          "contradicted_on_supported": 1,
+          "precision": 0.9545454545454546,
+          "precision_text": "21/22 = 95.5%",
+          "hallucinated_flagged_contradicted": "21/48 = 43.8%"
+        },
+        {
+          "contradict_min": 0.75,
+          "contradicted": 21,
+          "contradicted_on_supported": 1,
+          "precision": 0.9523809523809523,
+          "precision_text": "20/21 = 95.2%",
+          "hallucinated_flagged_contradicted": "20/48 = 41.7%"
+        },
+        {
+          "contradict_min": 0.8,
+          "contradicted": 21,
+          "contradicted_on_supported": 1,
+          "precision": 0.9523809523809523,
+          "precision_text": "20/21 = 95.2%",
+          "hallucinated_flagged_contradicted": "20/48 = 41.7%"
+        },
+        {
+          "contradict_min": 0.85,
+          "contradicted": 19,
+          "contradicted_on_supported": 1,
+          "precision": 0.9473684210526316,
+          "precision_text": "18/19 = 94.7%",
+          "hallucinated_flagged_contradicted": "18/48 = 37.5%"
+        },
+        {
+          "contradict_min": 0.9,
+          "contradicted": 19,
+          "contradicted_on_supported": 1,
+          "precision": 0.9473684210526316,
+          "precision_text": "18/19 = 94.7%",
+          "hallucinated_flagged_contradicted": "18/48 = 37.5%"
+        },
+        {
+          "contradict_min": 0.95,
+          "contradicted": 15,
+          "contradicted_on_supported": 0,
+          "precision": 1.0,
+          "precision_text": "15/15 = 100.0%",
+          "hallucinated_flagged_contradicted": "15/48 = 31.2%"
+        },
+        {
+          "contradict_min": 0.97,
+          "contradicted": 15,
+          "contradicted_on_supported": 0,
+          "precision": 1.0,
+          "precision_text": "15/15 = 100.0%",
+          "hallucinated_flagged_contradicted": "15/48 = 31.2%"
+        },
+        {
+          "contradict_min": 0.99,
+          "contradicted": 14,
+          "contradicted_on_supported": 0,
+          "precision": 1.0,
+          "precision_text": "14/14 = 100.0%",
+          "hallucinated_flagged_contradicted": "14/48 = 29.2%"
+        }
+      ]
+    },
+    "span": {
+      "current_summary": {
+        "claims": 114,
+        "origin": {
+          "S:synthetic": 66,
+          "H:synthetic": 48
+        },
+        "B_hallucinated": 48,
+        "S_hallucinated_passed": 1,
+        "reduction": 0.9791666666666666,
+        "reduction_text": "47/48 = 97.9%",
+        "supported_total": 66,
+        "supported_false_rejected": 13,
+        "at2b_false_reject_rate": 0.19696969696969696,
+        "at2b_text": "13/66 = 19.7%",
+        "at2b_pass": false,
+        "at2_target": 0.73,
+        "at2_met": true,
+        "at2_valid": false,
+        "precision_supported": 0.9814814814814815,
+        "precision_text": "53/54 = 98.1%",
+        "recall_supported": 0.803030303030303,
+        "recall_text": "53/66 = 80.3%",
+        "by_kind": {
+          "S:join": {
+            "n": 6,
+            "passed": 0
+          },
+          "S:verbatim": {
+            "n": 14,
+            "passed": 14
+          },
+          "H:numeric": {
+            "n": 10,
+            "passed": 0
+          },
+          "S:rewrite": {
+            "n": 14,
+            "passed": 14
+          },
+          "S:heading": {
+            "n": 10,
+            "passed": 10
+          },
+          "H:other_drug": {
+            "n": 8,
+            "passed": 0
+          },
+          "H:negation": {
+            "n": 8,
+            "passed": 0
+          },
+          "H:population": {
+            "n": 5,
+            "passed": 0
+          },
+          "H:row_numeric": {
+            "n": 6,
+            "passed": 0
+          },
+          "S:combine": {
+            "n": 8,
+            "passed": 1
+          },
+          "S:row_restate": {
+            "n": 8,
+            "passed": 8
+          },
+          "H:overclaim": {
+            "n": 6,
+            "passed": 1
+          },
+          "S:tallman": {
+            "n": 6,
+            "passed": 6
+          },
+          "H:frequency": {
+            "n": 5,
+            "passed": 0
+          }
+        },
+        "rejection_reasons": {
+          "low_entailment": 18,
+          "numeric_mismatch": 21,
+          "nli_contradiction": 21
+        }
+      },
+      "proposed": {
+        "entail_min": 0.7,
+        "contradict_min": 0.8
+      },
+      "proposed_summary": {
+        "claims": 114,
+        "origin": {
+          "S:synthetic": 66,
+          "H:synthetic": 48
+        },
+        "B_hallucinated": 48,
+        "S_hallucinated_passed": 1,
+        "reduction": 0.9791666666666666,
+        "reduction_text": "47/48 = 97.9%",
+        "supported_total": 66,
+        "supported_false_rejected": 13,
+        "at2b_false_reject_rate": 0.19696969696969696,
+        "at2b_text": "13/66 = 19.7%",
+        "at2b_pass": false,
+        "at2_target": 0.73,
+        "at2_met": true,
+        "at2_valid": false,
+        "precision_supported": 0.9814814814814815,
+        "precision_text": "53/54 = 98.1%",
+        "recall_supported": 0.803030303030303,
+        "recall_text": "53/66 = 80.3%",
+        "by_kind": {
+          "S:join": {
+            "n": 6,
+            "passed": 0
+          },
+          "S:verbatim": {
+            "n": 14,
+            "passed": 14
+          },
+          "H:numeric": {
+            "n": 10,
+            "passed": 0
+          },
+          "S:rewrite": {
+            "n": 14,
+            "passed": 14
+          },
+          "S:heading": {
+            "n": 10,
+            "passed": 10
+          },
+          "H:other_drug": {
+            "n": 8,
+            "passed": 0
+          },
+          "H:negation": {
+            "n": 8,
+            "passed": 0
+          },
+          "H:population": {
+            "n": 5,
+            "passed": 0
+          },
+          "H:row_numeric": {
+            "n": 6,
+            "passed": 0
+          },
+          "S:combine": {
+            "n": 8,
+            "passed": 1
+          },
+          "S:row_restate": {
+            "n": 8,
+            "passed": 8
+          },
+          "H:overclaim": {
+            "n": 6,
+            "passed": 1
+          },
+          "S:tallman": {
+            "n": 6,
+            "passed": 6
+          },
+          "H:frequency": {
+            "n": 5,
+            "passed": 0
+          }
+        },
+        "rejection_reasons": {
+          "low_entailment": 18,
+          "numeric_mismatch": 21,
+          "nli_contradiction": 21
+        }
+      },
+      "without_heading_kind": {
+        "claims": 104,
+        "current_summary": {
+          "claims": 104,
+          "origin": {
+            "S:synthetic": 56,
+            "H:synthetic": 48
+          },
+          "B_hallucinated": 48,
+          "S_hallucinated_passed": 1,
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "supported_total": 56,
+          "supported_false_rejected": 13,
+          "at2b_false_reject_rate": 0.23214285714285715,
+          "at2b_text": "13/56 = 23.2%",
+          "at2b_pass": false,
+          "at2_target": 0.73,
+          "at2_met": true,
+          "at2_valid": false,
+          "precision_supported": 0.9772727272727273,
+          "precision_text": "43/44 = 97.7%",
+          "recall_supported": 0.7678571428571429,
+          "recall_text": "43/56 = 76.8%",
+          "by_kind": {
+            "S:join": {
+              "n": 6,
+              "passed": 0
+            },
+            "S:verbatim": {
+              "n": 14,
+              "passed": 14
+            },
+            "H:numeric": {
+              "n": 10,
+              "passed": 0
+            },
+            "S:rewrite": {
+              "n": 14,
+              "passed": 14
+            },
+            "H:other_drug": {
+              "n": 8,
+              "passed": 0
+            },
+            "H:negation": {
+              "n": 8,
+              "passed": 0
+            },
+            "H:population": {
+              "n": 5,
+              "passed": 0
+            },
+            "H:row_numeric": {
+              "n": 6,
+              "passed": 0
+            },
+            "S:combine": {
+              "n": 8,
+              "passed": 1
+            },
+            "S:row_restate": {
+              "n": 8,
+              "passed": 8
+            },
+            "H:overclaim": {
+              "n": 6,
+              "passed": 1
+            },
+            "S:tallman": {
+              "n": 6,
+              "passed": 6
+            },
+            "H:frequency": {
+              "n": 5,
+              "passed": 0
+            }
+          },
+          "rejection_reasons": {
+            "low_entailment": 18,
+            "numeric_mismatch": 21,
+            "nli_contradiction": 21
+          }
+        },
+        "at_proposed_summary": {
+          "claims": 104,
+          "origin": {
+            "S:synthetic": 56,
+            "H:synthetic": 48
+          },
+          "B_hallucinated": 48,
+          "S_hallucinated_passed": 1,
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "supported_total": 56,
+          "supported_false_rejected": 13,
+          "at2b_false_reject_rate": 0.23214285714285715,
+          "at2b_text": "13/56 = 23.2%",
+          "at2b_pass": false,
+          "at2_target": 0.73,
+          "at2_met": true,
+          "at2_valid": false,
+          "precision_supported": 0.9772727272727273,
+          "precision_text": "43/44 = 97.7%",
+          "recall_supported": 0.7678571428571429,
+          "recall_text": "43/56 = 76.8%",
+          "by_kind": {
+            "S:join": {
+              "n": 6,
+              "passed": 0
+            },
+            "S:verbatim": {
+              "n": 14,
+              "passed": 14
+            },
+            "H:numeric": {
+              "n": 10,
+              "passed": 0
+            },
+            "S:rewrite": {
+              "n": 14,
+              "passed": 14
+            },
+            "H:other_drug": {
+              "n": 8,
+              "passed": 0
+            },
+            "H:negation": {
+              "n": 8,
+              "passed": 0
+            },
+            "H:population": {
+              "n": 5,
+              "passed": 0
+            },
+            "H:row_numeric": {
+              "n": 6,
+              "passed": 0
+            },
+            "S:combine": {
+              "n": 8,
+              "passed": 1
+            },
+            "S:row_restate": {
+              "n": 8,
+              "passed": 8
+            },
+            "H:overclaim": {
+              "n": 6,
+              "passed": 1
+            },
+            "S:tallman": {
+              "n": 6,
+              "passed": 6
+            },
+            "H:frequency": {
+              "n": 5,
+              "passed": 0
+            }
+          },
+          "rejection_reasons": {
+            "low_entailment": 18,
+            "numeric_mismatch": 21,
+            "nli_contradiction": 21
+          }
+        },
+        "own_proposed_entail_min": 0.7,
+        "own_proposed_summary": {
+          "claims": 104,
+          "origin": {
+            "S:synthetic": 56,
+            "H:synthetic": 48
+          },
+          "B_hallucinated": 48,
+          "S_hallucinated_passed": 1,
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "supported_total": 56,
+          "supported_false_rejected": 13,
+          "at2b_false_reject_rate": 0.23214285714285715,
+          "at2b_text": "13/56 = 23.2%",
+          "at2b_pass": false,
+          "at2_target": 0.73,
+          "at2_met": true,
+          "at2_valid": false,
+          "precision_supported": 0.9772727272727273,
+          "precision_text": "43/44 = 97.7%",
+          "recall_supported": 0.7678571428571429,
+          "recall_text": "43/56 = 76.8%",
+          "by_kind": {
+            "S:join": {
+              "n": 6,
+              "passed": 0
+            },
+            "S:verbatim": {
+              "n": 14,
+              "passed": 14
+            },
+            "H:numeric": {
+              "n": 10,
+              "passed": 0
+            },
+            "S:rewrite": {
+              "n": 14,
+              "passed": 14
+            },
+            "H:other_drug": {
+              "n": 8,
+              "passed": 0
+            },
+            "H:negation": {
+              "n": 8,
+              "passed": 0
+            },
+            "H:population": {
+              "n": 5,
+              "passed": 0
+            },
+            "H:row_numeric": {
+              "n": 6,
+              "passed": 0
+            },
+            "S:combine": {
+              "n": 8,
+              "passed": 1
+            },
+            "S:row_restate": {
+              "n": 8,
+              "passed": 8
+            },
+            "H:overclaim": {
+              "n": 6,
+              "passed": 1
+            },
+            "S:tallman": {
+              "n": 6,
+              "passed": 6
+            },
+            "H:frequency": {
+              "n": 5,
+              "passed": 0
+            }
+          },
+          "rejection_reasons": {
+            "low_entailment": 18,
+            "numeric_mismatch": 21,
+            "nli_contradiction": 21
+          }
+        }
+      },
+      "entail_sweep": [
+        {
+          "entail_min": 0.05,
+          "false_reject_rate": 0.19696969696969696,
+          "false_reject": "13/66 = 19.7%",
+          "reduction": 0.9375,
+          "reduction_text": "45/48 = 93.8%",
+          "precision": 0.9464285714285714,
+          "precision_text": "53/56 = 94.6%",
+          "recall": 0.803030303030303,
+          "recall_text": "53/66 = 80.3%"
+        },
+        {
+          "entail_min": 0.1,
+          "false_reject_rate": 0.19696969696969696,
+          "false_reject": "13/66 = 19.7%",
+          "reduction": 0.9583333333333334,
+          "reduction_text": "46/48 = 95.8%",
+          "precision": 0.9636363636363636,
+          "precision_text": "53/55 = 96.4%",
+          "recall": 0.803030303030303,
+          "recall_text": "53/66 = 80.3%"
+        },
+        {
+          "entail_min": 0.15,
+          "false_reject_rate": 0.19696969696969696,
+          "false_reject": "13/66 = 19.7%",
+          "reduction": 0.9583333333333334,
+          "reduction_text": "46/48 = 95.8%",
+          "precision": 0.9636363636363636,
+          "precision_text": "53/55 = 96.4%",
+          "recall": 0.803030303030303,
+          "recall_text": "53/66 = 80.3%"
+        },
+        {
+          "entail_min": 0.2,
+          "false_reject_rate": 0.19696969696969696,
+          "false_reject": "13/66 = 19.7%",
+          "reduction": 0.9583333333333334,
+          "reduction_text": "46/48 = 95.8%",
+          "precision": 0.9636363636363636,
+          "precision_text": "53/55 = 96.4%",
+          "recall": 0.803030303030303,
+          "recall_text": "53/66 = 80.3%"
+        },
+        {
+          "entail_min": 0.25,
+          "false_reject_rate": 0.19696969696969696,
+          "false_reject": "13/66 = 19.7%",
+          "reduction": 0.9583333333333334,
+          "reduction_text": "46/48 = 95.8%",
+          "precision": 0.9636363636363636,
+          "precision_text": "53/55 = 96.4%",
+          "recall": 0.803030303030303,
+          "recall_text": "53/66 = 80.3%"
+        },
+        {
+          "entail_min": 0.3,
+          "false_reject_rate": 0.19696969696969696,
+          "false_reject": "13/66 = 19.7%",
+          "reduction": 0.9583333333333334,
+          "reduction_text": "46/48 = 95.8%",
+          "precision": 0.9636363636363636,
+          "precision_text": "53/55 = 96.4%",
+          "recall": 0.803030303030303,
+          "recall_text": "53/66 = 80.3%"
+        },
+        {
+          "entail_min": 0.35,
+          "false_reject_rate": 0.19696969696969696,
+          "false_reject": "13/66 = 19.7%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9814814814814815,
+          "precision_text": "53/54 = 98.1%",
+          "recall": 0.803030303030303,
+          "recall_text": "53/66 = 80.3%"
+        },
+        {
+          "entail_min": 0.4,
+          "false_reject_rate": 0.19696969696969696,
+          "false_reject": "13/66 = 19.7%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9814814814814815,
+          "precision_text": "53/54 = 98.1%",
+          "recall": 0.803030303030303,
+          "recall_text": "53/66 = 80.3%"
+        },
+        {
+          "entail_min": 0.45,
+          "false_reject_rate": 0.19696969696969696,
+          "false_reject": "13/66 = 19.7%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9814814814814815,
+          "precision_text": "53/54 = 98.1%",
+          "recall": 0.803030303030303,
+          "recall_text": "53/66 = 80.3%"
+        },
+        {
+          "entail_min": 0.5,
+          "false_reject_rate": 0.19696969696969696,
+          "false_reject": "13/66 = 19.7%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9814814814814815,
+          "precision_text": "53/54 = 98.1%",
+          "recall": 0.803030303030303,
+          "recall_text": "53/66 = 80.3%"
+        },
+        {
+          "entail_min": 0.55,
+          "false_reject_rate": 0.19696969696969696,
+          "false_reject": "13/66 = 19.7%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9814814814814815,
+          "precision_text": "53/54 = 98.1%",
+          "recall": 0.803030303030303,
+          "recall_text": "53/66 = 80.3%"
+        },
+        {
+          "entail_min": 0.6,
+          "false_reject_rate": 0.19696969696969696,
+          "false_reject": "13/66 = 19.7%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9814814814814815,
+          "precision_text": "53/54 = 98.1%",
+          "recall": 0.803030303030303,
+          "recall_text": "53/66 = 80.3%"
+        },
+        {
+          "entail_min": 0.65,
+          "false_reject_rate": 0.19696969696969696,
+          "false_reject": "13/66 = 19.7%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9814814814814815,
+          "precision_text": "53/54 = 98.1%",
+          "recall": 0.803030303030303,
+          "recall_text": "53/66 = 80.3%"
+        },
+        {
+          "entail_min": 0.7,
+          "false_reject_rate": 0.19696969696969696,
+          "false_reject": "13/66 = 19.7%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9814814814814815,
+          "precision_text": "53/54 = 98.1%",
+          "recall": 0.803030303030303,
+          "recall_text": "53/66 = 80.3%"
+        },
+        {
+          "entail_min": 0.75,
+          "false_reject_rate": 0.19696969696969696,
+          "false_reject": "13/66 = 19.7%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9814814814814815,
+          "precision_text": "53/54 = 98.1%",
+          "recall": 0.803030303030303,
+          "recall_text": "53/66 = 80.3%"
+        },
+        {
+          "entail_min": 0.8,
+          "false_reject_rate": 0.19696969696969696,
+          "false_reject": "13/66 = 19.7%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9814814814814815,
+          "precision_text": "53/54 = 98.1%",
+          "recall": 0.803030303030303,
+          "recall_text": "53/66 = 80.3%"
+        },
+        {
+          "entail_min": 0.85,
+          "false_reject_rate": 0.19696969696969696,
+          "false_reject": "13/66 = 19.7%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9814814814814815,
+          "precision_text": "53/54 = 98.1%",
+          "recall": 0.803030303030303,
+          "recall_text": "53/66 = 80.3%"
+        },
+        {
+          "entail_min": 0.9,
+          "false_reject_rate": 0.19696969696969696,
+          "false_reject": "13/66 = 19.7%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9814814814814815,
+          "precision_text": "53/54 = 98.1%",
+          "recall": 0.803030303030303,
+          "recall_text": "53/66 = 80.3%"
+        },
+        {
+          "entail_min": 0.95,
+          "false_reject_rate": 0.22727272727272727,
+          "false_reject": "15/66 = 22.7%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9807692307692307,
+          "precision_text": "51/52 = 98.1%",
+          "recall": 0.7727272727272727,
+          "recall_text": "51/66 = 77.3%"
+        },
+        {
+          "entail_min": 0.97,
+          "false_reject_rate": 0.24242424242424243,
+          "false_reject": "16/66 = 24.2%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9803921568627451,
+          "precision_text": "50/51 = 98.0%",
+          "recall": 0.7575757575757576,
+          "recall_text": "50/66 = 75.8%"
+        },
+        {
+          "entail_min": 0.99,
+          "false_reject_rate": 0.5757575757575758,
+          "false_reject": "38/66 = 57.6%",
+          "reduction": 1.0,
+          "reduction_text": "48/48 = 100.0%",
+          "precision": 1.0,
+          "precision_text": "28/28 = 100.0%",
+          "recall": 0.42424242424242425,
+          "recall_text": "28/66 = 42.4%"
+        }
+      ],
+      "contradict_sweep": [
+        {
+          "contradict_min": 0.5,
+          "contradicted": 22,
+          "contradicted_on_supported": 1,
+          "precision": 0.9545454545454546,
+          "precision_text": "21/22 = 95.5%",
+          "hallucinated_flagged_contradicted": "21/48 = 43.8%"
+        },
+        {
+          "contradict_min": 0.55,
+          "contradicted": 22,
+          "contradicted_on_supported": 1,
+          "precision": 0.9545454545454546,
+          "precision_text": "21/22 = 95.5%",
+          "hallucinated_flagged_contradicted": "21/48 = 43.8%"
+        },
+        {
+          "contradict_min": 0.6,
+          "contradicted": 22,
+          "contradicted_on_supported": 1,
+          "precision": 0.9545454545454546,
+          "precision_text": "21/22 = 95.5%",
+          "hallucinated_flagged_contradicted": "21/48 = 43.8%"
+        },
+        {
+          "contradict_min": 0.65,
+          "contradicted": 22,
+          "contradicted_on_supported": 1,
+          "precision": 0.9545454545454546,
+          "precision_text": "21/22 = 95.5%",
+          "hallucinated_flagged_contradicted": "21/48 = 43.8%"
+        },
+        {
+          "contradict_min": 0.7,
+          "contradicted": 21,
+          "contradicted_on_supported": 1,
+          "precision": 0.9523809523809523,
+          "precision_text": "20/21 = 95.2%",
+          "hallucinated_flagged_contradicted": "20/48 = 41.7%"
+        },
+        {
+          "contradict_min": 0.75,
+          "contradicted": 21,
+          "contradicted_on_supported": 1,
+          "precision": 0.9523809523809523,
+          "precision_text": "20/21 = 95.2%",
+          "hallucinated_flagged_contradicted": "20/48 = 41.7%"
+        },
+        {
+          "contradict_min": 0.8,
+          "contradicted": 21,
+          "contradicted_on_supported": 1,
+          "precision": 0.9523809523809523,
+          "precision_text": "20/21 = 95.2%",
+          "hallucinated_flagged_contradicted": "20/48 = 41.7%"
+        },
+        {
+          "contradict_min": 0.85,
+          "contradicted": 21,
+          "contradicted_on_supported": 1,
+          "precision": 0.9523809523809523,
+          "precision_text": "20/21 = 95.2%",
+          "hallucinated_flagged_contradicted": "20/48 = 41.7%"
+        },
+        {
+          "contradict_min": 0.9,
+          "contradicted": 21,
+          "contradicted_on_supported": 1,
+          "precision": 0.9523809523809523,
+          "precision_text": "20/21 = 95.2%",
+          "hallucinated_flagged_contradicted": "20/48 = 41.7%"
+        },
+        {
+          "contradict_min": 0.95,
+          "contradicted": 18,
+          "contradicted_on_supported": 1,
+          "precision": 0.9444444444444444,
+          "precision_text": "17/18 = 94.4%",
+          "hallucinated_flagged_contradicted": "17/48 = 35.4%"
+        },
+        {
+          "contradict_min": 0.97,
+          "contradicted": 17,
+          "contradicted_on_supported": 1,
+          "precision": 0.9411764705882353,
+          "precision_text": "16/17 = 94.1%",
+          "hallucinated_flagged_contradicted": "16/48 = 33.3%"
+        },
+        {
+          "contradict_min": 0.99,
+          "contradicted": 15,
+          "contradicted_on_supported": 1,
+          "precision": 0.9333333333333333,
+          "precision_text": "14/15 = 93.3%",
+          "hallucinated_flagged_contradicted": "14/48 = 29.2%"
+        }
+      ]
+    },
+    "both": {
+      "current_summary": {
+        "claims": 114,
+        "origin": {
+          "S:synthetic": 66,
+          "H:synthetic": 48
+        },
+        "B_hallucinated": 48,
+        "S_hallucinated_passed": 1,
+        "reduction": 0.9791666666666666,
+        "reduction_text": "47/48 = 97.9%",
+        "supported_total": 66,
+        "supported_false_rejected": 4,
+        "at2b_false_reject_rate": 0.06060606060606061,
+        "at2b_text": "4/66 = 6.1%",
+        "at2b_pass": true,
+        "at2_target": 0.73,
+        "at2_met": true,
+        "at2_valid": true,
+        "precision_supported": 0.9841269841269841,
+        "precision_text": "62/63 = 98.4%",
+        "recall_supported": 0.9393939393939394,
+        "recall_text": "62/66 = 93.9%",
+        "by_kind": {
+          "S:join": {
+            "n": 6,
+            "passed": 5
+          },
+          "S:verbatim": {
+            "n": 14,
+            "passed": 14
+          },
+          "H:numeric": {
+            "n": 10,
+            "passed": 0
+          },
+          "S:rewrite": {
+            "n": 14,
+            "passed": 14
+          },
+          "S:heading": {
+            "n": 10,
+            "passed": 10
+          },
+          "H:other_drug": {
+            "n": 8,
+            "passed": 0
+          },
+          "H:negation": {
+            "n": 8,
+            "passed": 0
+          },
+          "H:population": {
+            "n": 5,
+            "passed": 0
+          },
+          "H:row_numeric": {
+            "n": 6,
+            "passed": 0
+          },
+          "S:combine": {
+            "n": 8,
+            "passed": 5
+          },
+          "S:row_restate": {
+            "n": 8,
+            "passed": 8
+          },
+          "H:overclaim": {
+            "n": 6,
+            "passed": 1
+          },
+          "S:tallman": {
+            "n": 6,
+            "passed": 6
+          },
+          "H:frequency": {
+            "n": 5,
+            "passed": 0
+          }
+        },
+        "rejection_reasons": {
+          "numeric_mismatch": 21,
+          "low_entailment": 9,
+          "nli_contradiction": 21
+        }
+      },
+      "proposed": {
+        "entail_min": 0.6,
+        "contradict_min": 0.8
+      },
+      "proposed_summary": {
+        "claims": 114,
+        "origin": {
+          "S:synthetic": 66,
+          "H:synthetic": 48
+        },
+        "B_hallucinated": 48,
+        "S_hallucinated_passed": 1,
+        "reduction": 0.9791666666666666,
+        "reduction_text": "47/48 = 97.9%",
+        "supported_total": 66,
+        "supported_false_rejected": 3,
+        "at2b_false_reject_rate": 0.045454545454545456,
+        "at2b_text": "3/66 = 4.5%",
+        "at2b_pass": true,
+        "at2_target": 0.73,
+        "at2_met": true,
+        "at2_valid": true,
+        "precision_supported": 0.984375,
+        "precision_text": "63/64 = 98.4%",
+        "recall_supported": 0.9545454545454546,
+        "recall_text": "63/66 = 95.5%",
+        "by_kind": {
+          "S:join": {
+            "n": 6,
+            "passed": 5
+          },
+          "S:verbatim": {
+            "n": 14,
+            "passed": 14
+          },
+          "H:numeric": {
+            "n": 10,
+            "passed": 0
+          },
+          "S:rewrite": {
+            "n": 14,
+            "passed": 14
+          },
+          "S:heading": {
+            "n": 10,
+            "passed": 10
+          },
+          "H:other_drug": {
+            "n": 8,
+            "passed": 0
+          },
+          "H:negation": {
+            "n": 8,
+            "passed": 0
+          },
+          "H:population": {
+            "n": 5,
+            "passed": 0
+          },
+          "H:row_numeric": {
+            "n": 6,
+            "passed": 0
+          },
+          "S:combine": {
+            "n": 8,
+            "passed": 6
+          },
+          "S:row_restate": {
+            "n": 8,
+            "passed": 8
+          },
+          "H:overclaim": {
+            "n": 6,
+            "passed": 1
+          },
+          "S:tallman": {
+            "n": 6,
+            "passed": 6
+          },
+          "H:frequency": {
+            "n": 5,
+            "passed": 0
+          }
+        },
+        "rejection_reasons": {
+          "numeric_mismatch": 21,
+          "low_entailment": 8,
+          "nli_contradiction": 21
+        }
+      },
+      "without_heading_kind": {
+        "claims": 104,
+        "current_summary": {
+          "claims": 104,
+          "origin": {
+            "S:synthetic": 56,
+            "H:synthetic": 48
+          },
+          "B_hallucinated": 48,
+          "S_hallucinated_passed": 1,
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "supported_total": 56,
+          "supported_false_rejected": 4,
+          "at2b_false_reject_rate": 0.07142857142857142,
+          "at2b_text": "4/56 = 7.1%",
+          "at2b_pass": true,
+          "at2_target": 0.73,
+          "at2_met": true,
+          "at2_valid": true,
+          "precision_supported": 0.9811320754716981,
+          "precision_text": "52/53 = 98.1%",
+          "recall_supported": 0.9285714285714286,
+          "recall_text": "52/56 = 92.9%",
+          "by_kind": {
+            "S:join": {
+              "n": 6,
+              "passed": 5
+            },
+            "S:verbatim": {
+              "n": 14,
+              "passed": 14
+            },
+            "H:numeric": {
+              "n": 10,
+              "passed": 0
+            },
+            "S:rewrite": {
+              "n": 14,
+              "passed": 14
+            },
+            "H:other_drug": {
+              "n": 8,
+              "passed": 0
+            },
+            "H:negation": {
+              "n": 8,
+              "passed": 0
+            },
+            "H:population": {
+              "n": 5,
+              "passed": 0
+            },
+            "H:row_numeric": {
+              "n": 6,
+              "passed": 0
+            },
+            "S:combine": {
+              "n": 8,
+              "passed": 5
+            },
+            "S:row_restate": {
+              "n": 8,
+              "passed": 8
+            },
+            "H:overclaim": {
+              "n": 6,
+              "passed": 1
+            },
+            "S:tallman": {
+              "n": 6,
+              "passed": 6
+            },
+            "H:frequency": {
+              "n": 5,
+              "passed": 0
+            }
+          },
+          "rejection_reasons": {
+            "numeric_mismatch": 21,
+            "low_entailment": 9,
+            "nli_contradiction": 21
+          }
+        },
+        "at_proposed_summary": {
+          "claims": 104,
+          "origin": {
+            "S:synthetic": 56,
+            "H:synthetic": 48
+          },
+          "B_hallucinated": 48,
+          "S_hallucinated_passed": 1,
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "supported_total": 56,
+          "supported_false_rejected": 3,
+          "at2b_false_reject_rate": 0.05357142857142857,
+          "at2b_text": "3/56 = 5.4%",
+          "at2b_pass": true,
+          "at2_target": 0.73,
+          "at2_met": true,
+          "at2_valid": true,
+          "precision_supported": 0.9814814814814815,
+          "precision_text": "53/54 = 98.1%",
+          "recall_supported": 0.9464285714285714,
+          "recall_text": "53/56 = 94.6%",
+          "by_kind": {
+            "S:join": {
+              "n": 6,
+              "passed": 5
+            },
+            "S:verbatim": {
+              "n": 14,
+              "passed": 14
+            },
+            "H:numeric": {
+              "n": 10,
+              "passed": 0
+            },
+            "S:rewrite": {
+              "n": 14,
+              "passed": 14
+            },
+            "H:other_drug": {
+              "n": 8,
+              "passed": 0
+            },
+            "H:negation": {
+              "n": 8,
+              "passed": 0
+            },
+            "H:population": {
+              "n": 5,
+              "passed": 0
+            },
+            "H:row_numeric": {
+              "n": 6,
+              "passed": 0
+            },
+            "S:combine": {
+              "n": 8,
+              "passed": 6
+            },
+            "S:row_restate": {
+              "n": 8,
+              "passed": 8
+            },
+            "H:overclaim": {
+              "n": 6,
+              "passed": 1
+            },
+            "S:tallman": {
+              "n": 6,
+              "passed": 6
+            },
+            "H:frequency": {
+              "n": 5,
+              "passed": 0
+            }
+          },
+          "rejection_reasons": {
+            "numeric_mismatch": 21,
+            "low_entailment": 8,
+            "nli_contradiction": 21
+          }
+        },
+        "own_proposed_entail_min": 0.1,
+        "own_proposed_summary": {
+          "claims": 104,
+          "origin": {
+            "S:synthetic": 56,
+            "H:synthetic": 48
+          },
+          "B_hallucinated": 48,
+          "S_hallucinated_passed": 2,
+          "reduction": 0.9583333333333334,
+          "reduction_text": "46/48 = 95.8%",
+          "supported_total": 56,
+          "supported_false_rejected": 2,
+          "at2b_false_reject_rate": 0.03571428571428571,
+          "at2b_text": "2/56 = 3.6%",
+          "at2b_pass": true,
+          "at2_target": 0.73,
+          "at2_met": true,
+          "at2_valid": true,
+          "precision_supported": 0.9642857142857143,
+          "precision_text": "54/56 = 96.4%",
+          "recall_supported": 0.9642857142857143,
+          "recall_text": "54/56 = 96.4%",
+          "by_kind": {
+            "S:join": {
+              "n": 6,
+              "passed": 5
+            },
+            "S:verbatim": {
+              "n": 14,
+              "passed": 14
+            },
+            "H:numeric": {
+              "n": 10,
+              "passed": 0
+            },
+            "S:rewrite": {
+              "n": 14,
+              "passed": 14
+            },
+            "H:other_drug": {
+              "n": 8,
+              "passed": 0
+            },
+            "H:negation": {
+              "n": 8,
+              "passed": 1
+            },
+            "H:population": {
+              "n": 5,
+              "passed": 0
+            },
+            "H:row_numeric": {
+              "n": 6,
+              "passed": 0
+            },
+            "S:combine": {
+              "n": 8,
+              "passed": 7
+            },
+            "S:row_restate": {
+              "n": 8,
+              "passed": 8
+            },
+            "H:overclaim": {
+              "n": 6,
+              "passed": 1
+            },
+            "S:tallman": {
+              "n": 6,
+              "passed": 6
+            },
+            "H:frequency": {
+              "n": 5,
+              "passed": 0
+            }
+          },
+          "rejection_reasons": {
+            "numeric_mismatch": 21,
+            "low_entailment": 7,
+            "nli_contradiction": 20
+          }
+        }
+      },
+      "entail_sweep": [
+        {
+          "entail_min": 0.05,
+          "false_reject_rate": 0.030303030303030304,
+          "false_reject": "2/66 = 3.0%",
+          "reduction": 0.9166666666666666,
+          "reduction_text": "44/48 = 91.7%",
+          "precision": 0.9411764705882353,
+          "precision_text": "64/68 = 94.1%",
+          "recall": 0.9696969696969697,
+          "recall_text": "64/66 = 97.0%"
+        },
+        {
+          "entail_min": 0.1,
+          "false_reject_rate": 0.030303030303030304,
+          "false_reject": "2/66 = 3.0%",
+          "reduction": 0.9583333333333334,
+          "reduction_text": "46/48 = 95.8%",
+          "precision": 0.9696969696969697,
+          "precision_text": "64/66 = 97.0%",
+          "recall": 0.9696969696969697,
+          "recall_text": "64/66 = 97.0%"
+        },
+        {
+          "entail_min": 0.15,
+          "false_reject_rate": 0.045454545454545456,
+          "false_reject": "3/66 = 4.5%",
+          "reduction": 0.9583333333333334,
+          "reduction_text": "46/48 = 95.8%",
+          "precision": 0.9692307692307692,
+          "precision_text": "63/65 = 96.9%",
+          "recall": 0.9545454545454546,
+          "recall_text": "63/66 = 95.5%"
+        },
+        {
+          "entail_min": 0.2,
+          "false_reject_rate": 0.045454545454545456,
+          "false_reject": "3/66 = 4.5%",
+          "reduction": 0.9583333333333334,
+          "reduction_text": "46/48 = 95.8%",
+          "precision": 0.9692307692307692,
+          "precision_text": "63/65 = 96.9%",
+          "recall": 0.9545454545454546,
+          "recall_text": "63/66 = 95.5%"
+        },
+        {
+          "entail_min": 0.25,
+          "false_reject_rate": 0.045454545454545456,
+          "false_reject": "3/66 = 4.5%",
+          "reduction": 0.9583333333333334,
+          "reduction_text": "46/48 = 95.8%",
+          "precision": 0.9692307692307692,
+          "precision_text": "63/65 = 96.9%",
+          "recall": 0.9545454545454546,
+          "recall_text": "63/66 = 95.5%"
+        },
+        {
+          "entail_min": 0.3,
+          "false_reject_rate": 0.045454545454545456,
+          "false_reject": "3/66 = 4.5%",
+          "reduction": 0.9583333333333334,
+          "reduction_text": "46/48 = 95.8%",
+          "precision": 0.9692307692307692,
+          "precision_text": "63/65 = 96.9%",
+          "recall": 0.9545454545454546,
+          "recall_text": "63/66 = 95.5%"
+        },
+        {
+          "entail_min": 0.35,
+          "false_reject_rate": 0.045454545454545456,
+          "false_reject": "3/66 = 4.5%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.984375,
+          "precision_text": "63/64 = 98.4%",
+          "recall": 0.9545454545454546,
+          "recall_text": "63/66 = 95.5%"
+        },
+        {
+          "entail_min": 0.4,
+          "false_reject_rate": 0.045454545454545456,
+          "false_reject": "3/66 = 4.5%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.984375,
+          "precision_text": "63/64 = 98.4%",
+          "recall": 0.9545454545454546,
+          "recall_text": "63/66 = 95.5%"
+        },
+        {
+          "entail_min": 0.45,
+          "false_reject_rate": 0.045454545454545456,
+          "false_reject": "3/66 = 4.5%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.984375,
+          "precision_text": "63/64 = 98.4%",
+          "recall": 0.9545454545454546,
+          "recall_text": "63/66 = 95.5%"
+        },
+        {
+          "entail_min": 0.5,
+          "false_reject_rate": 0.045454545454545456,
+          "false_reject": "3/66 = 4.5%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.984375,
+          "precision_text": "63/64 = 98.4%",
+          "recall": 0.9545454545454546,
+          "recall_text": "63/66 = 95.5%"
+        },
+        {
+          "entail_min": 0.55,
+          "false_reject_rate": 0.045454545454545456,
+          "false_reject": "3/66 = 4.5%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.984375,
+          "precision_text": "63/64 = 98.4%",
+          "recall": 0.9545454545454546,
+          "recall_text": "63/66 = 95.5%"
+        },
+        {
+          "entail_min": 0.6,
+          "false_reject_rate": 0.045454545454545456,
+          "false_reject": "3/66 = 4.5%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.984375,
+          "precision_text": "63/64 = 98.4%",
+          "recall": 0.9545454545454546,
+          "recall_text": "63/66 = 95.5%"
+        },
+        {
+          "entail_min": 0.65,
+          "false_reject_rate": 0.06060606060606061,
+          "false_reject": "4/66 = 6.1%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9841269841269841,
+          "precision_text": "62/63 = 98.4%",
+          "recall": 0.9393939393939394,
+          "recall_text": "62/66 = 93.9%"
+        },
+        {
+          "entail_min": 0.7,
+          "false_reject_rate": 0.06060606060606061,
+          "false_reject": "4/66 = 6.1%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9841269841269841,
+          "precision_text": "62/63 = 98.4%",
+          "recall": 0.9393939393939394,
+          "recall_text": "62/66 = 93.9%"
+        },
+        {
+          "entail_min": 0.75,
+          "false_reject_rate": 0.06060606060606061,
+          "false_reject": "4/66 = 6.1%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9841269841269841,
+          "precision_text": "62/63 = 98.4%",
+          "recall": 0.9393939393939394,
+          "recall_text": "62/66 = 93.9%"
+        },
+        {
+          "entail_min": 0.8,
+          "false_reject_rate": 0.06060606060606061,
+          "false_reject": "4/66 = 6.1%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9841269841269841,
+          "precision_text": "62/63 = 98.4%",
+          "recall": 0.9393939393939394,
+          "recall_text": "62/66 = 93.9%"
+        },
+        {
+          "entail_min": 0.85,
+          "false_reject_rate": 0.06060606060606061,
+          "false_reject": "4/66 = 6.1%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9841269841269841,
+          "precision_text": "62/63 = 98.4%",
+          "recall": 0.9393939393939394,
+          "recall_text": "62/66 = 93.9%"
+        },
+        {
+          "entail_min": 0.9,
+          "false_reject_rate": 0.06060606060606061,
+          "false_reject": "4/66 = 6.1%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9841269841269841,
+          "precision_text": "62/63 = 98.4%",
+          "recall": 0.9393939393939394,
+          "recall_text": "62/66 = 93.9%"
+        },
+        {
+          "entail_min": 0.95,
+          "false_reject_rate": 0.07575757575757576,
+          "false_reject": "5/66 = 7.6%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9838709677419355,
+          "precision_text": "61/62 = 98.4%",
+          "recall": 0.9242424242424242,
+          "recall_text": "61/66 = 92.4%"
+        },
+        {
+          "entail_min": 0.97,
+          "false_reject_rate": 0.12121212121212122,
+          "false_reject": "8/66 = 12.1%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.9830508474576272,
+          "precision_text": "58/59 = 98.3%",
+          "recall": 0.8787878787878788,
+          "recall_text": "58/66 = 87.9%"
+        },
+        {
+          "entail_min": 0.99,
+          "false_reject_rate": 0.3939393939393939,
+          "false_reject": "26/66 = 39.4%",
+          "reduction": 0.9791666666666666,
+          "reduction_text": "47/48 = 97.9%",
+          "precision": 0.975609756097561,
+          "precision_text": "40/41 = 97.6%",
+          "recall": 0.6060606060606061,
+          "recall_text": "40/66 = 60.6%"
+        }
+      ],
+      "contradict_sweep": [
+        {
+          "contradict_min": 0.5,
+          "contradicted": 22,
+          "contradicted_on_supported": 0,
+          "precision": 1.0,
+          "precision_text": "22/22 = 100.0%",
+          "hallucinated_flagged_contradicted": "22/48 = 45.8%"
+        },
+        {
+          "contradict_min": 0.55,
+          "contradicted": 22,
+          "contradicted_on_supported": 0,
+          "precision": 1.0,
+          "precision_text": "22/22 = 100.0%",
+          "hallucinated_flagged_contradicted": "22/48 = 45.8%"
+        },
+        {
+          "contradict_min": 0.6,
+          "contradicted": 22,
+          "contradicted_on_supported": 0,
+          "precision": 1.0,
+          "precision_text": "22/22 = 100.0%",
+          "hallucinated_flagged_contradicted": "22/48 = 45.8%"
+        },
+        {
+          "contradict_min": 0.65,
+          "contradicted": 22,
+          "contradicted_on_supported": 0,
+          "precision": 1.0,
+          "precision_text": "22/22 = 100.0%",
+          "hallucinated_flagged_contradicted": "22/48 = 45.8%"
+        },
+        {
+          "contradict_min": 0.7,
+          "contradicted": 22,
+          "contradicted_on_supported": 0,
+          "precision": 1.0,
+          "precision_text": "22/22 = 100.0%",
+          "hallucinated_flagged_contradicted": "22/48 = 45.8%"
+        },
+        {
+          "contradict_min": 0.75,
+          "contradicted": 21,
+          "contradicted_on_supported": 0,
+          "precision": 1.0,
+          "precision_text": "21/21 = 100.0%",
+          "hallucinated_flagged_contradicted": "21/48 = 43.8%"
+        },
+        {
+          "contradict_min": 0.8,
+          "contradicted": 21,
+          "contradicted_on_supported": 0,
+          "precision": 1.0,
+          "precision_text": "21/21 = 100.0%",
+          "hallucinated_flagged_contradicted": "21/48 = 43.8%"
+        },
+        {
+          "contradict_min": 0.85,
+          "contradicted": 21,
+          "contradicted_on_supported": 0,
+          "precision": 1.0,
+          "precision_text": "21/21 = 100.0%",
+          "hallucinated_flagged_contradicted": "21/48 = 43.8%"
+        },
+        {
+          "contradict_min": 0.9,
+          "contradicted": 21,
+          "contradicted_on_supported": 0,
+          "precision": 1.0,
+          "precision_text": "21/21 = 100.0%",
+          "hallucinated_flagged_contradicted": "21/48 = 43.8%"
+        },
+        {
+          "contradict_min": 0.95,
+          "contradicted": 17,
+          "contradicted_on_supported": 0,
+          "precision": 1.0,
+          "precision_text": "17/17 = 100.0%",
+          "hallucinated_flagged_contradicted": "17/48 = 35.4%"
+        },
+        {
+          "contradict_min": 0.97,
+          "contradicted": 16,
+          "contradicted_on_supported": 0,
+          "precision": 1.0,
+          "precision_text": "16/16 = 100.0%",
+          "hallucinated_flagged_contradicted": "16/48 = 33.3%"
+        },
+        {
+          "contradict_min": 0.99,
+          "contradicted": 14,
+          "contradicted_on_supported": 0,
+          "precision": 1.0,
+          "precision_text": "14/14 = 100.0%",
+          "hallucinated_flagged_contradicted": "14/48 = 29.2%"
+        }
+      ]
+    }
+  },
+  "cascade_check": {
+    "thresholds": {
+      "entail_min": 0.6,
+      "contradict_min": 0.8
+    },
+    "same_verdict": 114,
+    "claims": 114,
+    "summary": {
+      "claims": 114,
+      "origin": {
+        "S:synthetic": 66,
+        "H:synthetic": 48
+      },
+      "B_hallucinated": 48,
+      "S_hallucinated_passed": 1,
+      "reduction": 0.9791666666666666,
+      "reduction_text": "47/48 = 97.9%",
+      "supported_total": 66,
+      "supported_false_rejected": 3,
+      "at2b_false_reject_rate": 0.045454545454545456,
+      "at2b_text": "3/66 = 4.5%",
+      "at2b_pass": true,
+      "at2_target": 0.73,
+      "at2_met": true,
+      "at2_valid": true,
+      "precision_supported": 0.984375,
+      "precision_text": "63/64 = 98.4%",
+      "recall_supported": 0.9545454545454546,
+      "recall_text": "63/66 = 95.5%",
+      "by_kind": {
+        "S:join": {
+          "n": 6,
+          "passed": 5
+        },
+        "S:verbatim": {
+          "n": 14,
+          "passed": 14
+        },
+        "H:numeric": {
+          "n": 10,
+          "passed": 0
+        },
+        "S:rewrite": {
+          "n": 14,
+          "passed": 14
+        },
+        "S:heading": {
+          "n": 10,
+          "passed": 10
+        },
+        "H:other_drug": {
+          "n": 8,
+          "passed": 0
+        },
+        "H:negation": {
+          "n": 8,
+          "passed": 0
+        },
+        "H:population": {
+          "n": 5,
+          "passed": 0
+        },
+        "H:row_numeric": {
+          "n": 6,
+          "passed": 0
+        },
+        "S:combine": {
+          "n": 8,
+          "passed": 6
+        },
+        "S:row_restate": {
+          "n": 8,
+          "passed": 8
+        },
+        "H:overclaim": {
+          "n": 6,
+          "passed": 1
+        },
+        "S:tallman": {
+          "n": 6,
+          "passed": 6
+        },
+        "H:frequency": {
+          "n": 5,
+          "passed": 0
+        }
+      },
+      "rejection_reasons": {
+        "numeric_mismatch": 21,
+        "low_entailment": 8,
+        "nli_contradiction": 21
+      }
+    }
+  }
+}

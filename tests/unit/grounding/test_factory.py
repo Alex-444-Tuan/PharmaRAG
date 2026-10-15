@@ -50,10 +50,28 @@ def test_grounding_thresholds_are_the_frozen_ones(settings, thresholds, fake_nli
     assert v.thresholds == thresholds.grounding
 
 
-def test_shipped_defaults(settings, thresholds, fake_nli_class):
+def test_premise_mode_and_candidates_come_from_the_frozen_thresholds(
+    settings, thresholds, fake_nli_class
+):
     v = factory.build_verifier(settings, thresholds, FakeEmbedder())
-    assert (v.context, v.heading) == (factory.DEFAULT_CONTEXT, factory.DEFAULT_HEADING)
-    assert factory.DEFAULT_CONTEXT == "cascade"
+    g = thresholds.grounding
+    assert (v.context, v.heading) == (g.premise_context, g.premise_heading)
+    assert (g.premise_context, g.premise_heading, g.candidate_spans) == ("cascade", "sub", 3)
+    # not constants in the factory: change the thresholds and the verifier follows
+    other = thresholds.model_copy(
+        update={
+            "grounding": g.model_copy(
+                update={
+                    "premise_context": "neighbour",
+                    "premise_heading": "none",
+                    "candidate_spans": 4,
+                }
+            )
+        }
+    )
+    w = factory.build_verifier(settings, other, FakeEmbedder())
+    assert (w.context, w.heading, w.thresholds.candidate_spans) == ("neighbour", "none", 4)
+    assert not hasattr(factory, "DEFAULT_CONTEXT") and not hasattr(factory, "DEFAULT_HEADING")
 
 
 async def test_can_be_built_from_inside_a_running_event_loop(settings, thresholds, fake_nli_class):
