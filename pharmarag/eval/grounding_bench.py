@@ -76,6 +76,50 @@ async def time_verifier(
     }
 
 
+def evidence_groups(claims: Sequence[Claim]) -> list[list[Claim]]:
+    """Claims that share one evidence set (the sentences of one answer), largest groups first."""
+    groups: dict[tuple, list[Claim]] = {}
+    for c in claims:
+        key = (tuple((e.id, e.chunk_id) for e in c.evidence), tuple(f.text for f in c.facts))
+        groups.setdefault(key, []).append(c)
+    return sorted(groups.values(), key=len, reverse=True)
+
+
+async def time_verify_many(
+    verifier: GroundingVerifier,
+    claims: Sequence[Claim],
+    *,
+    sizes: Sequence[int] = (1, 2, 3, 4),
+    repeats: int = 3,
+) -> dict:
+    """Latency of `verify_many` for batches of 1 to N sentences of one answer (one evidence set).
+
+    This is the stream verifier's tail: lines that arrive in one burst are checked in one NLI
+    batch. Reported as the time for the whole batch and amortised per sentence.
+    """
+    groups = [g for g in evidence_groups(claims) if len(g) >= min(sizes)]
+    out: dict = {}
+    for n in sizes:
+        usable = [g for g in groups if len(g) >= n]
+        if not usable:
+            continue
+        samples: list[float] = []
+        for g in usable:
+            prepared = await verifier.prepare(g[0].evidence, g[0].facts)
+            sentences = [Sentence(text=c.sentence, citations=c.citations) for c in g[:n]]
+            await verifier.verify_many(sentences, prepared)  # warm-up, not timed
+            for _ in range(repeats):
+                t0 = time.perf_counter()
+                await verifier.verify_many(sentences, prepared)
+                samples.append((time.perf_counter() - t0) * 1000)
+        stats = percentiles(samples)
+        stats["answers"] = len(usable)
+        stats["per_sentence_p50_ms"] = round(stats["p50_ms"] / n, 1)
+        stats["per_sentence_p95_ms"] = round(stats["p95_ms"] / n, 1)
+        out[str(n)] = stats
+    return out
+
+
 def variant(verifier: GroundingVerifier, **changes) -> GroundingVerifier:
     """A verifier sharing the loaded models but with other thresholds or premise mode."""
     th: GroundingThresholds = verifier.thresholds.model_copy(
@@ -125,6 +169,12 @@ async def run_bench(
         stats["config"] = changes
         stats["meets_budget"] = stats["verify_sentence"]["p95_ms"] <= BUDGET_P95_MS
         report["variants"][name] = stats
+    report["verify_many"] = await time_verify_many(verifier, claims, repeats=repeats)
+    report["verify_many_config"] = {
+        "context": verifier.context,
+        "heading": verifier.heading,
+        "candidate_spans": verifier.thresholds.candidate_spans,
+    }
     return report
 
 
@@ -154,4 +204,22 @@ def render_markdown(report: dict) -> str:
             f"| {'met' if v['meets_budget'] else 'EXCEEDED'} |"
         )
     lines.append("")
+    vm = report.get("verify_many")
+    if vm:
+        lines += [
+            f"## verify_many, batches of 1 to 4 sentences ({report['verify_many_config']})",
+            "",
+            "One NLI batch per stage for the whole burst. Batches are the first n sentences of one "
+            "answer (one evidence set). The ms columns are for the whole batch.",
+            "",
+            "| sentences | answers | batch p50 ms | batch p95 ms "
+            "| per-sentence p50 | per-sentence p95 |",
+            "|---|---|---|---|---|---|",
+            *(
+                f"| {n} | {v['answers']} | {v['p50_ms']} | {v['p95_ms']} "
+                f"| {v['per_sentence_p50_ms']} | {v['per_sentence_p95_ms']} |"
+                for n, v in vm.items()
+            ),
+            "",
+        ]
     return "\n".join(lines)

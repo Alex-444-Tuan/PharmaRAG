@@ -1,0 +1,237 @@
+{
+  "eval": "grounding_latency",
+  "split": "dev",
+  "mode": "verifier_only_cpu",
+  "runs": 5,
+  "timestamp": "2026-10-15T22:44:46Z",
+  "model_id": null,
+  "corpus_version": "n/a (evidence snapshots are stored in the claim files)",
+  "thresholds_commit": "2d429da86c4567ff9671b7d5192c4493a8c6be48",
+  "thresholds_dirty": false,
+  "git_head": "2d429da86c4567ff9671b7d5192c4493a8c6be48",
+  "thresholds": {
+    "resolver": {
+      "resolved_min": 0.9,
+      "margin": 0.05,
+      "ambiguous_min": 0.8,
+      "trigram_min": 0.4,
+      "trigram_k": 5,
+      "max_candidates": 3
+    },
+    "retrieval": {
+      "top_k_per_branch": 20,
+      "rrf_k": 60,
+      "evidence_top_k": 8,
+      "evidence_top_k_per_drug": 5,
+      "dense_min": 0.7,
+      "overlap_min": 3,
+      "max_facts": 10
+    }
+  },
+  "dataset": {
+    "file": "grounding_dev.jsonl",
+    "sha256": "2cd8d438c8232c227576c814a24cd506d170dfa0c7b639cee6b29270dba14125"
+  },
+  "nli_model": "cross-encoder/nli-deberta-v3-small",
+  "embedding_model": "BAAI/bge-small-en-v1.5",
+  "hardware": "macOS-26.6.2-arm64-arm-64bit arm, CPU only",
+  "claims": 154,
+  "budget_p95_ms": 150.0,
+  "variants": {
+    "spec: neighbour, no heading, 5 candidates": {
+      "verify_sentence": {
+        "n": 770,
+        "p50_ms": 93.4,
+        "p95_ms": 155.0,
+        "max_ms": 298.1,
+        "mean_ms": 93.9
+      },
+      "verify_sentence_nli_path": {
+        "n": 660,
+        "p50_ms": 101.2,
+        "p95_ms": 155.9,
+        "max_ms": 298.1,
+        "mean_ms": 105.9
+      },
+      "verify_sentence_supported": {
+        "n": 440,
+        "p50_ms": 97.9,
+        "p95_ms": 181.6,
+        "max_ms": 268.7,
+        "mean_ms": 106.3
+      },
+      "prepare": {
+        "n": 154,
+        "p50_ms": 163.8,
+        "p95_ms": 487.4,
+        "max_ms": 936.9,
+        "mean_ms": 208.5
+      },
+      "spans_per_evidence_set_p50": 24.5,
+      "config": {
+        "context": "neighbour",
+        "heading": "none",
+        "candidate_spans": 5
+      },
+      "meets_budget": false
+    },
+    "neighbour + heading, 3 candidates": {
+      "verify_sentence": {
+        "n": 770,
+        "p50_ms": 69.9,
+        "p95_ms": 115.2,
+        "max_ms": 162.7,
+        "mean_ms": 69.8
+      },
+      "verify_sentence_nli_path": {
+        "n": 655,
+        "p50_ms": 74.6,
+        "p95_ms": 125.0,
+        "max_ms": 162.7,
+        "mean_ms": 79.2
+      },
+      "verify_sentence_supported": {
+        "n": 435,
+        "p50_ms": 74.6,
+        "p95_ms": 128.7,
+        "max_ms": 162.7,
+        "mean_ms": 79.8
+      },
+      "prepare": {
+        "n": 154,
+        "p50_ms": 162.0,
+        "p95_ms": 491.1,
+        "max_ms": 926.5,
+        "mean_ms": 206.4
+      },
+      "spans_per_evidence_set_p50": 24.5,
+      "config": {
+        "context": "neighbour",
+        "heading": "sub",
+        "candidate_spans": 3
+      },
+      "meets_budget": true
+    },
+    "cascade + heading, 5 candidates": {
+      "verify_sentence": {
+        "n": 770,
+        "p50_ms": 118.8,
+        "p95_ms": 312.6,
+        "max_ms": 496.1,
+        "mean_ms": 137.5
+      },
+      "verify_sentence_nli_path": {
+        "n": 660,
+        "p50_ms": 128.3,
+        "p95_ms": 310.2,
+        "max_ms": 496.1,
+        "mean_ms": 153.8
+      },
+      "verify_sentence_supported": {
+        "n": 490,
+        "p50_ms": 111.5,
+        "p95_ms": 227.6,
+        "max_ms": 331.5,
+        "mean_ms": 122.7
+      },
+      "prepare": {
+        "n": 154,
+        "p50_ms": 162.1,
+        "p95_ms": 493.0,
+        "max_ms": 929.6,
+        "mean_ms": 208.8
+      },
+      "spans_per_evidence_set_p50": 24.5,
+      "config": {
+        "context": "cascade",
+        "heading": "sub",
+        "candidate_spans": 5
+      },
+      "meets_budget": false
+    },
+    "shipped: cascade + heading, 3 candidates": {
+      "verify_sentence": {
+        "n": 770,
+        "p50_ms": 82.3,
+        "p95_ms": 207.9,
+        "max_ms": 358.4,
+        "mean_ms": 99.8
+      },
+      "verify_sentence_nli_path": {
+        "n": 665,
+        "p50_ms": 96.0,
+        "p95_ms": 210.2,
+        "max_ms": 358.4,
+        "mean_ms": 114.0
+      },
+      "verify_sentence_supported": {
+        "n": 490,
+        "p50_ms": 79.5,
+        "p95_ms": 174.4,
+        "max_ms": 358.4,
+        "mean_ms": 92.3
+      },
+      "prepare": {
+        "n": 154,
+        "p50_ms": 171.7,
+        "p95_ms": 526.2,
+        "max_ms": 981.8,
+        "mean_ms": 221.7
+      },
+      "spans_per_evidence_set_p50": 24.5,
+      "config": {
+        "context": "cascade",
+        "heading": "sub",
+        "candidate_spans": 3
+      },
+      "meets_budget": false
+    }
+  },
+  "verify_many": {
+    "1": {
+      "n": 620,
+      "p50_ms": 85.7,
+      "p95_ms": 210.9,
+      "max_ms": 305.2,
+      "mean_ms": 99.8,
+      "answers": 124,
+      "per_sentence_p50_ms": 85.7,
+      "per_sentence_p95_ms": 210.9
+    },
+    "2": {
+      "n": 50,
+      "p50_ms": 190.1,
+      "p95_ms": 331.2,
+      "max_ms": 384.8,
+      "mean_ms": 209.7,
+      "answers": 10,
+      "per_sentence_p50_ms": 95.0,
+      "per_sentence_p95_ms": 165.6
+    },
+    "3": {
+      "n": 45,
+      "p50_ms": 294.1,
+      "p95_ms": 385.9,
+      "max_ms": 391.5,
+      "mean_ms": 284.7,
+      "answers": 9,
+      "per_sentence_p50_ms": 98.0,
+      "per_sentence_p95_ms": 128.6
+    },
+    "4": {
+      "n": 40,
+      "p50_ms": 426.6,
+      "p95_ms": 596.4,
+      "max_ms": 603.4,
+      "mean_ms": 398.9,
+      "answers": 8,
+      "per_sentence_p50_ms": 106.7,
+      "per_sentence_p95_ms": 149.1
+    }
+  },
+  "verify_many_config": {
+    "context": "cascade",
+    "heading": "sub",
+    "candidate_spans": 3
+  }
+}

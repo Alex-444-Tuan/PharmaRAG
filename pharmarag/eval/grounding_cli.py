@@ -35,6 +35,7 @@ from pharmarag.eval import (
 from pharmarag.eval import (
     grounding_data as gd,
 )
+from pharmarag.eval import report as report_mod
 from pharmarag.eval.report import corpus_version, sha256_of, write_report
 from pharmarag.grounding.verifier import GroundingVerifier
 
@@ -142,7 +143,7 @@ async def _latency(args, settings) -> int:
             "heading": "sub",
             "candidate_spans": 5,
         },
-        "cascade + heading, 3 candidates": {
+        "shipped: cascade + heading, 3 candidates": {
             "context": "cascade",
             "heading": "sub",
             "candidate_spans": 3,
@@ -249,14 +250,40 @@ async def _topup(args, settings) -> int:
     return 0
 
 
+SCORE_FORBIDDEN = ("context", "heading", "candidates", "nli_model", "torch_threads")
+
+
+def score_overrides(args: argparse.Namespace) -> list[str]:
+    """The tuning-only options that were given. Test-set scoring accepts none of them: its
+    settings come from the frozen config/thresholds.yaml and the environment, never the run."""
+    return [f"--{n.replace('_', '-')}" for n in SCORE_FORBIDDEN if getattr(args, n, None)]
+
+
 async def _score(args, settings) -> int:
+    given = score_overrides(args)
+    if given:
+        print(
+            f"--score refuses {', '.join(given)}: test-set scoring must use the frozen settings "
+            "(config/thresholds.yaml). Change the file, tune on dev, commit, then score."
+        )
+        return 2
     thresholds = load_thresholds(settings.thresholds_path)
+    # Before any model loads or any claim is read.
+    if report_mod.thresholds_provenance().get("thresholds_dirty") is True:
+        print(
+            "--score refuses a dirty config/thresholds.yaml: commit it first "
+            "(thresholds must predate the test run, spec section 11)."
+        )
+        return 2
     verifier = await asyncio.to_thread(_load_verifier, args, settings, thresholds)
     conn = await connect(settings.database_url)
     try:
         report, md = await grounding_score.run_score(
             verifier=verifier, thresholds=thresholds, conn=conn, llm_model_id=None
         )
+    except grounding_score.ScoreRefused as exc:
+        print(f"--score refused: {exc}")
+        return 2
     finally:
         await conn.close()
     j, m = write_report(report, args.out_dir, md)

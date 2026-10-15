@@ -4,7 +4,7 @@ import pytest
 
 from pharmarag.eval import grounding_score as gs
 from pharmarag.eval.grounding_data import Claim
-from pharmarag.grounding.verifier import Analysis
+from pharmarag.grounding.verifier import Analysis, PremiseScore
 from tests.unit.grounding.test_verifier import TH, FakeNLI, make_chunk, verifier
 
 
@@ -209,22 +209,8 @@ def test_score_analyses_applies_the_thresholds_to_saved_analyses():
         gs.LabelledClaim(claim("g02"), "H", "natural"),
     ]
     analyses = [
-        Analysis(
-            candidates=["c1:0"],
-            missing=[],
-            best_entail=0.75,
-            best_entail_span="c1:0",
-            best_contra=0.1,
-            best_contra_span="c1:0",
-        ),
-        Analysis(
-            candidates=["c1:0"],
-            missing=[],
-            best_entail=0.75,
-            best_entail_span="c1:0",
-            best_contra=0.1,
-            best_contra_span="c1:0",
-        ),
+        Analysis(["c1:0"], [], [PremiseScore("c1:0", 0.75, 0.1)]),
+        Analysis(["c1:0"], [], [PremiseScore("c1:0", 0.75, 0.1)]),
     ]
     low = gs.score_analyses(labelled, analyses, TH)
     assert [r.verdict for r in low] == ["supported", "supported"]

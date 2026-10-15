@@ -10,10 +10,11 @@ from collections import Counter
 import pytest
 
 from pharmarag.eval import grounding_data as gd
+from pharmarag.eval import grounding_dev
 from pharmarag.grounding.numeric import missing_quantities
 
 TEST_CLAIMS_SHA = "d9780f73f936220f2710667781f83710f4ab1fd1ca6612d03c2c5b3c28f3d28a"
-DEV_CLAIMS_SHA = "b0a3127df9d6fd6b1b249dc214634a9f7e0c15417a9f5bdff646c646042d3a2d"
+DEV_CLAIMS_SHA = "2cd8d438c8232c227576c814a24cd506d170dfa0c7b639cee6b29270dba14125"
 QUESTIONS_SHA = "4de7db84d8a49c6b8511e03db0afd8a4af728a2a5aac97cfa7f72cec81795105"
 
 
@@ -106,6 +107,27 @@ def test_dev_has_at_least_sixty_claims_with_by_construction_labels(dev_claims):
         "population",
     ):
         assert kinds[needed] >= 5, needed
+    # the harder supported kinds that mimic real writer output (review round 5)
+    for harder in ("tallman", "combine", "row_restate", "heading", "join"):
+        assert kinds[harder] >= 6, harder
+    assert kinds["row_numeric"] >= 6
+
+
+def test_tallman_claims_use_a_plain_name_over_a_tallman_label(dev_claims):
+    for c in dev_claims:
+        if c.kind == "tallman":
+            assert c.meta["tallman"] in " ".join(e.text for e in c.evidence), c.id
+            assert c.meta["tallman"] not in c.sentence, c.id  # the claim is typed plainly
+
+
+def test_row_claims_restate_a_real_table_row(dev_claims):
+    for c in dev_claims:
+        if c.kind == "row_restate":
+            row = c.meta["source_sentence"]
+            assert "; " in row and ": " in row, c.id
+            assert missing_quantities(c.sentence, [row]) == [], c.id  # supported by that row
+        if c.kind == "row_numeric":
+            assert missing_quantities(c.sentence, [e.text for e in c.evidence]), c.id
 
 
 def test_dev_citations_resolve(dev_claims):
@@ -115,7 +137,7 @@ def test_dev_citations_resolve(dev_claims):
 
 def test_dev_label_matches_kind(dev_claims):
     for c in dev_claims:
-        assert c.label == ("S" if c.kind in ("verbatim", "rewrite", "join", "heading") else "H")
+        assert c.label == grounding_dev.LABEL_OF[c.kind]
 
 
 def test_no_hallucinated_dev_claim_is_stated_verbatim_in_its_evidence(dev_claims):

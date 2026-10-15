@@ -77,6 +77,8 @@ _DENOMINATORS: dict[str, str | None] = {
     "hr": "hour",
     "h": "hour",
     "hour": "hour",
+    "min": "min",  # mL/min is a rate (creatinine clearance), not a volume
+    "minute": "min",
 }
 
 _NUM = r"(?:\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?|\.\d+)"
@@ -96,7 +98,7 @@ _DEN_PART = re.compile(rf"(?:/|\bper\b)\s*({_DEN_WORD})", re.IGNORECASE)
 
 # Bare numbers that share the unit of the quantity after them: "10 to 20 mg", "5, 10, or 20 mg".
 _LINK = r"(?:\s*(?:-|–|—|,\s*or|,\s*and|,|\bto\b|\bor\b|\band\b)\s*)"
-_PREV_NUM = re.compile(rf"(?<![\w.,])({_NUM}){_LINK}$", re.IGNORECASE)
+_PREV_NUM = re.compile(rf"(?<![\w.,])({_NUM})({_LINK})$", re.IGNORECASE)
 # A number after one of these words is a label (Table 2, Study 3), not a dose.
 _REFERENCE_WORD = re.compile(
     r"\b(?:table|figure|study|studies|trial|trials|week|day|days|section|visit|cohort|part"
@@ -136,8 +138,51 @@ def _canonical(value: Decimal, unit_word: str, dens: str) -> tuple[Decimal, str]
     return (value * factor).normalize(), "/".join(parts)
 
 
+_UNIT_ONLY = re.compile(
+    rf"(?:%|(?:{_UNIT_WORD})(?:\s*(?:/|\bper\b)\s*(?:{_DEN_WORD})){{0,2}})", re.IGNORECASE
+)
+_LEADING_VALUE = re.compile(
+    rf"^(\s*(?:>=|<=|[<>≥≤=~])?\s*{_NUM}(?:\s*(?:to|-|–|—|or)\s*{_NUM})*)(?=\s|$)",
+    re.IGNORECASE,
+)
+_HEADER_UNIT = re.compile(r"\(([^()]+)\)\s*$")
+
+
+def header_unit(header: str) -> str | None:
+    """The unit a table column header declares: "Dose (mg/day)" -> "mg/day", "% 10 mg" -> "%"."""
+    h = header.strip()
+    m = _HEADER_UNIT.search(h)
+    if m and _UNIT_ONLY.fullmatch(m.group(1).strip()):
+        return m.group(1).strip()
+    if h.startswith("%"):
+        return "%"
+    return None
+
+
+def carry_header_units(text: str) -> str:
+    """Give the bare numbers of a table cell the unit of its column header.
+
+    The chunker writes a table row as "Header (unit): value; Header (unit): value". A reader
+    sees "900 to 3600" under "Total Daily Dose Range (mg/day)" as 900 to 3600 mg/day, so the
+    number check must too. "Dose Regimen (mg): 300 TID" becomes "Dose Regimen (mg): 300 mg TID".
+    A cell whose value already carries a unit is left alone.
+    """
+    if ": " not in text:
+        return text
+    cells = []
+    for cell in text.split("; "):
+        header, sep, value = cell.partition(": ")
+        unit = header_unit(header) if sep else None
+        m = _LEADING_VALUE.match(value) if unit else None
+        if m and not _QUANTITY.match(value.lstrip("<>≥≤=~ ")):
+            value = f"{m.group(1)} {unit}{value[m.end() :]}"
+        cells.append(f"{header}{sep}{value}")
+    return "; ".join(cells)
+
+
 def extract_quantities(text: str) -> list[Quantity]:
     """Every number-with-unit in `text`, ranges and unit-sharing lists expanded."""
+    text = carry_header_units(text)
     matches = list(_QUANTITY.finditer(text))
     with_unit_starts = {m.start("num") for m in matches}
     out: list[Quantity] = []
@@ -150,11 +195,17 @@ def extract_quantities(text: str) -> list[Quantity]:
         v, unit = _canonical(value, unit_word, dens)
         out.append(Quantity(v, unit, m.group(0)))
         # Walk back over bare numbers joined by "to", "-", "or", ",": they share this unit.
+        # The link right before the unit-bearing number may not be a bare comma: in "Take 2,
+        # 500 mg tablets" the 2 counts tablets. A list ("5, 10, or 20 mg") ends in or/and.
         pos = m.start("num")
+        first = True
         while True:
             prev = _PREV_NUM.search(text[:pos])
             if prev is None or prev.start(1) in with_unit_starts:
                 break
+            if first and prev.group(2).strip() == ",":
+                break
+            first = False
             if _REFERENCE_WORD.search(text[: prev.start(1)]):
                 break
             bare = parse_number(prev.group(1))
