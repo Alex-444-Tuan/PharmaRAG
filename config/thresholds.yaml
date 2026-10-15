@@ -34,8 +34,11 @@ grounding:           # spec section 9
   entail_min: 0.70
   contradict_min: 0.80
   support_ratio_min: 0.8
-  candidate_spans: 5
+  candidate_spans: 3          # 5 -> 3 (spec section 9 fallback): per-sentence p95 over budget at 5
   nearest_spans: 3
+  premise_context: cascade    # span+neighbour, then span alone on a miss (review round 5)
+  premise_heading: sub        # subsection title prefixed to the premise (review round 5)
+  # entail_min is re-tuned on dev after the cycle-3 fix round and committed before --score.
 
 graph:               # NFR-6
   max_retrieval_attempts: 2

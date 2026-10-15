@@ -29,6 +29,14 @@ class Verifier(Protocol):
         Safe to call concurrently for different sentences."""
         ...
 
+    async def verify_many(
+        self, sentences: list[Sentence], prepared: PreparedEvidence
+    ) -> list[Sentence]:
+        """Verify several sentences in ONE NLI batch, same results and order as calling
+        `verify_sentence` on each. The stream verifier uses it to drain a backlog of lines
+        that arrived in one burst, so the tail after the last token is one batch, not N."""
+        ...
+
     async def verify(
         self, sentences: list[Sentence], evidence: list[Chunk], facts: list[Fact]
     ) -> list[Sentence]:

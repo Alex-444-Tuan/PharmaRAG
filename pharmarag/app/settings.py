@@ -71,6 +71,10 @@ class GroundingThresholds(BaseModel):
     support_ratio_min: float
     candidate_spans: int
     nearest_spans: int
+    # NLI premise construction (spec review-log round 5). Frozen here, not CLI flags, so the
+    # threshold-freeze rule covers them.
+    premise_context: Literal["neighbour", "span", "both", "cascade"]
+    premise_heading: Literal["none", "sub", "full"]
 
 
 class GraphLimits(BaseModel):

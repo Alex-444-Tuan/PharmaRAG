@@ -5,6 +5,7 @@ Contract file: owned by the orchestrator.
 
 import hashlib
 import re
+import threading
 from typing import Protocol
 
 import numpy as np
@@ -35,19 +36,25 @@ class SentenceTransformerEmbedder:
         self.dim = dim
         self._model = SentenceTransformer(model_name, device="cpu")
         self._query_prefix = BGE_QUERY_PREFIX if "bge" in model_name.lower() else ""
+        # One lock for every caller (retrieval and verifier share this object). HF fast
+        # tokenizers are not re-entrant across threads ("Already borrowed").
+        self._lock = threading.Lock()
 
     def embed_documents(self, texts: list[str]) -> np.ndarray:
-        return self._model.encode(
-            texts, normalize_embeddings=True, convert_to_numpy=True, batch_size=32
-        ).astype(np.float32)
+        with self._lock:
+            return self._model.encode(
+                texts, normalize_embeddings=True, convert_to_numpy=True, batch_size=32
+            ).astype(np.float32)
 
     def embed_query(self, text: str) -> np.ndarray:
-        return self._model.encode(
-            self._query_prefix + text, normalize_embeddings=True, convert_to_numpy=True
-        ).astype(np.float32)
+        with self._lock:
+            return self._model.encode(
+                self._query_prefix + text, normalize_embeddings=True, convert_to_numpy=True
+            ).astype(np.float32)
 
     def count_tokens(self, text: str) -> int:
-        return len(self._model.tokenizer.encode(text, add_special_tokens=False))
+        with self._lock:
+            return len(self._model.tokenizer.encode(text, add_special_tokens=False))
 
 
 _WORD = re.compile(r"[a-z0-9]+")
