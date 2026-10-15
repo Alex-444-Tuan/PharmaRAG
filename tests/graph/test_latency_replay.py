@@ -98,3 +98,40 @@ async def test_statistics_over_a_replay_run(apps):
     assert h["sequential_minus_off_p50_ms"] > h["stream_minus_off"]["p50"]["stream_minus_off_ms"]
     assert stats["modes"]["stream"]["answer_node"]["n"] == 2
     assert stats["modes"]["stream"]["regeneration"]["count"] == 0
+
+
+async def test_a_rejecting_verifier_makes_requests_regenerate_and_they_are_reported_apart(
+    make_deps, corpus
+):
+    rec = Recording(
+        id="g01",
+        question=Q,
+        analysis=analysis(mentions=["hydroxyzin"], search_query=DOSE_TEXT),
+        analysis_ms=0.0,
+        pieces=token_stream(LINES, step_ms=5.0),
+        group="regen",
+    )
+    verifier = SleepVerifier(
+        per_sentence_ms=(1, 1), prepare_ms=0, reject=lambda text: "pregnancy" in text
+    )
+    deps = make_deps(
+        ReplayLLM([rec], replay_analysis_delay=False),
+        resolver=FakeResolver({"hydroxyzin": resolved("hydroxyzin", "1", "hydroxyzine")}),
+        verifier=verifier,
+    )
+    deps.settings = deps.settings.model_copy(update={"eval_mode": True})
+    base = Runtime(deps=deps, graph=build_graph(deps))
+    apps = {m: lat.app_for(lat.runtime_for_mode(base, m), deps.settings) for m in lat.MODES}
+
+    samples = await lat.run_measurements(
+        apps, [{"id": "g01", "question": Q}], reps=2, sse=False, group="regen"
+    )
+    stats = lat.build_stats(samples, n_boot=50, seed=0)
+    rs = stats["regeneration_set"]
+    # Sequential and stream see one rejected sentence of three (0.67 < 0.8) and regenerate once.
+    # Off has no verdicts, so it never regenerates.
+    assert rs["off"]["regenerated"] == 0
+    assert rs["sequential"]["regenerated"] == rs["stream"]["regenerated"] == 1
+    assert rs["stream"]["rate"] == 1.0
+    assert rs["stream"]["latency_regenerated"]["p50"] > 0
+    assert stats["headline"]["pairs"] == 0  # none of it enters the AT-3 headline

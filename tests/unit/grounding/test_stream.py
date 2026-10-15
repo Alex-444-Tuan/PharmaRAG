@@ -31,6 +31,7 @@ class TimedVerifier:
         self.delay_s, self.reject, self.prepare_s = delay_s, reject, prepare_s
         self.log: list[tuple[str, str, float]] = []
         self.sequential_calls = 0
+        self.batches: list[list[str]] = []
 
     def _mark(self, what: str, text: str) -> None:
         self.log.append((what, text, time.perf_counter()))
@@ -59,6 +60,26 @@ class TimedVerifier:
                 "score": 0.1 if bad else 0.9,
             }
         )
+
+    async def verify_many(self, sentences, prepared):
+        """One batch costs one `delay_s`, like one NLI forward pass over a few short pairs."""
+        self.batches.append([s.text for s in sentences])
+        self._mark("batch_start", "|".join(s.text for s in sentences))
+        await asyncio.sleep(self.delay_s)
+        self._mark("batch_end", "|".join(s.text for s in sentences))
+        out = []
+        for sentence in sentences:
+            bad = any(r in sentence.text for r in self.reject)
+            out.append(
+                sentence.model_copy(
+                    update={
+                        "verdict": "unsupported" if bad else "supported",
+                        "span": None if bad else "c1:0",
+                        "score": 0.1 if bad else 0.9,
+                    }
+                )
+            )
+        return out
 
     async def verify(self, sentences, evidence, facts):
         self.sequential_calls += 1
@@ -317,6 +338,9 @@ async def test_a_failing_verifier_stops_the_llm_call_and_raises():
         async def verify_sentence(self, sentence, prepared):
             raise RuntimeError("NLI model crashed")
 
+        async def verify_many(self, sentences, prepared):
+            raise RuntimeError("NLI model crashed")
+
     with pytest.raises(RuntimeError, match="NLI model crashed"):
         await asyncio.wait_for(run(SlowLLM(), Broken(), "stream"), timeout=5)
     assert cancelled.is_set()
@@ -370,3 +394,93 @@ def test_verify_mode_off_is_honoured_only_in_eval_mode():
     assert resolve_verify_mode(prod) == "stream"  # production can never run unverified (FR-6)
     assert resolve_verify_mode(dev) == "off"
     assert resolve_verify_mode(Settings(_env_file=None, verify_mode="sequential")) == "sequential"
+
+
+# --- bursts: one NLI batch for the backlog -----------------------------------------------------
+
+BURST = [
+    ("Alpha is true. [c1]\n", 50.0),
+    ("Beta is false. [c1]\n", 200.0),  # releases Alpha, which is checked alone (0.2 s)
+    ("Gamma is true. [c1]\n", 450.0),  # then Gamma, Delta and Epsilon arrive together,
+    ("Delta is true. [c1]\n", 450.0),  # as the real API delivers them
+    ("Epsilon is true. [c1]", 450.0),
+]
+
+
+async def test_lines_that_arrive_in_one_burst_are_verified_in_one_batch():
+    verifier = TimedVerifier(delay_s=0.2, reject=("false",))
+    t0 = time.perf_counter()
+    gen = await run(recorded(BURST), verifier, "stream")
+    total = time.perf_counter() - t0
+    # Alpha was checked alone while the LLM was between bursts; the four lines of the burst form
+    # one batch (with Beta, which waited for Gamma to start). Four serial checks: 0.45 + 0.8 s.
+    assert verifier.batches == [
+        ["Beta is false.", "Gamma is true.", "Delta is true.", "Epsilon is true."]
+    ]
+    assert total < 0.45 + 0.2 + 0.25
+    assert [s.verdict for s in gen.sentences] == [
+        "supported",
+        "unsupported",
+        "supported",
+        "supported",
+        "supported",
+    ]
+
+
+async def test_a_batch_keeps_the_writers_order_and_releases_only_supported_sentences_in_order():
+    released: list[str] = []
+    verifier = TimedVerifier(reject=("false", "Delta"))
+    gen = await run(recorded(BURST), verifier, "stream", release=lambda s: released.append(s.text))
+    assert [s.text for s in gen.sentences] == [
+        "Alpha is true.",
+        "Beta is false.",
+        "Gamma is true.",
+        "Delta is true.",
+        "Epsilon is true.",
+    ]
+    assert released == ["Alpha is true.", "Gamma is true.", "Epsilon is true."]
+    assert gen.released == 3
+
+
+async def test_a_single_waiting_line_uses_verify_sentence_not_a_batch():
+    verifier = TimedVerifier()
+    pieces = [("Alpha. [c1]\n", 10.0), ("Beta. [c1]\n", 300.0), ("Gamma. [c1]", 600.0)]
+    await run(recorded(pieces), verifier, "stream")
+    # Alpha was alone when it was released; Beta and Gamma are released together at 0.6 s.
+    assert verifier.batches == [["Beta.", "Gamma."]]
+    assert {t for w, t, _ in verifier.log if w == "start"} == {"Alpha."}
+
+
+async def test_writer_marked_sentences_stay_out_of_the_batch_and_keep_their_place(make_fake_llm):
+    verifier = TimedVerifier()
+    pieces = [(p, 100.0) for p in ("Alpha. [c1]\n", "No citation here.\n", "Gamma. [c1]\n")]
+    pieces.append(("Delta. [c1]", 100.0))
+    gen = await run(recorded(pieces), verifier, "stream")
+    assert verifier.batches == [["Alpha.", "Gamma.", "Delta."]]
+    assert [(s.text, s.verdict) for s in gen.sentences] == [
+        ("Alpha.", "supported"),
+        ("No citation here.", "unsupported"),
+        ("Gamma.", "supported"),
+        ("Delta.", "supported"),
+    ]
+    assert gen.sentences[1].reason == "no_citation"
+
+
+async def test_a_batch_that_loses_a_sentence_is_an_error_not_a_silent_drop():
+    class Dropping(TimedVerifier):
+        async def verify_many(self, sentences, prepared):
+            return sentences[:-1]
+
+    with pytest.raises(RuntimeError, match="verdicts"):
+        await run(recorded(BURST), Dropping(), "stream")
+
+
+@pytest.mark.parametrize("reply", REPLIES)
+async def test_batching_does_not_change_the_final_sentences(reply, make_fake_llm):
+    """A burst (the whole reply in one piece) and a trickle (word by word) give the same answer."""
+    burst = recorded([(reply, 10.0)])
+    trickle = make_fake_llm([reply])
+    a = await run(burst, TimedVerifier(reject=("false",)), "stream")
+    b = await run(trickle, TimedVerifier(reject=("false",)), "stream")
+    c = await run(make_fake_llm([reply]), TimedVerifier(reject=("false",)), "sequential")
+    assert a.sentences == b.sentences == c.sentences
