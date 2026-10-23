@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     eval_mode: bool = False
     log_questions: bool = False
     rate_limit_per_minute: int = 30
+    cache_backend: Literal["redis", "memory"] = "redis"
+    answer_cache: bool = True  # spec 11.3: switched off for the latency eval
 
     rxnav_timeout_s: float = 2.0
     llm_timeout_s: float = 30.0
