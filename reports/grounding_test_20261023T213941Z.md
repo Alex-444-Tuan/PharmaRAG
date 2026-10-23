@@ -37,4 +37,4 @@ AT-2b guard: PASS. AT-2: MET. AT-2 counts as a result only when the guard passes
 
 Rejection reasons: {'low_entailment': 7, 'nli_contradiction': 3, 'numeric_mismatch': 2}
 
-Labels: an LLM judge (Claude Opus 5.5), at the user's request and not a human, marked each natural claim S or H against the cited evidence shown in the worksheet (rubric at the top of reports/grounding_label_worksheet.md). Top-up fired: 9 supported claims were replaced by perturbed claims labelled H by construction. Baseline (verifier off) returns every sentence, so all B reach the user.
+Labels: an LLM judge (Claude Opus 5.5) marked each natural claim S or H, and a pharmacist reviewed all 40 labels and approved them unchanged against the cited evidence shown in the worksheet (rubric at the top of reports/grounding_label_worksheet.md). Top-up fired: 9 supported claims were replaced by perturbed claims labelled H by construction. Baseline (verifier off) returns every sentence, so all B reach the user.

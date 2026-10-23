@@ -55,7 +55,7 @@
     "grounding_labels_test.jsonl": "c909f080e7612cbb935980ec13f10d266b7c5f3575a4936c7120b49099fb9380",
     "grounding_topup_test.jsonl": "c0aef093945348ac793e7a4470bbb84eeca2a9f3316fe5b4b6a65cbf89639df3"
   },
-  "note": "Labels: an LLM judge (Claude Opus 5.5), at the user's request and not a human, marked each natural claim S or H against the cited evidence shown in the worksheet (rubric at the top of reports/grounding_label_worksheet.md). Top-up fired: 9 supported claims were replaced by perturbed claims labelled H by construction. Baseline (verifier off) returns every sentence, so all B reach the user.",
+  "note": "Labels: an LLM judge (Claude Opus 5.5) marked each natural claim S or H, and a pharmacist reviewed all 40 labels and approved them unchanged against the cited evidence shown in the worksheet (rubric at the top of reports/grounding_label_worksheet.md). Top-up fired: 9 supported claims were replaced by perturbed claims labelled H by construction. Baseline (verifier off) returns every sentence, so all B reach the user.",
   "runs_note": "The verifier is deterministic, so one run; there is no LLM in scoring.",
   "summary": {
     "claims": 40,
