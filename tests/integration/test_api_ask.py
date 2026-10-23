@@ -76,7 +76,9 @@ async def test_ask_200_returns_spec_response_shape(make_client):
         "retrieval_attempts",
         "generation_attempts",
         "removed_sentences",
+        "cache_hit",
     }
+    assert body["meta"]["cache_hit"] is False
     assert r.headers["x-request-id"]
     assert graph.states[0]["question"] == "What is the dose of hydroxyzine?"
     assert graph.states[0]["request_id"] == r.headers["x-request-id"]

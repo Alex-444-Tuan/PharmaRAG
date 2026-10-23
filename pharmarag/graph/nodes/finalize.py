@@ -111,7 +111,8 @@ def _candidates(resolutions: list[Resolution]) -> tuple[str | None, list[dict]]:
     return None, []
 
 
-async def _corpus_version(deps: Deps) -> str:
+async def corpus_version(deps: Deps) -> str:
+    """Also read by `/v1/ask` before the graph runs, to key the answer cache (section 5)."""
     async with deps.pool.connection() as conn:
         cur = await conn.execute("SELECT corpus_version FROM corpus_meta WHERE id = 1")
         row = await cur.fetchone()
@@ -151,7 +152,7 @@ async def finalize(state: RAGState, deps: Deps) -> dict:
         "sources": _source_entries(shown, evidence, facts),
         "notice": NOTICE,
         "meta": {
-            "corpus_version": await _corpus_version(deps),
+            "corpus_version": await corpus_version(deps),
             # SPEC: node time summed, which over-counts the two parallel retrieval branches.
             # `run_ask` replaces it with wall-clock time; state has no start timestamp.
             "latency_ms": round(sum(state.get("timings", {}).values())),

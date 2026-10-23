@@ -18,6 +18,7 @@ from functools import partial
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import RetryPolicy
 
+from pharmarag.app.observability import log_event
 from pharmarag.graph.deps import Deps
 from pharmarag.graph.nodes.analyze import analyze
 from pharmarag.graph.nodes.answer import answer
@@ -59,12 +60,37 @@ def llm_retry_policy(*, initial_interval: float = 0.5, jitter: bool = True) -> R
 
 
 def _node(name: str, fn: NodeFn, deps: Deps) -> Callable[[RAGState], Awaitable[dict]]:
-    """Bind deps and record the node's wall time (ms) in `timings` (NFR-5)."""
+    """Bind deps; record the node's wall time (ms) in `timings`, and log and meter it (NFR-5).
+
+    One JSON log line and one histogram observation per run, so a node that LangGraph retries
+    shows once per attempt, with `status: "error"` for the failed ones.
+    """
 
     async def run(state: RAGState) -> dict:
         t0 = time.perf_counter()
-        out = await fn(state, deps)
-        return {**out, "timings": {name: round((time.perf_counter() - t0) * 1000, 2)}}
+        status = "ok"
+        out: dict = {}
+        try:
+            out = await fn(state, deps)
+        except BaseException:
+            status = "error"
+            raise
+        finally:
+            duration_ms = round((time.perf_counter() - t0) * 1000, 2)
+            if deps.metrics is not None:
+                deps.metrics.node_duration.labels(name).observe(duration_ms / 1000)
+            fields = {
+                "request_id": state.get("request_id"),
+                "node": name,
+                "duration_ms": duration_ms,
+                "status": status,
+                "retrieval_attempts": state.get("retrieval_attempt", 1),
+                "generation_attempts": state.get("generation_attempt", 1),
+            }
+            if "removed_sentences" in out:
+                fields["removed_sentences"] = len(out["removed_sentences"])
+            log_event("node", **fields)
+        return {**out, "timings": {name: duration_ms}}
 
     run.__name__ = name
     return run
