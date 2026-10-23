@@ -21,6 +21,9 @@ two empty lines for you to fill in.
   the `LABEL:` and `NOTE:` lines as they are: the importer reads them.
 - Do not look at the verifier's output before labelling.
 
+> **Labelled by an LLM judge (Claude Opus 5.5) on 2026-10-23 at the user's request, not by a human.**
+> The user audits a sample; see RESUME_NUMBERS.md for the agreement rate.
+
 ---
 
 ## Claim g01
@@ -37,8 +40,8 @@ EVIDENCE c1 (2 DOSAGE AND ADMINISTRATION > 2.1 Adult Dosage):
 > Metformin Hydrochloride Extended-Release Tablets
 > • Swallow metformin hydrochloride extended-release tablets whole and never crush, cut or chew. • The recommended starting dose of metformin hydrochloride extended-release tablets are 500 mg orally once daily with the evening meal. • Increase the dosage in increments of 500 mg weekly on the basis of glycemic control and tolerability, up to a maximum of 2,000 mg once daily with the evening meal. • If glycemic control is not achieved with metformin hydrochloride extended-release tablets 2,000 mg once daily, consider a trial of metformin hydrochloride extended-release tablets 1,000 mg twice daily.
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5] BORDERLINE: 'immediate-release' is not stated; inferred from the contrast with the extended-release block. Audit.
 
 ---
 
@@ -55,8 +58,8 @@ EVIDENCE c1 (4 CONTRAINDICATIONS):
 > hereditary or idiopathic angioedema
 > Do not co-administer aliskiren with ZESTRIL in patients with diabetes [see Drug Interactions (7.4) ].
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5] BORDERLINE: evidence says only 'Zestril'; Zestril = lisinopril is the label's identity, not stated in the block. Audit.
 
 ---
 
@@ -77,8 +80,8 @@ EVIDENCE c5 (6 ADVERSE REACTIONS > 6.1 Clinical Trials Experience):
 > •PMDD: somnolence, dry mouth, dizziness, fatigue, and abdominal pain;
 > •SAD: insomnia, dizziness, fatigue, dry mouth, malaise.
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -96,8 +99,8 @@ EVIDENCE c1 (7 DRUG INTERACTIONS > 7.3 Drugs that Increase Bleeding Risk):
 > Drug Class: Nonsteroidal Anti-Inflammatory Agents; Specific Drugs: celecoxib, diclofenac, diflunisal, fenoprofen, ibuprofen, indomethacin, ketoprofen, ketorolac, mefenamic acid, naproxen, oxaprozin, piroxicam, sulindac
 > Drug Class: Serotonin Reuptake Inhibitors; Specific Drugs: citalopram, desvenlafaxine, duloxetine, escitalopram, fluoxetine, fluvoxamine, milnacipran, paroxetine, sertraline, venlafaxine, vilazodone
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -122,8 +125,8 @@ EVIDENCE c3 (2 DOSAGE AND ADMINISTRATION > 2.3 Initial Dosage):
 > For the subset of patients for whom rapid onset of analgesic effect is required and for whom the benefits outweigh the risk of discontinuation due to adverse events associated with higher initial doses, tramadol hydrochloride tablets 50 mg to 100 mg can be administered as needed for pain relief every four to six hours, not to exceed 400 mg per day.
 > Conversion from Tramadol Hydrochloride Immediate-Release to Extended-Release Tramadol
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5] 'for adults' not stated in the cited text, but the label's general dosing applies to adults. Minor.
 
 ---
 
@@ -137,8 +140,8 @@ EVIDENCE c1 (8 USE IN SPECIFIC POPULATIONS > 8.1 Pregnancy > Risk Summary):
 > The limited available data based on post-marketing reports with NORVASC use in pregnant women are not sufficient to inform a drug-associated risk for major birth defects and miscarriage. There are risks to the mother and fetus associated with poorly controlled hypertension in pregnancy [see Clinical Considerations]. In animal reproduction studies, there was no evidence of adverse developmental effects when pregnant rats and rabbits were treated orally with amlodipine maleate during organogenesis at doses approximately 10 and 20-times the maximum recommended human dose (MRHD), respectively. However for rats, litter size was significantly decreased (by about 50%) and the number of intrauterine deaths was significantly increased (about 5-fold). Amlodipine has been shown to prolong both the gestation period and the duration of labor in rats at this dose [see Data].
 > The estimated background risk of major birth defects and miscarriage for the indicated population is unknown. All pregnancies have a background risk of birth defect, loss or other adverse outcomes. In the U.S. general population, the estimated background risk of major birth defects and miscarriage in clinically recognized pregnancies is 2%-4% and 15%‑20%, respectively.
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -155,8 +158,8 @@ EVIDENCE c1 (5 WARNINGS AND PRECAUTIONS > 5.7 Discontinuation Syndrome):
 EVIDENCE c2 (2 DOSAGE AND ADMINISTRATION > 2.7 Discontinuation of Treatment with Paroxetine Tablets):
 > Adverse reactions may occur upon discontinuation of paroxetine tablets [see Warnings and Precautions (5.7)]. Gradually reduce the dosage rather than stopping paroxetine tablets abruptly whenever possible.
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -172,8 +175,8 @@ EVIDENCE c1 (2 DOSAGE AND ADMINISTRATION > 2.1 Important Administration Instruct
 > Evaluate the need for dosage adjustments when regularly administering within one hour of certain foods that may affect Levothyroxine Sodium Tablets absorption [see Dosage and Administration (2.2 and 2.3), Drug Interactions (7.9) and Clinical Pharmacology (12.3)].
 > Administer Levothyroxine Sodium Tablets to pediatric patients who cannot swallow intact tablets by crushing the tablet, suspending the freshly crushed tablet in a small amount (5 to 10 mL) of water and immediately administering the suspension by spoon or dropper. Ensure the patient ingests the full amount of the suspension. Do not store the suspension. Do not administer in foods that decrease absorption of Levothyroxine Sodium Tablets, such as soybean-based infant formula [see Drug Interactions (7.9)].
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -189,8 +192,8 @@ EVIDENCE c1 (WARNING: SUICIDAL THOUGHTS AND BEHAVIORS):
 > PROZAC is not approved for use in children less than 7 years of age [see Warnings and Precautions (5.1) and Use in Specific Populations (8.4)].
 > When using PROZAC and olanzapine in combination, also refer to Boxed Warning section of the package insert for Symbyax.
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -205,8 +208,8 @@ EVIDENCE c3 (WARNINGS):
 > Renal Effects
 > Long-term administration of NSAIDs has resulted in renal papillary necrosis and other renal injury. Renal toxicity has also been seen in patients in whom renal prostaglandins have a compensatory role in the maintenance of renal perfusion. In these patients, administration of a NSAID may cause a dose dependent reduction in prostaglandin formation and, secondarily, in renal blood flow, which may precipitate overt renal decompensation.
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -224,8 +227,8 @@ EVIDENCE c1 (2 DOSAGE AND ADMINISTRATION > 2.1 Adult Dosage):
 > Metformin Hydrochloride Extended-Release Tablets
 > • Swallow metformin hydrochloride extended-release tablets whole and never crush, cut or chew. • The recommended starting dose of metformin hydrochloride extended-release tablets are 500 mg orally once daily with the evening meal. • Increase the dosage in increments of 500 mg weekly on the basis of glycemic control and tolerability, up to a maximum of 2,000 mg once daily with the evening meal. • If glycemic control is not achieved with metformin hydrochloride extended-release tablets 2,000 mg once daily, consider a trial of metformin hydrochloride extended-release tablets 1,000 mg twice daily.
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -242,8 +245,8 @@ EVIDENCE c1 (4 CONTRAINDICATIONS):
 > hereditary or idiopathic angioedema
 > Do not co-administer aliskiren with ZESTRIL in patients with diabetes [see Drug Interactions (7.4) ].
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -270,8 +273,8 @@ EVIDENCE c3 (6 ADVERSE REACTIONS > 6.1 Clinical Trials Experience):
 > Constipation; ZOLOFT (N=3066): 6%; Placebo (N=2293): 4%
 > Vomiting; ZOLOFT (N=3066): 4%; Placebo (N=2293): 1%
 
-LABEL:
-NOTE:
+LABEL: H
+NOTE: [LLM judge: Claude Opus 5.5] 'most frequent reaction' is a superlative over the whole Table 3; the cited excerpt is partial, so it is not entailed. 26% vs 12% itself is supported.
 
 ---
 
@@ -289,8 +292,8 @@ EVIDENCE c1 (7 DRUG INTERACTIONS > 7.3 Drugs that Increase Bleeding Risk):
 > Drug Class: Nonsteroidal Anti-Inflammatory Agents; Specific Drugs: celecoxib, diclofenac, diflunisal, fenoprofen, ibuprofen, indomethacin, ketoprofen, ketorolac, mefenamic acid, naproxen, oxaprozin, piroxicam, sulindac
 > Drug Class: Serotonin Reuptake Inhibitors; Specific Drugs: citalopram, desvenlafaxine, duloxetine, escitalopram, fluoxetine, fluvoxamine, milnacipran, paroxetine, sertraline, venlafaxine, vilazodone
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -310,8 +313,8 @@ EVIDENCE c1 (2 DOSAGE AND ADMINISTRATION > 2.3 Initial Dosage):
 > Dosage Modification in Geriatric Patients
 > Do not exceed a total dose of 300 mg/day in patients over 75 years old.
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -325,8 +328,8 @@ EVIDENCE c1 (8 USE IN SPECIFIC POPULATIONS > 8.1 Pregnancy > Risk Summary):
 > The limited available data based on post-marketing reports with NORVASC use in pregnant women are not sufficient to inform a drug-associated risk for major birth defects and miscarriage. There are risks to the mother and fetus associated with poorly controlled hypertension in pregnancy [see Clinical Considerations]. In animal reproduction studies, there was no evidence of adverse developmental effects when pregnant rats and rabbits were treated orally with amlodipine maleate during organogenesis at doses approximately 10 and 20-times the maximum recommended human dose (MRHD), respectively. However for rats, litter size was significantly decreased (by about 50%) and the number of intrauterine deaths was significantly increased (about 5-fold). Amlodipine has been shown to prolong both the gestation period and the duration of labor in rats at this dose [see Data].
 > The estimated background risk of major birth defects and miscarriage for the indicated population is unknown. All pregnancies have a background risk of birth defect, loss or other adverse outcomes. In the U.S. general population, the estimated background risk of major birth defects and miscarriage in clinically recognized pregnancies is 2%-4% and 15%‑20%, respectively.
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -340,8 +343,8 @@ EVIDENCE c1 (5 WARNINGS AND PRECAUTIONS > 5.7 Discontinuation Syndrome):
 > Adverse reactions after discontinuation of serotonergic antidepressants, particularly after abrupt discontinuation, include: nausea, sweating, dysphoric mood, irritability, agitation, dizziness, sensory disturbances (e.g., paresthesia, such as electric shock sensations), tremor, anxiety, confusion, headache, lethargy, emotional lability, insomnia, hypomania, tinnitus, and seizures. A gradual reduction in dosage rather than abrupt cessation is recommended whenever possible [see Dosage and Administration (2.7)].
 > During clinical trials of GAD and PTSD, gradual decreases in the daily dose by 10 mg/day at weekly intervals followed by 1 week at 20 mg/day was used before treatment was discontinued. The following adverse reactions were reported at an incidence of 2% or greater for paroxetine and were at least twice that reported for placebo: Abnormal dreams, paresthesia, and dizziness adverse reactions have been reported upon discontinuation of treatment with paroxetine in pediatric patients. The safety and effectiveness of paroxetine in pediatric patients have not been established [see Boxed Warning, Warnings and Precautions (5.1), Use in Specific Populations (8.4)].
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -357,8 +360,8 @@ EVIDENCE c1 (2 DOSAGE AND ADMINISTRATION > 2.1 Important Administration Instruct
 > Evaluate the need for dosage adjustments when regularly administering within one hour of certain foods that may affect Levothyroxine Sodium Tablets absorption [see Dosage and Administration (2.2 and 2.3), Drug Interactions (7.9) and Clinical Pharmacology (12.3)].
 > Administer Levothyroxine Sodium Tablets to pediatric patients who cannot swallow intact tablets by crushing the tablet, suspending the freshly crushed tablet in a small amount (5 to 10 mL) of water and immediately administering the suspension by spoon or dropper. Ensure the patient ingests the full amount of the suspension. Do not store the suspension. Do not administer in foods that decrease absorption of Levothyroxine Sodium Tablets, such as soybean-based infant formula [see Drug Interactions (7.9)].
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -374,8 +377,8 @@ EVIDENCE c1 (WARNING: SUICIDAL THOUGHTS AND BEHAVIORS):
 > PROZAC is not approved for use in children less than 7 years of age [see Warnings and Precautions (5.1) and Use in Specific Populations (8.4)].
 > When using PROZAC and olanzapine in combination, also refer to Boxed Warning section of the package insert for Symbyax.
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -397,8 +400,8 @@ EVIDENCE c2 (BOXED WARNING):
 > Gastrointestinal Risk
 > NSAIDS cause an increased risk of serious gastrointestinal adverse events including bleeding, ulceration, and perforation of the stomach or intestines, which can be fatal. These events can occur at any time during use and without warning symptoms. Elderly patients are at greater risk for serious gastrointestinal events. (See WARNINGS).
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -415,8 +418,8 @@ EVIDENCE c1 (4 CONTRAINDICATIONS):
 > hereditary or idiopathic angioedema
 > Do not co-administer aliskiren with ZESTRIL in patients with diabetes [see Drug Interactions (7.4) ].
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -443,8 +446,8 @@ EVIDENCE c3 (6 ADVERSE REACTIONS > 6.1 Clinical Trials Experience):
 > Constipation; ZOLOFT (N=3066): 6%; Placebo (N=2293): 4%
 > Vomiting; ZOLOFT (N=3066): 4%; Placebo (N=2293): 1%
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -462,8 +465,8 @@ EVIDENCE c1 (7 DRUG INTERACTIONS > 7.3 Drugs that Increase Bleeding Risk):
 > Drug Class: Nonsteroidal Anti-Inflammatory Agents; Specific Drugs: celecoxib, diclofenac, diflunisal, fenoprofen, ibuprofen, indomethacin, ketoprofen, ketorolac, mefenamic acid, naproxen, oxaprozin, piroxicam, sulindac
 > Drug Class: Serotonin Reuptake Inhibitors; Specific Drugs: citalopram, desvenlafaxine, duloxetine, escitalopram, fluoxetine, fluvoxamine, milnacipran, paroxetine, sertraline, venlafaxine, vilazodone
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -483,8 +486,8 @@ EVIDENCE c1 (2 DOSAGE AND ADMINISTRATION > 2.3 Initial Dosage):
 > Dosage Modification in Geriatric Patients
 > Do not exceed a total dose of 300 mg/day in patients over 75 years old.
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -497,8 +500,8 @@ CITES: c2
 EVIDENCE c2 (8 USE IN SPECIFIC POPULATIONS > 8.1 Pregnancy > Clinical Considerations > Disease-associated maternal and/or embryo/fetal risk):
 > Hypertension in pregnancy increases the maternal risk for pre-eclampsia, gestational diabetes, premature delivery, and delivery complications (e.g., need for cesarean section and post-partum hemorrhage). Hypertension increases the fetal risk for intrauterine growth restriction and intrauterine death. Pregnant women with hypertension should be carefully monitored and managed accordingly.
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -512,8 +515,8 @@ EVIDENCE c1 (5 WARNINGS AND PRECAUTIONS > 5.7 Discontinuation Syndrome):
 > Adverse reactions after discontinuation of serotonergic antidepressants, particularly after abrupt discontinuation, include: nausea, sweating, dysphoric mood, irritability, agitation, dizziness, sensory disturbances (e.g., paresthesia, such as electric shock sensations), tremor, anxiety, confusion, headache, lethargy, emotional lability, insomnia, hypomania, tinnitus, and seizures. A gradual reduction in dosage rather than abrupt cessation is recommended whenever possible [see Dosage and Administration (2.7)].
 > During clinical trials of GAD and PTSD, gradual decreases in the daily dose by 10 mg/day at weekly intervals followed by 1 week at 20 mg/day was used before treatment was discontinued. The following adverse reactions were reported at an incidence of 2% or greater for paroxetine and were at least twice that reported for placebo: Abnormal dreams, paresthesia, and dizziness adverse reactions have been reported upon discontinuation of treatment with paroxetine in pediatric patients. The safety and effectiveness of paroxetine in pediatric patients have not been established [see Boxed Warning, Warnings and Precautions (5.1), Use in Specific Populations (8.4)].
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -529,8 +532,8 @@ EVIDENCE c1 (2 DOSAGE AND ADMINISTRATION > 2.1 Important Administration Instruct
 > Evaluate the need for dosage adjustments when regularly administering within one hour of certain foods that may affect Levothyroxine Sodium Tablets absorption [see Dosage and Administration (2.2 and 2.3), Drug Interactions (7.9) and Clinical Pharmacology (12.3)].
 > Administer Levothyroxine Sodium Tablets to pediatric patients who cannot swallow intact tablets by crushing the tablet, suspending the freshly crushed tablet in a small amount (5 to 10 mL) of water and immediately administering the suspension by spoon or dropper. Ensure the patient ingests the full amount of the suspension. Do not store the suspension. Do not administer in foods that decrease absorption of Levothyroxine Sodium Tablets, such as soybean-based infant formula [see Drug Interactions (7.9)].
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -544,8 +547,8 @@ EVIDENCE c2 (5 WARNINGS AND PRECAUTIONS > 5.1 Suicidal Thoughts and Behaviors in
 > Patients with Major Depressive Disorder (MDD), both adult and pediatric, may experience worsening of their depression and/or the emergence of suicidal ideation and behavior (suicidality) or unusual changes in behavior, whether or not they are taking antidepressant medications, and this risk may persist until significant remission occurs. Suicide is a known risk of depression and certain other psychiatric disorders, and these disorders themselves are the strongest predictors of suicide. There has been a long-standing concern, however, that antidepressants may have a role in inducing worsening of depression and the emergence of suicidality in certain patients during the early phases of treatment. Pooled analyses of short-term placebo-controlled trials of antidepressant drugs (SSRIs and others) showed that these drugs increase the risk of suicidal thinking and behavior (suicidality) in children, adolescents, and young adults (ages 18-24) with Major Depressive Disorder (MDD) and other psychiatric disorders. Short-term studies did not show an increase in the risk of suicidality with antidepressants compared to placebo in adults beyond age 24; there was a reduction with antidepressants compared to placebo in adults aged 65 and older.
 > The pooled analyses of placebo-controlled trials in children and adolescents with MDD, Obsessive Compulsive Disorder (OCD), or other psychiatric disorders included a total of 24 short-term trials of 9 antidepressant drugs in over 4400 patients.
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -560,8 +563,8 @@ EVIDENCE c1 (WARNINGS):
 > Gastrointestinal Effects - Risk of Ulceration, Bleeding, and Perforation
 > NSAIDs, including ibuprofen tablets, can cause serious gastrointestinal (GI) adverse events including inflammation, bleeding, ulceration, and perforation of the stomach, small intestine, or large intestine, which can be fatal. These serious adverse events can occur at any time, with or without warning symptoms, in patients treated with NSAIDs. Only one in five patients, who develop a serious upper GI adverse event on NSAID therapy, is symptomatic. Upper GI ulcers, gross bleeding, or perforation caused by NSAIDs occur in approximately 1% of patients treated for 3-6 months, and in about 2 to 4% of patients treated for one year. These trends continue with longer duration of use, increasing the likelihood of developing a serious GI event at some time during the course of therapy. However, even short-term therapy is not without risk. NSAIDs should be prescribed with extreme caution in those with a prior history of ulcer disease or gastrointestinal bleeding. Patients with a prior history of peptic ulcer disease and/or gastrointestinal bleeding who use NSAIDs have a greater than 10-fold increased risk for developing a GI bleed compared to patients treated with neither of these risk factors.
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -578,8 +581,8 @@ EVIDENCE c1 (4 CONTRAINDICATIONS):
 > hereditary or idiopathic angioedema
 > Do not co-administer aliskiren with ZESTRIL in patients with diabetes [see Drug Interactions (7.4) ].
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -606,8 +609,8 @@ EVIDENCE c3 (6 ADVERSE REACTIONS > 6.1 Clinical Trials Experience):
 > Constipation; ZOLOFT (N=3066): 6%; Placebo (N=2293): 4%
 > Vomiting; ZOLOFT (N=3066): 4%; Placebo (N=2293): 1%
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -625,8 +628,8 @@ EVIDENCE c1 (7 DRUG INTERACTIONS > 7.3 Drugs that Increase Bleeding Risk):
 > Drug Class: Nonsteroidal Anti-Inflammatory Agents; Specific Drugs: celecoxib, diclofenac, diflunisal, fenoprofen, ibuprofen, indomethacin, ketoprofen, ketorolac, mefenamic acid, naproxen, oxaprozin, piroxicam, sulindac
 > Drug Class: Serotonin Reuptake Inhibitors; Specific Drugs: citalopram, desvenlafaxine, duloxetine, escitalopram, fluoxetine, fluvoxamine, milnacipran, paroxetine, sertraline, venlafaxine, vilazodone
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -639,8 +642,8 @@ CITES: c2
 EVIDENCE c2 (8 USE IN SPECIFIC POPULATIONS > 8.1 Pregnancy > Clinical Considerations > Disease-associated maternal and/or embryo/fetal risk):
 > Hypertension in pregnancy increases the maternal risk for pre-eclampsia, gestational diabetes, premature delivery, and delivery complications (e.g., need for cesarean section and post-partum hemorrhage). Hypertension increases the fetal risk for intrauterine growth restriction and intrauterine death. Pregnant women with hypertension should be carefully monitored and managed accordingly.
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -657,8 +660,8 @@ EVIDENCE c1 (5 WARNINGS AND PRECAUTIONS > 5.7 Discontinuation Syndrome):
 EVIDENCE c2 (2 DOSAGE AND ADMINISTRATION > 2.7 Discontinuation of Treatment with Paroxetine Tablets):
 > Adverse reactions may occur upon discontinuation of paroxetine tablets [see Warnings and Precautions (5.7)]. Gradually reduce the dosage rather than stopping paroxetine tablets abruptly whenever possible.
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -674,8 +677,8 @@ EVIDENCE c2 (2 DOSAGE AND ADMINISTRATION > 2.2 Important Considerations for Dosi
 > For secondary or tertiary hypothyroidism, serum TSH is not a reliable measure of Levothyroxine Sodium Tablets dosage adequacy and should not be used to monitor therapy. Use the serum free-T4 level to titrate Levothyroxine Sodium Tablets dosing until the patient is clinically euthyroid and the serum free-T4 level is restored to the upper half of the normal range [see Dosage and Administration (2.3)].
 > The peak therapeutic effect of a given dose of Levothyroxine Sodium Tablets may not be attained for 4 to 6 weeks.
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -697,8 +700,8 @@ EVIDENCE c4 (5 WARNINGS AND PRECAUTIONS > 5.1 Suicidal Thoughts and Behaviors in
 > No suicides occurred in any of the pediatric trials. There were suicides in the adult trials, but the number was not sufficient to reach any conclusion about drug effect on suicide.
 > It is unknown whether the suicidality risk extends to longer-term use, i.e., beyond several months.
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -713,8 +716,8 @@ EVIDENCE c3 (WARNINGS):
 > Renal Effects
 > Long-term administration of NSAIDs has resulted in renal papillary necrosis and other renal injury. Renal toxicity has also been seen in patients in whom renal prostaglandins have a compensatory role in the maintenance of renal perfusion. In these patients, administration of a NSAID may cause a dose dependent reduction in prostaglandin formation and, secondarily, in renal blood flow, which may precipitate overt renal decompensation.
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -731,8 +734,8 @@ EVIDENCE c1 (4 CONTRAINDICATIONS):
 > hereditary or idiopathic angioedema
 > Do not co-administer aliskiren with ZESTRIL in patients with diabetes [see Drug Interactions (7.4) ].
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -756,8 +759,8 @@ EVIDENCE c7 (6 ADVERSE REACTIONS > 6.1 Clinical Trials Experience):
 > •PD: nervousness and somnolence.
 > Male and Female Sexual Dysfunction
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---
 
@@ -775,7 +778,7 @@ EVIDENCE c1 (7 DRUG INTERACTIONS > 7.3 Drugs that Increase Bleeding Risk):
 > Drug Class: Nonsteroidal Anti-Inflammatory Agents; Specific Drugs: celecoxib, diclofenac, diflunisal, fenoprofen, ibuprofen, indomethacin, ketoprofen, ketorolac, mefenamic acid, naproxen, oxaprozin, piroxicam, sulindac
 > Drug Class: Serotonin Reuptake Inhibitors; Specific Drugs: citalopram, desvenlafaxine, duloxetine, escitalopram, fluoxetine, fluvoxamine, milnacipran, paroxetine, sertraline, venlafaxine, vilazodone
 
-LABEL:
-NOTE:
+LABEL: S
+NOTE: [LLM judge: Claude Opus 5.5]
 
 ---

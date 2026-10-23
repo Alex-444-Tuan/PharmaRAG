@@ -1,0 +1,40 @@
+{"claim_id": "g01", "label": "S", "note": "[LLM judge: Claude Opus 5.5] BORDERLINE: 'immediate-release' is not stated; inferred from the contrast with the extended-release block. Audit."}
+{"claim_id": "g02", "label": "S", "note": "[LLM judge: Claude Opus 5.5] BORDERLINE: evidence says only 'Zestril'; Zestril = lisinopril is the label's identity, not stated in the block. Audit."}
+{"claim_id": "g03", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g04", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g05", "label": "S", "note": "[LLM judge: Claude Opus 5.5] 'for adults' not stated in the cited text, but the label's general dosing applies to adults. Minor."}
+{"claim_id": "g06", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g07", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g08", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g09", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g10", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g11", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g12", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g13", "label": "H", "note": "[LLM judge: Claude Opus 5.5] 'most frequent reaction' is a superlative over the whole Table 3; the cited excerpt is partial, so it is not entailed. 26% vs 12% itself is supported."}
+{"claim_id": "g14", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g15", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g16", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g17", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g18", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g19", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g20", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g21", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g22", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g23", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g24", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g25", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g26", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g27", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g28", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g29", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g30", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g31", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g32", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g33", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g34", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g35", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g36", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g37", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g38", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g39", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}
+{"claim_id": "g40", "label": "S", "note": "[LLM judge: Claude Opus 5.5]"}

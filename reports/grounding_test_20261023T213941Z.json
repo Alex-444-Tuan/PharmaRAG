@@ -1,0 +1,601 @@
+{
+  "eval": "grounding",
+  "split": "test",
+  "mode": "verifier_vs_off",
+  "runs": 1,
+  "timestamp": "2026-10-23T21:39:41Z",
+  "model_id": "claude-sonnet-5-5",
+  "corpus_version": "24bdf02ae716c922",
+  "thresholds_commit": "e928fb5e21b57484ed4ff7e145b7fe0fee1c23c3",
+  "thresholds_dirty": false,
+  "git_head": "6ebcf2bfecadaea681d3ae99f1bd643ce35a39ca",
+  "thresholds": {
+    "resolver": {
+      "resolved_min": 0.9,
+      "margin": 0.05,
+      "ambiguous_min": 0.8,
+      "trigram_min": 0.4,
+      "trigram_k": 5,
+      "max_candidates": 3
+    },
+    "retrieval": {
+      "top_k_per_branch": 20,
+      "rrf_k": 60,
+      "evidence_top_k": 8,
+      "evidence_top_k_per_drug": 5,
+      "dense_min": 0.7,
+      "overlap_min": 3,
+      "max_facts": 10
+    },
+    "grounding": {
+      "entail_min": 0.7,
+      "contradict_min": 0.8,
+      "support_ratio_min": 0.8,
+      "candidate_spans": 3,
+      "nearest_spans": 3,
+      "premise_context": "cascade",
+      "premise_heading": "sub"
+    }
+  },
+  "dataset": {
+    "file": "grounding_claims_test.jsonl",
+    "sha256": "d9780f73f936220f2710667781f83710f4ab1fd1ca6612d03c2c5b3c28f3d28a"
+  },
+  "nli_model": "cross-encoder/nli-deberta-v3-small",
+  "embedding_model": "BAAI/bge-small-en-v1.5",
+  "verifier_config": {
+    "context": "cascade",
+    "heading": "sub",
+    "candidate_spans": 3,
+    "nearest_spans": 3,
+    "entail_min": 0.7,
+    "contradict_min": 0.8
+  },
+  "other_datasets_sha256": {
+    "grounding_labels_test.jsonl": "c909f080e7612cbb935980ec13f10d266b7c5f3575a4936c7120b49099fb9380",
+    "grounding_topup_test.jsonl": "c0aef093945348ac793e7a4470bbb84eeca2a9f3316fe5b4b6a65cbf89639df3"
+  },
+  "note": "Labels: an LLM judge (Claude Opus 5.5), at the user's request and not a human, marked each natural claim S or H against the cited evidence shown in the worksheet (rubric at the top of reports/grounding_label_worksheet.md). Top-up fired: 9 supported claims were replaced by perturbed claims labelled H by construction. Baseline (verifier off) returns every sentence, so all B reach the user.",
+  "runs_note": "The verifier is deterministic, so one run; there is no LLM in scoring.",
+  "summary": {
+    "claims": 40,
+    "origin": {
+      "S:natural": 30,
+      "H:natural": 1,
+      "H:perturbed": 9
+    },
+    "B_hallucinated": 10,
+    "S_hallucinated_passed": 1,
+    "reduction": 0.9,
+    "reduction_text": "9/10 = 90.0%",
+    "supported_total": 30,
+    "supported_false_rejected": 3,
+    "at2b_false_reject_rate": 0.1,
+    "at2b_text": "3/30 = 10.0%",
+    "at2b_pass": true,
+    "at2_target": 0.73,
+    "at2_met": true,
+    "at2_valid": true,
+    "precision_supported": 0.9642857142857143,
+    "precision_text": "27/28 = 96.4%",
+    "recall_supported": 0.9,
+    "recall_text": "27/30 = 90.0%",
+    "by_kind": {
+      "S:natural": {
+        "n": 30,
+        "passed": 27
+      },
+      "H:natural": {
+        "n": 1,
+        "passed": 1
+      },
+      "H:numeric": {
+        "n": 1,
+        "passed": 0
+      },
+      "H:negation": {
+        "n": 2,
+        "passed": 0
+      },
+      "H:other_drug": {
+        "n": 4,
+        "passed": 0
+      },
+      "H:frequency": {
+        "n": 1,
+        "passed": 0
+      },
+      "H:population": {
+        "n": 1,
+        "passed": 0
+      }
+    },
+    "rejection_reasons": {
+      "low_entailment": 7,
+      "nli_contradiction": 3,
+      "numeric_mismatch": 2
+    }
+  },
+  "rows": [
+    {
+      "claim_id": "g10",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.9864623620474935,
+      "span": "c3:1",
+      "best_contra": 0.0012209747570635348,
+      "sentence": "Use of alcohol is listed among the factors that increase the risk of GI bleeding in patients treated with NSAIDs."
+    },
+    {
+      "claim_id": "g11",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.9945387203861332,
+      "span": "c1:5",
+      "best_contra": 0.002689635730353043,
+      "sentence": "For extended-release tablets, the recommended starting dose is 500 mg orally once daily with the evening meal."
+    },
+    {
+      "claim_id": "g12",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.997869792630293,
+      "span": "c1:1",
+      "best_contra": 0.00036814183643844536,
+      "sentence": "It should not be administered within 36 hours of switching to or from sacubitril/valsartan."
+    },
+    {
+      "claim_id": "g13",
+      "label": "H",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.7402552533204744,
+      "span": "c3:9+c3:14+c6:1",
+      "best_contra": 0.42796157760981013,
+      "sentence": "Nausea was the most frequent reaction, occurring in 26% of sertraline-treated patients versus 12% on placebo."
+    },
+    {
+      "claim_id": "g14",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.9975515696263062,
+      "span": "c1:3",
+      "best_contra": 0.07051638095387197,
+      "sentence": "Anticoagulants named are argatroban, dabigatran, bivalirudin, desirudin, heparin, and lepirudin."
+    },
+    {
+      "claim_id": "g15",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.9974905258687667,
+      "span": "c1:5",
+      "best_contra": 0.01505895495489365,
+      "sentence": "Patients with creatinine clearance below 30 mL/min should have the dosing interval increased to 12 hours, with a maximum daily dose of 200 mg."
+    },
+    {
+      "claim_id": "g16",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.9976781418219539,
+      "span": "c1:1",
+      "best_contra": 0.0006847208850367879,
+      "sentence": "Poorly controlled hypertension in pregnancy carries risks to both the mother and the fetus."
+    },
+    {
+      "claim_id": "g17",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.9947288737714638,
+      "span": "c1:0",
+      "best_contra": 0.001505322875451682,
+      "sentence": "Reported reactions after abrupt discontinuation of serotonergic antidepressants include nausea, sweating, dysphoric mood, irritability, agitation, dizziness, tremor, anxiety, confusion, headache, lethargy, emotional lability, insomnia, hypomania, tinnitus, and seizures."
+    },
+    {
+      "claim_id": "g18",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.9971403728268775,
+      "span": "c1:2",
+      "best_contra": 0.006357380430317087,
+      "sentence": "The need for dosage adjustments should be evaluated when it is regularly taken within one hour of certain foods that may affect its absorption."
+    },
+    {
+      "claim_id": "g19",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.996556112709908,
+      "span": "c1:1",
+      "best_contra": 0.6513255442632696,
+      "sentence": "Those studies showed no increased risk in patients over age 24, and a reduction in risk in patients aged 65 and older."
+    },
+    {
+      "claim_id": "g20",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "unsupported",
+      "reason": "low_entailment",
+      "score": 0.0010842750642229703,
+      "span": "c4:12",
+      "best_contra": 0.00039984155233880735,
+      "sentence": "NSAIDs, including ibuprofen, can cause serious GI events such as bleeding, ulceration, and perforation, which can be fatal and can occur at any time, with or without warning symptoms."
+    },
+    {
+      "claim_id": "g21",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.9918081179568797,
+      "span": "c1:3",
+      "best_contra": 0.0014876985736482068,
+      "sentence": "It is contraindicated in patients with a history of angioedema or hypersensitivity related to previous treatment with an angiotensin converting enzyme inhibitor."
+    },
+    {
+      "claim_id": "g22",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.9826175665708168,
+      "span": "c3:11",
+      "best_contra": 0.19946782675618907,
+      "sentence": "Diarrhea/loose stools occurred in 20% versus 10% on placebo, and dry mouth in 14% versus 9%."
+    },
+    {
+      "claim_id": "g23",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.9970697952753615,
+      "span": "c1:4",
+      "best_contra": 0.029191660592725953,
+      "sentence": "Antiplatelet agents named are aspirin, cilostazol, clopidogrel, dipyridamole, prasugrel, and ticlopidine."
+    },
+    {
+      "claim_id": "g24",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.9978721947118502,
+      "span": "c1:8",
+      "best_contra": 0.004128615140781917,
+      "sentence": "In patients over 75 years old, the total dose should not exceed 300 mg/day."
+    },
+    {
+      "claim_id": "g25",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.9939293750117079,
+      "span": "c2:0",
+      "best_contra": 0.0011820775309598183,
+      "sentence": "Hypertension in pregnancy raises the maternal risk for pre-eclampsia, gestational diabetes, premature delivery, and delivery complications, and raises the fetal risk for intrauterine growth restriction and intrauterine death."
+    },
+    {
+      "claim_id": "g26",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "unsupported",
+      "reason": "low_entailment",
+      "score": 0.6132367103917287,
+      "span": "c6:3",
+      "best_contra": 0.040606172325012596,
+      "sentence": "Sensory disturbances such as paresthesia, including electric shock sensations, are also among the reactions listed."
+    },
+    {
+      "claim_id": "g27",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.9955612994316008,
+      "span": "c1:6+c1:3+c1:4",
+      "best_contra": 0.016576787543728076,
+      "sentence": "For pediatric patients who cannot swallow tablets, the crushed tablet suspension should not be given in foods that decrease absorption, such as soybean-based infant formula."
+    },
+    {
+      "claim_id": "g28",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.9957290460248034,
+      "span": "c2:3",
+      "best_contra": 0.5559923043139517,
+      "sentence": "Pooled analyses of short-term placebo-controlled trials found that antidepressants increase suicidal thinking and behavior in children, adolescents, and young adults (ages 18-24) with MDD and other psychiatric disorders."
+    },
+    {
+      "claim_id": "g29",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.9925552237327556,
+      "span": "c1:7",
+      "best_contra": 0.004056795771304881,
+      "sentence": "Risk rises with longer duration of therapy, with about 1% of patients having serious upper GI events over 3-6 months and about 2 to 4% over one year."
+    },
+    {
+      "claim_id": "g30",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.9905442802049131,
+      "span": "c1:4",
+      "best_contra": 0.12583926529684428,
+      "sentence": "It is contraindicated in patients with hereditary or idiopathic angioedema."
+    },
+    {
+      "claim_id": "g31",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.9907973323015827,
+      "span": "c3:13",
+      "best_contra": 0.027038190622251008,
+      "sentence": "Dyspepsia occurred in 8% versus 4% on placebo, and constipation in 6% versus 4%."
+    },
+    {
+      "claim_id": "g32",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.9896760881116026,
+      "span": "c1:4",
+      "best_contra": 0.11665846860692174,
+      "sentence": "NSAIDs named are celecoxib, diclofenac, diflunisal, fenoprofen, ibuprofen, indomethacin, ketoprofen, ketorolac, mefenamic acid, naproxen, oxaprozin, piroxicam, and sulindac."
+    },
+    {
+      "claim_id": "g33",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.9924604301517519,
+      "span": "c2:2",
+      "best_contra": 0.0006530668325566576,
+      "sentence": "Pregnant women with hypertension should be carefully monitored and managed accordingly."
+    },
+    {
+      "claim_id": "g34",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.993163058502047,
+      "span": "c2:1",
+      "best_contra": 0.0012161328023669968,
+      "sentence": "The label recommends gradually reducing the dosage rather than stopping abruptly whenever possible."
+    },
+    {
+      "claim_id": "g35",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.9962526974245479,
+      "span": "c2:1",
+      "best_contra": 0.0039533426854182555,
+      "sentence": "Co-administered food is one of the factors that dosing depends on."
+    },
+    {
+      "claim_id": "g36",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "contradicted",
+      "reason": "nli_contradiction",
+      "score": 0.06794538385393135,
+      "span": "c4:10",
+      "best_contra": 0.9795703041830449,
+      "sentence": "Compared with placebo, the drug-placebo difference was 14 additional cases of suicidality per 1000 patients treated under age 18, and 5 additional cases per 1000 at ages 18-24."
+    },
+    {
+      "claim_id": "g37",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.9955950972682305,
+      "span": "c3:1",
+      "best_contra": 0.0009562470871660761,
+      "sentence": "Other factors that increase GI bleeding risk include longer duration of NSAID therapy, smoking, older age, and concomitant corticosteroids or anticoagulants."
+    },
+    {
+      "claim_id": "g38",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.9967034957979836,
+      "span": "c1:5",
+      "best_contra": 0.00043839931988773166,
+      "sentence": "Aliskiren should not be co-administered with Zestril in patients with diabetes."
+    },
+    {
+      "claim_id": "g39",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.9951661182486943,
+      "span": "c7:4",
+      "best_contra": 0.9834849782996982,
+      "sentence": "Hyperhidrosis occurred in 7% of sertraline-treated patients versus 3% on placebo."
+    },
+    {
+      "claim_id": "g40",
+      "label": "S",
+      "origin": "natural",
+      "kind": "natural",
+      "verdict": "supported",
+      "reason": null,
+      "score": 0.9960108882199766,
+      "span": "c1:5",
+      "best_contra": 0.2073893772091261,
+      "sentence": "Serotonin reuptake inhibitors named are citalopram, desvenlafaxine, duloxetine, escitalopram, fluoxetine, fluvoxamine, milnacipran, paroxetine, sertraline, venlafaxine, and vilazodone."
+    },
+    {
+      "claim_id": "g01p",
+      "label": "H",
+      "origin": "perturbed",
+      "kind": "numeric",
+      "verdict": "unsupported",
+      "reason": "numeric_mismatch",
+      "score": null,
+      "span": null,
+      "best_contra": null,
+      "sentence": "For immediate-release metformin hydrochloride tablets, the recommended starting dose in adults is 500 mg orally twice a day or 8500 mg once a day, given with meals."
+    },
+    {
+      "claim_id": "g02p",
+      "label": "H",
+      "origin": "perturbed",
+      "kind": "negation",
+      "verdict": "contradicted",
+      "reason": "nli_contradiction",
+      "score": 0.003643770734062079,
+      "span": "c1:0",
+      "best_contra": 0.9973756040641546,
+      "sentence": "Lisinopril (Zestril) is not contraindicated in combination with a neprilysin inhibitor such as sacubitril."
+    },
+    {
+      "claim_id": "g03p",
+      "label": "H",
+      "origin": "perturbed",
+      "kind": "other_drug",
+      "verdict": "unsupported",
+      "reason": "numeric_mismatch",
+      "score": null,
+      "span": null,
+      "best_contra": null,
+      "sentence": "For immediate-release metformin hydrochloride tablets, the recommended starting dose in adults is 500 mg orally twice a day or 850 mg once a day, given with meals."
+    },
+    {
+      "claim_id": "g04p",
+      "label": "H",
+      "origin": "perturbed",
+      "kind": "other_drug",
+      "verdict": "unsupported",
+      "reason": "low_entailment",
+      "score": 0.0004597750653198387,
+      "span": "c1:5",
+      "best_contra": 0.0028024894608738274,
+      "sentence": "Reported reactions after abrupt discontinuation of serotonergic antidepressants include nausea, sweating, dysphoric mood, irritability, agitation, dizziness, tremor, anxiety, confusion, headache, lethargy, emotional lability, insomnia, hypomania, tinnitus, and seizures."
+    },
+    {
+      "claim_id": "g05p",
+      "label": "H",
+      "origin": "perturbed",
+      "kind": "frequency",
+      "verdict": "unsupported",
+      "reason": "low_entailment",
+      "score": 0.0023091982342837505,
+      "span": "c3:6",
+      "best_contra": 0.11863936624817459,
+      "sentence": "The maximum weekly dose of tramadol hydrochloride tablets for adults is 400 mg per day."
+    },
+    {
+      "claim_id": "g06p",
+      "label": "H",
+      "origin": "perturbed",
+      "kind": "population",
+      "verdict": "unsupported",
+      "reason": "low_entailment",
+      "score": 0.011869930948522157,
+      "span": "c1:0+c7:0+c1:5",
+      "best_contra": 0.7931846342686921,
+      "sentence": "The limited post-marketing data on NORVASC use in nursing mothers are not sufficient to inform a drug-associated risk for major birth defects and miscarriage."
+    },
+    {
+      "claim_id": "g07p",
+      "label": "H",
+      "origin": "perturbed",
+      "kind": "negation",
+      "verdict": "contradicted",
+      "reason": "nli_contradiction",
+      "score": 0.2275833345738461,
+      "span": "c3:1",
+      "best_contra": 0.99499509043411,
+      "sentence": "Stopping paroxetine abruptly does not cause discontinuation adverse reactions."
+    },
+    {
+      "claim_id": "g08p",
+      "label": "H",
+      "origin": "perturbed",
+      "kind": "other_drug",
+      "verdict": "unsupported",
+      "reason": "low_entailment",
+      "score": 0.0019093365201073957,
+      "span": "c6:9",
+      "best_contra": 0.06713531135547206,
+      "sentence": "Hypertension in pregnancy raises the maternal risk for pre-eclampsia, gestational diabetes, premature delivery, and delivery complications, and raises the fetal risk for intrauterine growth restriction and intrauterine death."
+    },
+    {
+      "claim_id": "g09p",
+      "label": "H",
+      "origin": "perturbed",
+      "kind": "other_drug",
+      "verdict": "unsupported",
+      "reason": "low_entailment",
+      "score": 0.6135382982764133,
+      "span": "r1+c3:4+r2",
+      "best_contra": 0.14190016770651923,
+      "sentence": "Serotonin reuptake inhibitors named are citalopram, desvenlafaxine, duloxetine, escitalopram, fluoxetine, fluvoxamine, milnacipran, paroxetine, sertraline, venlafaxine, and vilazodone."
+    }
+  ]
+}
