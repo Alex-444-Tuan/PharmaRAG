@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     rate_limit_per_minute: int = 30
     cache_backend: Literal["redis", "memory"] = "redis"
     answer_cache: bool = True  # spec 11.3: switched off for the latency eval
+    trust_forwarded_for: bool = False  # rate limit on the rightmost X-Forwarded-For entry
 
     rxnav_timeout_s: float = 2.0
     llm_timeout_s: float = 30.0
