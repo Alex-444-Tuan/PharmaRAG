@@ -333,6 +333,7 @@ def create_app(
             except _DEPENDENCY_ERRORS as exc:
                 await events.aclose()
                 raise HTTPException(503, "a dependency is unavailable") from exc
+
             # SPEC: SSE bypasses the answer cache (brief for cycle 4). A cached answer would have
             # to be replayed as sentence events, which would skip the live verifier path that
             # the stream design (spec section 9) exists to show.

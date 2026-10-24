@@ -1,5 +1,25 @@
-# Cycle 0: postgres + redis. The api service, Dockerfile, and the ingest/eval
-# profiles are added in cycle 4 (spec section 12).
+# NFR-3: `docker compose up` starts the API, PostgreSQL and Redis on a CPU-only machine.
+# Ingestion and evaluation are one-shot profiles (spec section 12):
+#   docker compose --profile ingest run --rm ingest
+#   docker compose --profile eval run --rm eval lookalike --split test --mode both --runs 3
+#
+# Settings come from `.env` (copy .env.example). The values under `environment:` below win over
+# `.env` on purpose: inside Compose the database and Redis are reachable at their service names,
+# whatever a developer's `.env` says for running the API on the host.
+
+x-app-env: &app-env
+  DATABASE_URL: postgresql://postgres:postgres@postgres:5432/pharmarag
+  REDIS_URL: redis://redis:6379/0
+  CACHE_BACKEND: redis
+
+x-app-common: &app-common
+  build: .
+  image: pharmarag:local
+  env_file:
+    - path: .env
+      required: false # a clean clone has none; the defaults and `environment:` apply
+  environment: *app-env
+
 services:
   postgres:
     image: pgvector/pgvector:0.8.0-pg17
@@ -8,24 +28,69 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: pharmarag
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pharmarag"]
       interval: 2s
       timeout: 3s
       retries: 30
 
   redis:
     image: redis:7
+    # A cache and a rate-limit counter: nothing here needs to survive a restart.
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 2s
       timeout: 3s
       retries: 30
+
+  api:
+    <<: *app-common
+    # Migrations run before the server starts, so a fresh volume gets its schema.
+    command: ["sh", "-c", "alembic upgrade head && exec uvicorn pharmarag.app.main:app --host 0.0.0.0 --port 8000"]
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # Healthy means /readyz answers 200: database, Redis and both models. start_period covers
+      # model loading and warm-up.
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/readyz', timeout=4)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 120s
+
+  ingest:
+    <<: *app-common
+    profiles: ["ingest"]
+    command: ["python", "-m", "pharmarag.ingest.run", "--seed", "data/seed_ingredients.csv"]
+    # The api service applies the migrations, so wait for it. Ingestion calls DailyMed and RxNav
+    # over the network. `data/` is mounted because the label pins are read and written there.
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+
+  eval:
+    <<: *app-common
+    profiles: ["eval"]
+    entrypoint: ["python", "-m", "pharmarag.eval.run"]
+    command: ["--help"] # replaced by the arguments of `docker compose run eval <args>`
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./reports:/app/reports
 
 volumes:
   pgdata:

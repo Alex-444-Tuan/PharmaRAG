@@ -65,8 +65,6 @@ def _from_factory(build, what: str, settings: Settings):
         return None
 
 
-
-
 def make_cache(settings: Settings) -> tuple[Cache, bool]:
     """(cache, owned). Redis unless CACHE_BACKEND=memory. `RedisCache` connects lazily and is
     fail-soft, so a Redis that is down at startup slows requests down and shows up in
@@ -161,9 +159,7 @@ async def build_runtime(
             )
         if isinstance(answer_cache, _Build):
             answer_cache = (
-                _from_factory(
-                    lambda: build_answer_cache(settings, cache), "answer cache", settings
-                )
+                _from_factory(lambda: build_answer_cache(settings, cache), "answer cache", settings)
                 if settings.answer_cache
                 else None
             )

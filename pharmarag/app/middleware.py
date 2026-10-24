@@ -61,9 +61,7 @@ class OpsMiddleware:
             return
 
         t0 = time.perf_counter()
-        request_id = (
-            valid_request_id(Headers(scope=scope).get("x-request-id")) or uuid.uuid4().hex
-        )
+        request_id = valid_request_id(Headers(scope=scope).get("x-request-id")) or uuid.uuid4().hex
         state = scope.setdefault("state", {})
         state["request_id"] = request_id
         state["log_fields"] = {}
