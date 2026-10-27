@@ -55,7 +55,7 @@ async def test_complete_sends_no_temperature_and_minimal_thinking():
     kw = inter.calls[0]
     assert kw["model"] == "gemini-3.8-flash" and kw["input"] == "hi"
     assert kw["system_instruction"] == "sys"
-    assert kw["generation_config"] == {"max_output_tokens": 123, "thinking_level": "minimal"}
+    assert kw["generation_config"] == {"max_output_tokens": 123, "thinking_level": "low"}
     assert "temperature" not in str(kw)
     assert llm.usage == {"calls": 1, "input_tokens": 7, "output_tokens": 3}
 
@@ -109,6 +109,22 @@ async def test_server_error_maps_to_unavailable():
 
     llm, _ = _llm(exc=errors.ServerError(503, {"error": {"status": "UNAVAILABLE"}}))
     with pytest.raises(LLMUnavailableError):
+        await llm.complete(MSG)
+
+
+async def test_interactions_api_status_errors_map_like_the_sdk():
+    import httpx
+    from google.genai._gaos.lib import compat_errors as ce
+
+    req = httpx.Request("POST", "https://x")
+    for code, expected in ((429, LLMUnavailableError), (503, LLMUnavailableError)):
+        exc = ce.APIStatusError("boom", response=httpx.Response(code, request=req), body=None)
+        llm, _ = _llm(exc=exc)
+        with pytest.raises(expected):
+            await llm.complete(MSG)
+    bad = ce.APIStatusError("bad", response=httpx.Response(400, request=req), body=None)
+    llm, _ = _llm(exc=bad)
+    with pytest.raises(ce.APIStatusError):
         await llm.complete(MSG)
 
 

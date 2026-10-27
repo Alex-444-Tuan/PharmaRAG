@@ -5,6 +5,9 @@ retry layer), truncation travels in-band as TRUNCATION_MARKER, and transient fau
 LLMUnavailableError. Gemini 3.6+ ignores temperature, so it is not sent (same position as
 Claude 5.x: default sampling, pinned model ID). Thinking is set to "minimal" so it does not eat
 the writer's small max_tokens budget or add latency.
+
+Errors: the Interactions API raises google.genai._gaos.lib.compat_errors (APIStatusError with
+.status_code, APIConnectionError/APITimeoutError), not google.genai.errors.
 """
 
 import json
@@ -25,17 +28,23 @@ from pharmarag.llm.errors import (
 
 T = TypeVar("T", bound=BaseModel)
 
-THINKING_LEVEL = "minimal"
+# "minimal" is rejected by gemini-3.8-flash (HTTP 400, verified live); "low" is the lowest it takes.
+THINKING_LEVEL = "low"
 
 
 @contextmanager
 def _map_errors() -> Iterator[None]:
     from google.genai import errors as genai_errors
+    from google.genai._gaos.lib import compat_errors
 
     try:
         yield
-    except (httpx.TimeoutException, httpx.TransportError) as exc:
+    except (httpx.TimeoutException, httpx.TransportError, compat_errors.APIConnectionError) as exc:
         raise LLMUnavailableError(f"{type(exc).__name__}: {exc}") from exc
+    except compat_errors.APIStatusError as exc:
+        if exc.status_code == 429 or (exc.status_code or 0) >= 500:
+            raise LLMUnavailableError(f"gemini {exc.status_code}") from exc
+        raise
     except genai_errors.ServerError as exc:
         raise LLMUnavailableError(f"gemini {exc.code}: {exc.status}") from exc
     except genai_errors.ClientError as exc:
