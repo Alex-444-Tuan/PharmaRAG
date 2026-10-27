@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     embedding_model: str = "BAAI/bge-small-en-v1.5"
     embedding_dim: int = 384
     nli_model: str = "cross-encoder/nli-deberta-v3-small"
+    # Pinned Hugging Face commits: the exact weights AT-1..AT-3 were measured with (NFR-2).
+    embedding_model_revision: str = "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a"
+    nli_model_revision: str = "fa2804872c3b4bd748f38c0185cc85775361e735"
     verify_mode: Literal["off", "sequential", "stream"] = "stream"
 
     rxnav_base_url: str = "https://rxnav.nlm.nih.gov/REST"

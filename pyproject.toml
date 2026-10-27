@@ -20,6 +20,7 @@ dependencies = [
     "rapidfuzz>=3.9",
     "numpy>=1.26",
     "sentence-transformers>=3.0",
+    "torch==2.14.1",  # direct dep so [tool.uv.sources] can route Linux to the CPU index
     "anthropic>=0.40",
     "pyyaml>=6.0",
     "prometheus-client>=0.20",
@@ -58,3 +59,12 @@ extend-exclude = ["*.md"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "ASYNC"]
+
+# CPU-only torch on Linux (CI, Docker): avoids ~3 GB of CUDA wheels. macOS keeps PyPI torch.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]

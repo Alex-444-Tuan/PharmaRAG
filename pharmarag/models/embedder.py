@@ -29,12 +29,12 @@ class Embedder(Protocol):
 
 
 class SentenceTransformerEmbedder:
-    def __init__(self, model_name: str, dim: int = 384) -> None:
+    def __init__(self, model_name: str, dim: int = 384, revision: str | None = None) -> None:
         from sentence_transformers import SentenceTransformer
 
         self.model_name = model_name
         self.dim = dim
-        self._model = SentenceTransformer(model_name, device="cpu")
+        self._model = SentenceTransformer(model_name, device="cpu", revision=revision)
         self._query_prefix = BGE_QUERY_PREFIX if "bge" in model_name.lower() else ""
         # One lock for every caller (retrieval and verifier share this object). HF fast
         # tokenizers are not re-entrant across threads ("Already borrowed").
