@@ -21,8 +21,8 @@ two empty lines for you to fill in.
   the `LABEL:` and `NOTE:` lines as they are: the importer reads them.
 - Do not look at the verifier's output before labelling.
 
-> **Labelled by an LLM judge (Claude Opus 5.5) on 2026-10-23 at the user's request, not by a human.**
-> Reviewed in full by a pharmacist (the user's brother) on 2026-10-23 and approved with no label changes.
+> **Labelled by an LLM judge (Claude Opus 5.5) on 2026-10-23, not by a human.**
+> Reviewed in full by a practising pharmacist on 2026-10-23 and approved with no label changes.
 
 ---
 
