@@ -3,6 +3,7 @@
 from pharmarag.app.settings import Settings
 from pharmarag.llm.anthropic import AnthropicLLM
 from pharmarag.llm.base import FakeLLM, LLMClient
+from pharmarag.llm.gemini import GeminiLLM
 
 
 def get_llm(settings: Settings) -> LLMClient:
@@ -11,4 +12,6 @@ def get_llm(settings: Settings) -> LLMClient:
     model = settings.llm_model
     if not model or model.endswith("-latest"):
         raise ValueError("LLM_MODEL must be a pinned model ID, not empty or a '-latest' alias")
+    if settings.llm_provider == "gemini":
+        return GeminiLLM(model, api_key=settings.llm_api_key, timeout_s=settings.llm_timeout_s)
     return AnthropicLLM(model, api_key=settings.llm_api_key, timeout_s=settings.llm_timeout_s)
