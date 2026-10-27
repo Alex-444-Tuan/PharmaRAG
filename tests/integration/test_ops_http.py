@@ -27,7 +27,13 @@ from tests.graph.fakes import FakeAnswerCache, FakeRateLimiter, FakeResolver, Fa
 QUESTION = "What is the dose of hydroxyzine for anxiety?"
 
 
-def answered(corpus_version: str = "v1", status: str = "answered") -> dict:
+def answered(
+    corpus_version: str = "v1",
+    status: str = "answered",
+    *,
+    degraded: bool = False,
+    facts_unavailable: bool = False,
+) -> dict:
     return {
         "status": status,
         "drugs": [],
@@ -42,6 +48,8 @@ def answered(corpus_version: str = "v1", status: str = "answered") -> dict:
             "retrieval_attempts": 2,
             "generation_attempts": 1,
             "removed_sentences": 3,
+            "degraded": degraded,
+            "facts_unavailable": facts_unavailable,
         },
     }
 
@@ -108,6 +116,7 @@ def make_app(settings, thresholds, fake_embedder, make_fake_llm):
         trust_forwarded_for=False,
         client_addr=("203.0.113.7", 5000),
         answer_cache_enabled=True,
+        thresholds_override=None,
         **settings_update,
     ):
         s = settings.model_copy(
@@ -123,7 +132,7 @@ def make_app(settings, thresholds, fake_embedder, make_fake_llm):
             embedder=fake_embedder,
             pool=pool or FakePool(),
             settings=s,
-            thresholds=thresholds,
+            thresholds=thresholds_override or thresholds,
             resolver=FakeResolver({}),
             verifier=FakeVerifier([[]]) if verifier == "default" else verifier,
             cache=cache or InMemoryCache(),
@@ -233,10 +242,37 @@ async def test_trust_forwarded_for_falls_back_to_the_peer_without_the_header(mak
     assert list(limiter.counts) == ["10.0.0.9"]
 
 
-async def test_trust_forwarded_for_defaults_to_the_environment(settings, thresholds, monkeypatch):
-    monkeypatch.setenv("TRUST_FORWARDED_FOR", "true")
+@pytest.mark.parametrize(
+    ("trust", "bucket"), [(False, "10.0.0.9"), (True, "192.0.2.50")], ids=["off", "on"]
+)
+async def test_trust_forwarded_for_comes_from_the_settings(settings, thresholds, trust, bucket):
+    """No explicit argument: `Settings.trust_forwarded_for` decides, and it is off by default."""
+    assert settings.trust_forwarded_for is False
+    s = settings.model_copy(update={"trust_forwarded_for": trust})
     limiter = FakeRateLimiter()
-    app = create_app(settings)  # no explicit argument
+    app = create_app(s)
+    app.state.runtime = Runtime(
+        deps=Deps(
+            llm=None, embedder=None, pool=None, settings=s, thresholds=thresholds, metrics=Metrics()
+        ),
+        graph=StubGraph(),
+        rate_limiter=limiter,
+    )
+    transport = httpx.ASGITransport(app=app, client=("10.0.0.9", 1))
+    async with httpx.AsyncClient(transport=transport, base_url="http://t") as client:
+        await client.post(
+            "/v1/ask", json={"question": QUESTION}, headers={"X-Forwarded-For": "192.0.2.50"}
+        )
+    assert list(limiter.counts) == [bucket]
+
+
+async def test_rotating_x_forwarded_for_does_not_escape_the_limit_when_trust_is_off(
+    settings, thresholds
+):
+    """The reviewer's bypass: with the setting off, a new XFF value per request must not buy a
+    new bucket. The socket peer is the key, so the third request is limited."""
+    limiter = FakeRateLimiter(limit=2)
+    app = create_app(settings)
     app.state.runtime = Runtime(
         deps=Deps(
             llm=None,
@@ -249,12 +285,19 @@ async def test_trust_forwarded_for_defaults_to_the_environment(settings, thresho
         graph=StubGraph(),
         rate_limiter=limiter,
     )
-    transport = httpx.ASGITransport(app=app, client=("10.0.0.9", 1))
+    transport = httpx.ASGITransport(app=app, client=("127.0.0.1", 1))
     async with httpx.AsyncClient(transport=transport, base_url="http://t") as client:
-        await client.post(
-            "/v1/ask", json={"question": QUESTION}, headers={"X-Forwarded-For": "192.0.2.50"}
-        )
-    assert list(limiter.counts) == ["192.0.2.50"]
+        codes = [
+            (
+                await client.post(
+                    "/v1/ask",
+                    json={"question": QUESTION},
+                    headers={"X-Forwarded-For": f"198.51.100.{i}"},
+                )
+            ).status_code
+            for i in range(3)
+        ]
+    assert codes == [200, 200, 429] and list(limiter.counts) == ["127.0.0.1"]
 
 
 async def test_a_broken_limiter_fails_open(make_app, caplog):
@@ -695,3 +738,141 @@ async def test_the_swagger_description_carries_the_nlm_statement(make_app):
         spec = (await client.get("/openapi.json")).json()
     assert main_module.NLM_ATTRIBUTION in spec["info"]["description"]
     assert "National Library of Medicine" in spec["info"]["description"]
+
+
+# --- degraded answers are not cached (RxNav outage) ---------------------------------------------
+
+
+@pytest.mark.parametrize("flag", ["degraded", "facts_unavailable"])
+async def test_an_answer_written_during_an_rxnav_outage_is_not_cached_and_recovery_is_a_miss(
+    make_app, corpus_version_box, flag
+):
+    cache = FakeAnswerCache()
+    graph = StubGraph(answered(**{flag: True}))
+    client, _, _ = make_app(answer_cache=cache, graph=graph)
+    async with client:
+        outage = (await ask(client)).json()
+        # RxNav is back: the same question must be computed again, not served from the outage.
+        graph.response = answered()
+        recovered = (await ask(client)).json()
+        after = (await ask(client)).json()
+    assert outage["meta"][flag] is True and outage["status"] == "answered"
+    assert len(cache.puts) == 1  # only the healthy answer was stored
+    assert recovered["meta"]["cache_hit"] is False and recovered["meta"][flag] is False
+    assert after["meta"]["cache_hit"] is True and after["meta"][flag] is False
+    assert graph.calls == 2
+
+
+async def test_a_degraded_answer_is_still_returned_to_the_client(make_app, corpus_version_box):
+    client, _, _ = make_app(
+        answer_cache=FakeAnswerCache(),
+        graph=StubGraph(answered(degraded=True, facts_unavailable=True)),
+    )
+    async with client:
+        body = (await ask(client)).json()
+    assert body["status"] == "answered" and body["answer"]
+    assert body["meta"]["degraded"] is True and body["meta"]["facts_unavailable"] is True
+
+
+# --- the answer-cache key follows the configuration ---------------------------------------------
+
+
+async def test_a_retuned_threshold_or_a_new_model_never_serves_an_old_answer(
+    make_app, thresholds, corpus_version_box
+):
+    cache = FakeAnswerCache()
+    retuned = thresholds.model_copy(
+        update={
+            "grounding": thresholds.grounding.model_copy(
+                update={"entail_min": thresholds.grounding.entail_min + 0.05}
+            )
+        }
+    )
+
+    async def second(**kw):
+        client, _, graph = make_app(answer_cache=cache, **kw)
+        async with client:
+            body = (await ask(client)).json()
+        return body["meta"]["cache_hit"], graph.calls
+
+    assert await second() == (False, 1)  # first: computed and stored
+    assert await second() == (True, 0)  # same configuration: served
+    assert await second(thresholds_override=retuned) == (False, 1)  # new thresholds: recomputed
+    assert await second(llm_model="another-model-id") == (False, 1)  # new LLM: recomputed
+    assert await second(nli_model_revision="0" * 40) == (False, 1)  # new weights: recomputed
+    assert len(cache.data) == 4
+    digests = {k.split("cfg=")[1] for k in cache.data}
+    assert all(",cfg=" in k for k in cache.data) and len(digests) == 4
+
+
+def test_the_config_digest_is_short_and_stable(settings, thresholds):
+    deps = Deps(llm=None, embedder=None, pool=None, settings=settings, thresholds=thresholds)
+    digest = main_module.config_digest(deps)
+    assert len(digest) == 10 and digest == main_module.config_digest(deps)
+
+
+# --- 500 responses ------------------------------------------------------------------------------
+
+
+def with_boom(app):
+    @app.get("/boom")
+    async def boom():
+        raise RuntimeError("bug")
+
+
+async def test_an_unhandled_error_is_a_500_that_still_carries_the_request_id(make_app, caplog):
+    client, app, _ = make_app()
+    with_boom(app)
+    transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
+    async with httpx.AsyncClient(transport=transport, base_url="http://t") as c:
+        with caplog.at_level(logging.INFO, logger=EVENT_LOGGER):
+            generated = await c.get("/boom")
+            echoed = await c.get("/boom", headers={"X-Request-ID": "trace-500"})
+    assert generated.status_code == 500 and generated.json() == {"detail": "internal error"}
+    assert len(generated.headers["x-request-id"]) == 32
+    assert echoed.headers["x-request-id"] == "trace-500"
+    # The request line records the 500 under the same ID.
+    lines = [r.fields for r in request_records(caplog) if r.fields["path"] == "/boom"]
+    assert [ln["http_status"] for ln in lines] == [500, 500]
+    assert lines[1]["request_id"] == "trace-500"
+
+
+async def test_an_unhandled_error_still_reaches_the_server_log(make_app):
+    """Starlette re-raises after the 500 is sent, so uvicorn logs the traceback (as JSON)."""
+    client, app, _ = make_app()
+    with_boom(app)
+    async with client:
+        with pytest.raises(RuntimeError, match="bug"):
+            await client.get("/boom")
+
+
+# --- end-to-end latency histogram ---------------------------------------------------------------
+
+
+async def test_request_latency_is_a_histogram_by_route(make_app, corpus_version_box):
+    client, app, _ = make_app()
+    async with client:
+        await ask(client)
+        text = (await client.get("/metrics")).text
+    sample = app.state.runtime.deps.metrics.registry.get_sample_value
+    assert sample("pharmarag_request_duration_seconds_count", {"path": "/v1/ask"}) == 1.0
+    assert "# TYPE pharmarag_request_duration_seconds histogram" in text
+    # The NFR-1 targets (4 s, 8 s) are bucket edges, so p50/p95 can be read off a dashboard.
+    for edge in ("4.0", "8.0"):
+        assert f'pharmarag_request_duration_seconds_bucket{{le="{edge}",path="/v1/ask"}}' in text
+
+
+# --- request ID format ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("bad", ["abc\n", "a b", "", "x" * 65, "ünï", "a;b"])
+def test_request_id_must_match_in_full(bad):
+    from pharmarag.app.observability import valid_request_id
+
+    assert valid_request_id(bad) is None
+
+
+def test_request_id_accepts_the_documented_alphabet():
+    from pharmarag.app.observability import valid_request_id
+
+    assert valid_request_id("Trace-1_2.3") == "Trace-1_2.3" and valid_request_id("x" * 64)

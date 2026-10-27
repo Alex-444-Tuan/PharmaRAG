@@ -14,6 +14,7 @@ permissions:
 
 env:
   UV_VERSION: "0.8.3"
+  HF_HOME: ${{ github.workspace }}/.hf-cache
 
 jobs:
   test:
@@ -59,27 +60,63 @@ jobs:
         with:
           python-version: "3.12"
 
-      # `uv sync` on Linux x86_64 installs the CUDA build of PyTorch (about 3 GB of nvidia-*
-      # packages). Nothing here uses a GPU, so install the CPU build at the version uv.lock pins:
-      # the same recipe as the Dockerfile.
-      - name: Install dependencies (CPU-only PyTorch)
+      # pyproject.toml routes torch to the PyTorch CPU index on Linux, so this installs
+      # `torch==2.14.1+cpu` and none of the roughly 3 GB of CUDA packages.
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      # The pinned model commits come from Settings, the one place they are defined, so the
+      # cache key changes exactly when the models do.
+      - name: Model cache key
+        id: models
         run: |
-          uv export --frozen --no-emit-project --no-hashes -o requirements.txt
-          grep -iE '^torch==' requirements.txt > torch.txt
-          grep -viE '^(torch==|nvidia-|cuda-|triton)' requirements.txt > requirements-cpu.txt
-          uv venv .venv
-          uv pip install --no-deps --index-url https://download.pytorch.org/whl/cpu -r torch.txt
-          uv pip install --no-deps -r requirements-cpu.txt
+          uv run --no-sync python - >> "$GITHUB_OUTPUT" <<'PY'
+          from pharmarag.app.settings import Settings
+
+          s = Settings(_env_file=None)
+          print(f"key=hf-{s.embedding_model_revision[:12]}-{s.nli_model_revision[:12]}")
+          PY
+
+      - name: Cache Hugging Face models
+        id: hf
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.HF_HOME }}
+          key: ${{ steps.models.outputs.key }}
+
+      # With the models present the tests that load the real NLI model run instead of skipping.
+      - name: Download pinned models (cache miss only)
+        if: steps.hf.outputs.cache-hit != 'true'
+        run: |
+          uv run --no-sync python - <<'PY'
+          from pathlib import Path
+
+          from huggingface_hub import snapshot_download
+          from huggingface_hub.constants import HF_HUB_CACHE
+
+          from pharmarag.app.settings import Settings
+
+          s = Settings(_env_file=None)
+          for repo, rev in (
+              (s.embedding_model, s.embedding_model_revision),
+              (s.nli_model, s.nli_model_revision),
+          ):
+              snapshot_download(repo, revision=rev, ignore_patterns=["onnx/*", "openvino/*", "*.onnx", "*.bin"])
+              # A download by commit hash writes no refs/main; lookups by name need it.
+              refs = Path(HF_HUB_CACHE) / ("models--" + repo.replace("/", "--")) / "refs"
+              refs.mkdir(parents=True, exist_ok=True)
+              (refs / "main").write_text(rev)
+          PY
 
       - name: Lint
         run: |
-          uv run --no-sync ruff check .
-          uv run --no-sync ruff format --check .
+          uv run --frozen ruff check .
+          uv run --frozen ruff format --check .
 
       # Tests marked `corpus` need the ingested dev corpus and skip themselves here. That is
       # expected: the corpus is built from live DailyMed/RxNav data and is not part of CI.
       - name: Test
-        run: uv run --no-sync pytest -q -ra
+        run: uv run --frozen pytest -q -ra
 
   compose:
     name: clean-clone docker compose up
@@ -97,9 +134,19 @@ jobs:
             echo "LLM_MODEL=fake-llm"
           } > .env
 
-      # Tagged as the image name docker-compose.yml uses, so `up --no-build` runs this exact image.
+      - uses: docker/setup-buildx-action@v3
+
+      # Tagged as the image name docker-compose.yml uses, so `up --no-build` runs this exact
+      # image. The GitHub Actions layer cache keeps the model-download layer between runs; the
+      # layer changes when the pinned revisions in the Dockerfile do.
       - name: Build the image (models are downloaded here)
-        run: docker build --tag pharmarag:local .
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: pharmarag:local
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Validate the compose file
         run: docker compose config --quiet

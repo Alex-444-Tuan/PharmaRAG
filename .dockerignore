@@ -16,6 +16,7 @@ tests
 reports
 data/raw
 data/cache
+data/ci_fixture.sql.gz
 *.md
 Dockerfile
 docker-compose.yml

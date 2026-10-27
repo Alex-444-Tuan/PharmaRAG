@@ -29,7 +29,10 @@ import asyncio
 import dataclasses
 import json
 import logging
+import os
+import platform
 import random
+import subprocess
 import sys
 import time
 import zlib
@@ -624,6 +627,59 @@ def _headline_markdown(title: str, h: dict) -> list[str]:
     return out
 
 
+CPUINFO = Path("/proc/cpuinfo")
+
+
+def cpu_model(cpuinfo: Path = CPUINFO) -> str:
+    """The CPU model name of the machine that ran the measurement.
+
+    Latency numbers are only comparable between runs on the same kind of hardware, and the CI
+    gate compares against a recorded run, so the report must say what it ran on. Linux:
+    `model name` in /proc/cpuinfo (some ARM kernels print `Model` or `Hardware` instead).
+    macOS: `sysctl machdep.cpu.brand_string`. Anything else: `platform.processor()`.
+    """
+    try:
+        for line in cpuinfo.read_text().splitlines():
+            key, _, value = line.partition(":")
+            if key.strip().lower() in ("model name", "model", "hardware") and value.strip():
+                return value.strip()
+    except OSError:
+        pass
+    if sys.platform == "darwin":
+        try:
+            out = subprocess.run(
+                ["sysctl", "-n", "machdep.cpu.brand_string"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=True,
+            ).stdout.strip()
+            if out:
+                return out
+        except (OSError, subprocess.SubprocessError):
+            pass
+    return platform.processor() or platform.machine() or "unknown"
+
+
+def runner_info(cpuinfo: Path = CPUINFO) -> dict:
+    return {
+        "cpu_model": cpu_model(cpuinfo),
+        "cpu_count": os.cpu_count(),
+        "machine": platform.machine(),
+        "platform": platform.platform(),
+    }
+
+
+def _runner_line(report: dict) -> list[str]:
+    runner = report.get("runner")  # reports written before this field existed have none
+    if not runner:
+        return []
+    return [
+        f"- runner: {runner['cpu_model']}, {runner['cpu_count']} logical CPUs "
+        f"({runner['platform']})"
+    ]
+
+
 def render_markdown(report: dict) -> str:
     st, h = report["stats"], report["stats"]["headline"]
     out = [
@@ -634,6 +690,7 @@ def render_markdown(report: dict) -> str:
         f"- thresholds commit `{report.get('thresholds_commit')}` "
         f"(dirty: {report.get('thresholds_dirty')}), git HEAD `{report.get('git_head')}`",
         f"- verifier: {report['config']['verifier']}",
+        *_runner_line(report),
         f"- {report['config']['questions']} questions x {report['runs']} reps x 3 modes, "
         f"first rep discarded, {st['measured_requests']} measured requests, "
         f"{len(st['errors'])} errors",
@@ -892,6 +949,7 @@ async def replay(args: argparse.Namespace, settings: Settings) -> dict:
         thresholds=thresholds,
         dataset=QUESTIONS_FILE,
     )
+    report["runner"] = runner_info()
     report["config"] = {
         "questions": len(questions),
         "verifier": SleepVerifier().describe() if args.verifier == "fake" else "real (NLI)",

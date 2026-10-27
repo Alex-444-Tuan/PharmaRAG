@@ -92,15 +92,17 @@ class OpsMiddleware:
             route = scope.get("route")
             # "unrouted": the request never reached a route (a 404, or the 429 answered here).
             path = getattr(route, "path", None) or "unrouted"
+            elapsed = time.perf_counter() - t0
             if metrics is not None:
                 metrics.http_requests.labels(path, str(seen["status"])).inc()
+                metrics.request_duration.labels(path).observe(elapsed)
             log_event(
                 "request",
                 request_id=request_id,
                 method=scope["method"],
                 path=path,
                 http_status=seen["status"],
-                duration_ms=round((time.perf_counter() - t0) * 1000, 2),
+                duration_ms=round(elapsed * 1000, 2),
                 **state["log_fields"],
             )
 

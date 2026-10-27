@@ -112,7 +112,10 @@ async def build_runtime(
     """
     if embedder is None:
         embedder = await asyncio.to_thread(
-            SentenceTransformerEmbedder, settings.embedding_model, settings.embedding_dim
+            SentenceTransformerEmbedder,
+            settings.embedding_model,
+            settings.embedding_dim,
+            settings.embedding_model_revision,  # a pinned commit, so the weights cannot drift
         )
     # The first inference pays one-off setup costs (weights paging in, thread pools).
     # Doing it here keeps that off the first user's latency.
