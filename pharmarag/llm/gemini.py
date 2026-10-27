@@ -30,6 +30,10 @@ T = TypeVar("T", bound=BaseModel)
 
 # "minimal" is rejected by gemini-3.8-flash (HTTP 400, verified live); "low" is the lowest it takes.
 THINKING_LEVEL = "low"
+# Gemini counts thinking tokens against max_output_tokens. With the writer's 500-token answer
+# budget, "low" thinking alone used most of it and cut the answer mid-sentence (verified live).
+# The caller's max_tokens stays the visible-answer budget; this headroom is added for thinking.
+THINKING_HEADROOM_TOKENS = 2048
 
 
 @contextmanager
@@ -92,7 +96,7 @@ class GeminiLLM:
             "model": self.model_id,
             "input": _as_input(messages),
             "generation_config": {
-                "max_output_tokens": max_tokens,
+                "max_output_tokens": max_tokens + THINKING_HEADROOM_TOKENS,
                 "thinking_level": THINKING_LEVEL,
             },
             "timeout": self._timeout_s,

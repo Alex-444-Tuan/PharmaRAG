@@ -55,7 +55,10 @@ async def test_complete_sends_no_temperature_and_minimal_thinking():
     kw = inter.calls[0]
     assert kw["model"] == "gemini-3.8-flash" and kw["input"] == "hi"
     assert kw["system_instruction"] == "sys"
-    assert kw["generation_config"] == {"max_output_tokens": 123, "thinking_level": "low"}
+    assert kw["generation_config"] == {
+        "max_output_tokens": 123 + 2048,  # thinking headroom
+        "thinking_level": "low",
+    }
     assert "temperature" not in str(kw)
     assert llm.usage == {"calls": 1, "input_tokens": 7, "output_tokens": 3}
 
