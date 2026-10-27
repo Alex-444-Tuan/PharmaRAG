@@ -8,6 +8,7 @@
     python -m pharmarag.eval.run grounding --import        worksheet -> grounding_labels_test.jsonl
     python -m pharmarag.eval.run grounding --topup         perturbed claims if fewer than 10 are H
     python -m pharmarag.eval.run grounding --score         AT-2 and AT-2b on the labelled claims
+    python -m pharmarag.eval.run grounding --score --ci    the same, exit 1 unless AT-2 is valid
 
 Only --generate calls the LLM. Everything else is local models and files.
 """
@@ -25,6 +26,7 @@ from pathlib import Path
 from pharmarag.app.settings import REPO_ROOT, Settings, Thresholds, get_settings, load_thresholds
 from pharmarag.db import connect
 from pharmarag.eval import (
+    ci_gates,
     grounding_bench,
     grounding_dev,
     grounding_generate,
@@ -49,6 +51,9 @@ def add_parser(sub) -> argparse.ArgumentParser:
         group.add_argument(f"--{a}", dest="action", action="store_const", const=a)
     g.add_argument("--out-dir", type=Path, default=REPO_ROOT / "reports")
     g.add_argument("--force", action="store_true", help="overwrite a frozen file or a worksheet")
+    g.add_argument(
+        "--ci", action="store_true", help="with --score: exit 1 unless summary.at2_valid is true"
+    )
     g.add_argument("--nli-model", default=None, help="override NLI_MODEL (e.g. the xsmall model)")
     g.add_argument("--context", choices=["neighbour", "span", "both", "cascade"], default=None)
     g.add_argument("--torch-threads", type=int, default=None, help="torch.set_num_threads(N)")
@@ -289,6 +294,11 @@ async def _score(args, settings) -> int:
     j, m = write_report(report, args.out_dir, md)
     print(f"wrote {j}\nwrote {m}")
     print(md)
+    if args.ci:
+        failures = ci_gates.grounding_failures(report)
+        for f in failures:
+            print(f"CI GATE FAILED (grounding): {f}")
+        return 1 if failures else 0
     return 0
 
 
@@ -304,8 +314,11 @@ HANDLERS = {
 }
 
 
-def main_async(args: argparse.Namespace):
-    return HANDLERS[args.action](args, get_settings())
+async def main_async(args: argparse.Namespace) -> int:
+    if args.ci and args.action != "score":
+        print("--ci applies to --score only")
+        return 2
+    return await HANDLERS[args.action](args, get_settings())
 
 
 def main(argv: list[str] | None = None) -> int:
