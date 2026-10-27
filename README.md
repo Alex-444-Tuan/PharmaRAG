@@ -243,7 +243,7 @@ The reduction is 100% on the mean counts (1.6 falling to 0). In every run the sy
 
 Caveats. Only 1 of the 10 hallucinated claims is a natural hallucination; the other 9 are perturbed (changed dose, negation, a fact from another drug), because the top-up rule fired. The labels were drafted by an LLM judge (Claude Opus 5.5) and reviewed by a pharmacist, who approved all 40 unchanged. The AT-2b rate sits exactly on its limit, with 3 rejections in 30. The verifier is deterministic, so the report is one run; the claim set is small.
 
-**AT-3, no added latency** (target: stream p50 within 5% and p95 within 10% of verifier off). Report: [`reports/latency_replay_real_20261016T002648Z.md`](reports/latency_replay_real_20261016T002648Z.md). Replay mode: recorded `claude-sonnet-5-5` token timings, the real NLI verifier, 30 questions x 5 repetitions x 3 modes with the first repetition discarded, 0 errors. The headline set is the 80 paired requests (20 questions) that need no regeneration.
+**AT-3, latency overhead of the check** (target: stream p50 within 5% and p95 within 10% of verifier off). Report: [`reports/latency_replay_real_20261016T002648Z.md`](reports/latency_replay_real_20261016T002648Z.md). Replay mode: recorded `claude-sonnet-5-5` token timings, the real NLI verifier, 30 questions x 5 repetitions x 3 modes with the first repetition discarded, 0 errors. The headline set is the 80 paired requests (20 questions) that need no regeneration.
 
 | Mode | p50 | p95 |
 | --- | --- | --- |
