@@ -1,0 +1,133 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  UV_VERSION: "0.8.3"
+
+jobs:
+  test:
+    name: lint and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.0-pg17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pharmarag
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    env:
+      TEST_DATABASE_ADMIN_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      REDIS_URL: redis://localhost:6379/0
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # `uv sync` on Linux x86_64 installs the CUDA build of PyTorch (about 3 GB of nvidia-*
+      # packages). Nothing here uses a GPU, so install the CPU build at the version uv.lock pins:
+      # the same recipe as the Dockerfile.
+      - name: Install dependencies (CPU-only PyTorch)
+        run: |
+          uv export --frozen --no-emit-project --no-hashes -o requirements.txt
+          grep -iE '^torch==' requirements.txt > torch.txt
+          grep -viE '^(torch==|nvidia-|cuda-|triton)' requirements.txt > requirements-cpu.txt
+          uv venv .venv
+          uv pip install --no-deps --index-url https://download.pytorch.org/whl/cpu -r torch.txt
+          uv pip install --no-deps -r requirements-cpu.txt
+
+      - name: Lint
+        run: |
+          uv run --no-sync ruff check .
+          uv run --no-sync ruff format --check .
+
+      # Tests marked `corpus` need the ingested dev corpus and skip themselves here. That is
+      # expected: the corpus is built from live DailyMed/RxNav data and is not part of CI.
+      - name: Test
+        run: uv run --no-sync pytest -q -ra
+
+  compose:
+    name: clean-clone docker compose up
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      # NFR-3. A clean clone has no .env, so write the minimum: the fake LLM needs no key.
+      - name: Write .env
+        run: |
+          {
+            echo "LLM_PROVIDER=fake"
+            echo "LLM_MODEL=fake-llm"
+          } > .env
+
+      # Tagged as the image name docker-compose.yml uses, so `up --no-build` runs this exact image.
+      - name: Build the image (models are downloaded here)
+        run: docker build --tag pharmarag:local .
+
+      - name: Validate the compose file
+        run: docker compose config --quiet
+
+      - name: Start the stack
+        run: docker compose up -d --no-build
+
+      - name: Wait for /readyz
+        run: |
+          for i in $(seq 1 90); do
+            if curl -fsS http://localhost:8000/readyz; then echo; exit 0; fi
+            sleep 5
+          done
+          echo "api never became ready"
+          docker compose ps
+          docker compose logs --no-color api
+          exit 1
+
+      - name: Smoke the other endpoints
+        run: |
+          curl -fsS http://localhost:8000/healthz
+          curl -fsS http://localhost:8000/metrics | grep -q '^pharmarag_http_requests_total'
+          curl -fsS -o /dev/null -w '%{http_code}\n' http://localhost:8000/docs
+
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v

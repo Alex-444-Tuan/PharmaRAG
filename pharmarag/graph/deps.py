@@ -4,11 +4,13 @@ from dataclasses import dataclass, field
 
 from psycopg_pool import AsyncConnectionPool
 
+from pharmarag.app.observability import Metrics
 from pharmarag.app.settings import Settings, Thresholds
 from pharmarag.cache import Cache, InMemoryCache
 from pharmarag.grounding.base import Verifier
 from pharmarag.llm.base import LLMClient
 from pharmarag.models.embedder import Embedder
+from pharmarag.ops import QueryEmbeddingCache
 from pharmarag.resolver.base import Resolver, RxFactsSource
 
 
@@ -26,6 +28,10 @@ class Deps:
     rx_facts: RxFactsSource | None = None
     verifier: Verifier | None = None
     cache: Cache = field(default_factory=InMemoryCache)
+    # None: embed with `embedder` directly (no cache in this build, or EVAL_MODE without one).
+    query_embeddings: QueryEmbeddingCache | None = None
+    # None: nothing is counted (unit tests that do not look at metrics).
+    metrics: Metrics | None = None
 
     @property
     def resolver_available(self) -> bool:

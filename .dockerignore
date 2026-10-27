@@ -1,0 +1,22 @@
+# Build context hygiene: keep secrets, caches, tests and agent worktrees out of the image.
+.git
+.gitignore
+.github
+.claude
+.venv
+.env
+.env.*
+!.env.example
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.ruff_cache
+.mypy_cache
+tests
+reports
+data/raw
+data/cache
+*.md
+Dockerfile
+docker-compose.yml
+.dockerignore

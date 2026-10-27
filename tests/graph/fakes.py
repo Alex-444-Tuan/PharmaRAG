@@ -190,3 +190,53 @@ def analysis(**kw) -> str:
 
 def rewrite(query: str = DOSE_TEXT) -> str:
     return json.dumps({"search_query": query})
+
+
+# --- cycle 4 operational fakes (the real ones are Lane A's, pharmarag/caching/) ----------------
+
+
+class FakeRateLimiter:
+    """`limit` allowed hits per client id, then denials with a 17 s Retry-After."""
+
+    def __init__(self, limit: int = 30, error: Exception | None = None):
+        self.limit = limit
+        self.error = error
+        self.counts: dict[str, int] = {}
+
+    async def hit(self, client_id: str):
+        from pharmarag.ops import RateDecision
+
+        if self.error:
+            raise self.error
+        n = self.counts[client_id] = self.counts.get(client_id, 0) + 1
+        if n > self.limit:
+            return RateDecision(allowed=False, remaining=0, retry_after_s=17)
+        return RateDecision(allowed=True, remaining=self.limit - n, retry_after_s=0)
+
+
+class FakeAnswerCache:
+    def __init__(self) -> None:
+        self.data: dict[str, dict] = {}
+        self.gets: list[str] = []
+        self.puts: list[str] = []
+
+    async def get(self, key: str) -> dict | None:
+        self.gets.append(key)
+        return self.data.get(key)
+
+    async def put(self, key: str, response: dict) -> None:
+        self.puts.append(key)
+        self.data[key] = response
+
+
+class FakeQueryEmbeddingCache:
+    """Embeds through `embedder` on a miss, like the real cache; remembers by query text."""
+
+    def __init__(self, embedder) -> None:
+        self.embedder = embedder
+        self.vectors: dict[str, object] = {}
+
+    async def embed_query(self, text: str):
+        if text not in self.vectors:
+            self.vectors[text] = self.embedder.embed_query(text)
+        return self.vectors[text]
