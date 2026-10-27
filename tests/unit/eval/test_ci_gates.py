@@ -1,4 +1,4 @@
-"""CI gates (spec section 13, "Eval in CI"): the rules, the CLI wiring and the exit codes."""
+"""CI gates (spec section 13): the rules, the CLI wiring and the exit codes."""
 
 import asyncio
 import json
@@ -18,21 +18,26 @@ def run(argv):
 
 # --- look-alike ---
 
+EXPECTED = ci_gates.load_lookalike_expected()
 
-def la_report(*per_run_wrong, total=15, offline=True):
+
+def la_report(*per_run_changes, total=None, offline=True):
+    """A report whose runs equal the frozen reference, except for `changes`: a dict
+    {row index: field overrides} per run. `la_report({})` is one clean run."""
     runs = []
-    for wrong in per_run_wrong:
-        rows = [
-            {
-                "mention": f"m{i}",
-                "outcome": "wrong_drug",
-                "resolved_name": "partner",
-                "resolved_key": "1",
-                "gold_ingredient_key": "2",
+    for changes in per_run_changes:
+        rows = []
+        for i, e in enumerate(EXPECTED):
+            row = {
+                **e,
+                "resolved_name": "x",
+                "gold_ingredient_key": e["resolved_key"] or "gold",
+                **changes.get(i, {}),
             }
-            for i in range(wrong)
-        ]
-        runs.append({"counts": {"wrong_drug": wrong, "total": total}, "rows": rows})
+            rows.append(row)
+        wrong = sum(r["outcome"] == "wrong_drug" for r in rows)
+        n = len(rows) if total is None else total
+        runs.append({"counts": {"wrong_drug": wrong, "total": n}, "rows": rows})
     return {
         "resolver_only": True,
         "rxnav": "offline" if offline else "live",
@@ -40,43 +45,121 @@ def la_report(*per_run_wrong, total=15, offline=True):
     }
 
 
-def test_lookalike_passes_with_zero_wrong_drug_resolutions():
-    assert ci_gates.lookalike_failures(la_report(0), dataset_rows=15) == []
+def gate(report):
+    return ci_gates.lookalike_failures(report, dataset_rows=15, expected=EXPECTED)
+
+
+WRONG = {0: {"outcome": "wrong_drug", "status": "resolved", "resolved_key": "5470"}}
+DEAD = {
+    i: {"outcome": "not_recognised", "status": "unknown", "resolved_key": None} for i in range(15)
+}
+
+
+def test_the_frozen_lookalike_reference_is_12_correct_and_3_clarified():
+    assert len(EXPECTED) == 15
+    outcomes = [e["outcome"] for e in EXPECTED]
+    assert outcomes.count("correct") == 12 and outcomes.count("clarified") == 3
+    assert all(e["resolved_key"] for e in EXPECTED if e["outcome"] == "correct")
+    dataset = eval_run.lookalike.load_dataset("test")
+    assert [e["mention"] for e in EXPECTED] == [r.mention for r in dataset]
+
+
+def test_lookalike_passes_when_every_row_matches_the_reference():
+    assert gate(la_report({})) == []
+
+
+def test_lookalike_fails_when_the_resolver_stops_resolving():
+    # Zero wrong-drug resolutions, and still a failure: every row is not_recognised.
+    report = la_report(DEAD)
+    assert report["system"]["runs"][0]["counts"]["wrong_drug"] == 0
+    failures = gate(report)
+    assert len(failures) == 15 and "expected correct/resolved/4815" in " ".join(failures)
+
+
+def test_lookalike_fails_when_a_clarification_becomes_a_resolution_or_the_key_changes():
+    assert gate(
+        la_report({0: {"outcome": "correct", "status": "resolved", "resolved_key": "5553"}})
+    )
+    assert gate(la_report({2: {"resolved_key": "9999"}}))  # same outcome, different key
 
 
 def test_lookalike_fails_on_one_wrong_drug_and_names_it():
-    (msg,) = ci_gates.lookalike_failures(la_report(1), dataset_rows=15)
-    assert "1 wrong-drug" in msg and "'m0'" in msg and "partner" in msg
+    failures = gate(la_report(WRONG))
+    assert any("1 wrong-drug" in f and "hydroxazine" in f for f in failures)
 
 
 def test_lookalike_checks_every_run_not_just_the_last():
-    failures = ci_gates.lookalike_failures(la_report(1, 0), dataset_rows=15)
-    assert len(failures) == 1 and failures[0].startswith("run 1")
+    failures = gate(la_report(WRONG, {}))
+    assert failures and all(f.startswith("run 1") for f in failures)
 
 
-def test_lookalike_fails_when_rows_went_missing():
-    assert ci_gates.lookalike_failures(la_report(0, total=14), dataset_rows=15)
-    assert ci_gates.lookalike_failures(la_report(0, total=0), dataset_rows=None)
+def test_lookalike_fails_when_rows_went_missing_or_the_reference_is_absent():
+    assert gate(la_report({}, total=14))
+    short = la_report({})
+    short["system"]["runs"][0]["rows"].pop()
+    assert any("14 rows" in f for f in gate(short))
+    assert ci_gates.lookalike_failures(la_report({}), dataset_rows=15, expected=None)
 
 
 def test_lookalike_fails_without_a_system_arm_or_when_not_offline():
-    assert ci_gates.lookalike_failures({"resolver_only": True, "rxnav": "offline"})
-    assert ci_gates.lookalike_failures(la_report(0, offline=False))
+    assert gate({"resolver_only": True, "rxnav": "offline"})
+    assert gate(la_report({}, offline=False))
 
 
 # --- grounding ---
 
+REFERENCE = ci_gates.load_grounding_reference()
+
+
+def gr_report(valid=True, drift=None, verdicts=None, drop=()):
+    rows = [dict(r) for r in REFERENCE if r["claim_id"] not in drop]
+    for r in rows:
+        if r["score"] is not None:  # two perturbed claims never reach the NLI model
+            r["score"] += (drift or {}).get(r["claim_id"], 0.0)
+        r["verdict"] = (verdicts or {}).get(r["claim_id"], r["verdict"])
+    return {"summary": {"at2_valid": valid}, "rows": rows}
+
+
+def test_the_frozen_grounding_reference_covers_the_40_claims():
+    assert len(REFERENCE) == 40
+    scores = [r["score"] for r in REFERENCE if r["score"] is not None]
+    # The nearest claims to entail_min (0.7) are 0.740 (g13, a hallucination that passes) and
+    # 0.614: far outside the 1e-3 the drift check allows, so a drift alarm comes long before a flip.
+    assert min(abs(x - 0.7) for x in scores) > 0.03
+    assert ci_gates.SCORE_DRIFT_MAX == 1e-3
+
+
+def test_grounding_gate_passes_on_the_reference_itself():
+    assert ci_gates.grounding_failures(gr_report(), reference=REFERENCE) == []
+
 
 def test_grounding_gate_follows_at2_valid():
-    assert ci_gates.grounding_failures({"summary": {"at2_valid": True}}) == []
-    (msg,) = ci_gates.grounding_failures(
-        {"summary": {"at2_valid": False, "reduction": 0.5, "at2_target": 0.73}}
-    )
+    invalid = {"at2_valid": False, "reduction": 0.5, "at2_target": 0.73}
+    (msg,) = ci_gates.grounding_failures({**gr_report(), "summary": invalid}, reference=REFERENCE)
     assert "0.5" in msg
-    (msg,) = ci_gates.grounding_failures(
-        {"summary": {"at2_valid": False, "invalid_reason": "dirty thresholds"}}
-    )
+    dirty = {"at2_valid": False, "invalid_reason": "dirty thresholds"}
+    (msg,) = ci_gates.grounding_failures({**gr_report(), "summary": dirty}, reference=REFERENCE)
     assert "dirty thresholds" in msg
+
+
+def test_grounding_gate_tolerates_a_drift_up_to_1e_3_and_fails_beyond_it():
+    cid = REFERENCE[0]["claim_id"]
+    assert ci_gates.grounding_failures(gr_report(drift={cid: 9e-4}), reference=REFERENCE) == []
+    (msg,) = ci_gates.grounding_failures(gr_report(drift={cid: -1.5e-3}), reference=REFERENCE)
+    assert cid in msg and "drifted" in msg
+
+
+def test_grounding_gate_fails_on_any_verdict_change_even_with_at2_valid():
+    cid = REFERENCE[0]["claim_id"]
+    (msg,) = ci_gates.grounding_failures(
+        gr_report(verdicts={cid: "unsupported"}), reference=REFERENCE
+    )
+    assert f"{cid}: verdict supported -> unsupported" in msg
+
+
+def test_grounding_gate_fails_on_a_missing_claim_or_reference():
+    assert ci_gates.grounding_failures(gr_report(drop={"g10"}), reference=REFERENCE)
+    assert ci_gates.grounding_failures(gr_report(), reference=None)
 
 
 # --- latency ---
@@ -172,16 +255,18 @@ def test_lookalike_ci_exit_code_follows_the_gate(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(eval_run, "get_settings", lambda: None)
     monkeypatch.setattr(eval_run, "write_report", lambda r, d, md: ("j", "m"))
     monkeypatch.setattr(eval_run.lookalike_run, "render_markdown", lambda r: "")
-    current["report"] = la_report(0)
+    current["report"] = la_report({})
     assert run(argv) == 0
-    current["report"] = la_report(2)
+    current["report"] = la_report(WRONG)
     assert run(argv) == 1
     assert "CI GATE FAILED (lookalike)" in capsys.readouterr().out
+    current["report"] = la_report(DEAD)  # no wrong drug, but nothing resolves
+    assert run(argv) == 1
 
 
 def test_without_ci_a_wrong_drug_does_not_change_the_exit_code(tmp_path, monkeypatch):
     async def fake_resolver_only(args, settings):
-        return la_report(3)
+        return la_report(WRONG)
 
     monkeypatch.setattr(eval_run, "_resolver_only", fake_resolver_only)
     monkeypatch.setattr(eval_run, "get_settings", lambda: None)
@@ -193,7 +278,7 @@ def test_without_ci_a_wrong_drug_does_not_change_the_exit_code(tmp_path, monkeyp
 
 def test_latency_ci_subcommand_defaults_and_exit_codes(tmp_path, monkeypatch, capsys):
     args = eval_run.parse_args(["latency", "--ci", "--out-dir", str(tmp_path)])
-    assert (args.questions, args.reps, args.verifier) == (10, 3, "real")
+    assert (args.questions, args.reps, args.verifier) == (10, 3, "fake")  # the PR gate
     with pytest.raises(SystemExit):
         eval_run.parse_args(["latency"])  # --ci is required: it is only the gate
 
@@ -206,7 +291,10 @@ def test_latency_ci_subcommand_defaults_and_exit_codes(tmp_path, monkeypatch, ca
     current = {"report": lat_report()}
     monkeypatch.setattr(eval_run.ci_gates, "run_latency_replay", fake)
     assert run(["latency", "--ci", "--out-dir", str(tmp_path)]) == 0
-    assert calls == [{"questions": 10, "reps": 3, "verifier": "real"}]
+    assert calls == [{"questions": 10, "reps": 3, "verifier": "fake"}]
+    nightly = ["latency", "--ci", "--verifier", "real", "--questions", "30", "--reps", "5"]
+    assert run([*nightly, "--out-dir", str(tmp_path)]) == 0
+    assert calls[-1] == {"questions": 30, "reps": 5, "verifier": "real"}
     current["report"] = lat_report(r50=0.2)
     assert run(["latency", "--ci", "--out-dir", str(tmp_path)]) == 1
     assert "CI GATE FAILED (latency)" in capsys.readouterr().out
@@ -243,8 +331,14 @@ def test_grounding_score_ci_exit_code(monkeypatch, tmp_path):
 
     monkeypatch.setattr(grounding_score, "run_score", fake_score)
     argv = ["grounding", "--score", "--out-dir", str(tmp_path)]
-    current["report"] = {"summary": {"at2_valid": False, "reduction": 0.4, "at2_target": 0.73}}
+    current["report"] = {
+        **gr_report(),
+        "summary": {"at2_valid": False, "reduction": 0.4, "at2_target": 0.73},
+    }
     assert run(argv) == 0
     assert run([*argv, "--ci"]) == 1
-    current["report"] = {"summary": {"at2_valid": True}}
+    current["report"] = gr_report()
     assert run([*argv, "--ci"]) == 0
+    cid = REFERENCE[0]["claim_id"]
+    current["report"] = gr_report(drift={cid: 0.01})  # AT-2 still valid, scores moved
+    assert run([*argv, "--ci"]) == 1

@@ -93,7 +93,11 @@ async def run(
         path = await ensure_mappings(dailymed, mappings_path, refresh)
         log.info("loading mapping index")
         mappings = await asyncio.to_thread(load_rxnorm_mappings, path)
-        embedder = SentenceTransformerEmbedder(settings.embedding_model, settings.embedding_dim)
+        embedder = SentenceTransformerEmbedder(
+            settings.embedding_model,
+            settings.embedding_dim,
+            revision=settings.embedding_model_revision or None,
+        )
         ingestor = Ingestor(
             rxnav=rxnav,
             dailymed=dailymed,

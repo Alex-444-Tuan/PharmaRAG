@@ -1,0 +1,15 @@
+{"mention": "hydroxazine", "outcome": "clarified", "resolved_key": null, "status": "ambiguous"}
+{"mention": "quinidene", "outcome": "clarified", "resolved_key": null, "status": "ambiguous"}
+{"mention": "glypuride", "outcome": "correct", "resolved_key": "4815", "status": "resolved"}
+{"mention": "predisolone", "outcome": "clarified", "resolved_key": null, "status": "ambiguous"}
+{"mention": "carbamezapine", "outcome": "correct", "resolved_key": "2002", "status": "resolved"}
+{"mention": "lorazapam", "outcome": "correct", "resolved_key": "6470", "status": "resolved"}
+{"mention": "tizanadine", "outcome": "correct", "resolved_key": "57258", "status": "resolved"}
+{"mention": "nifedapine", "outcome": "correct", "resolved_key": "7417", "status": "resolved"}
+{"mention": "Celebrex", "outcome": "correct", "resolved_key": "140587", "status": "resolved"}
+{"mention": "Lamictel", "outcome": "correct", "resolved_key": "28439", "status": "resolved"}
+{"mention": "Toprol", "outcome": "correct", "resolved_key": "6918", "status": "resolved"}
+{"mention": "Paxill", "outcome": "correct", "resolved_key": "32937", "status": "resolved"}
+{"mention": "tiagabine", "outcome": "correct", "resolved_key": "31914", "status": "resolved"}
+{"mention": "clomipramine", "outcome": "correct", "resolved_key": "2597", "status": "resolved"}
+{"mention": "azacitidine", "outcome": "correct", "resolved_key": "1251", "status": "resolved"}

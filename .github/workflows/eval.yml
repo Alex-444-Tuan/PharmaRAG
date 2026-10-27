@@ -1,31 +1,43 @@
-# Eval gates (spec section 13, "Eval in CI"): the build fails below target.
+# Eval gates: the build fails below target.
 #
 # No DailyMed, no RxNav, no LLM key and no ingested corpus here. The evals run on the committed CI
 # fixture (data/ci_fixture.sql.gz, written by scripts/export_ci_fixture.py), the 40 frozen grounding
-# claims, and the committed latency recordings. Run the same three commands locally with
+# claims, and the committed latency recordings. Run the same commands locally with
 # scripts/load_ci_fixture.sh against a fresh database.
+#
+# Two jobs, because a 2-vCPU hosted runner is not the machine AT-3 was measured on:
+#   gates    every push to main, every PR (and on demand). Look-alike and grounding gates, plus a
+#            latency replay with a fixed-sleep verifier: a deterministic check that verification
+#            still overlaps generation (stream within 5% / 10% of verifier-off). Blocking.
+#   at3-real nightly and on demand, never on a PR. The real NLI verifier, the full 30 questions
+#            x 5 repetitions, the same limits. Uploads its report and fails loudly.
 name: eval
 
 on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: eval-${{ github.ref }}
+  group: eval-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 env:
   DATABASE_URL: postgresql://postgres:postgres@localhost:5432/pharmarag_ci
-  # Models are fetched once into the cache below; afterwards nothing needs the network.
+  CACHE_BACKEND: memory # no Redis service here; the evals build their own in-memory cache
+  # Models are fetched once into the cache below, at the commits pinned in Settings.
   HF_HOME: ${{ github.workspace }}/.hf-cache
   REPORT_DIR: ${{ github.workspace }}/ci-reports
 
 jobs:
   gates:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     services:
@@ -51,46 +63,64 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Install dependencies
+      - name: Install dependencies (CPU-only torch on Linux, see pyproject.toml)
         run: uv sync --frozen
+
+      - name: Read the model pins from Settings
+        id: pins
+        run: |
+          uv run python - >> "$GITHUB_OUTPUT" <<'PY'
+          from pharmarag.app.settings import Settings
+
+          s = Settings(_env_file=None)
+          print(f"embedding={s.embedding_model_revision}")
+          print(f"nli={s.nli_model_revision}")
+          PY
 
       - name: Cache Hugging Face models
         id: hf
         uses: actions/cache@v4
         with:
           path: ${{ env.HF_HOME }}
-          # Bump the suffix if EMBEDDING_MODEL or NLI_MODEL change (config in settings.py).
-          key: hf-bge-small-en-v1.5-nli-deberta-v3-small-v1
+          key: hf-${{ steps.pins.outputs.embedding }}-${{ steps.pins.outputs.nli }}
 
-      - name: Download models (cache miss only)
+      - name: Download the pinned models (cache miss only)
         if: steps.hf.outputs.cache-hit != 'true'
         run: |
           uv run python - <<'PY'
+          from huggingface_hub import snapshot_download
+
           from pharmarag.app.settings import Settings
-          from sentence_transformers import CrossEncoder, SentenceTransformer
 
           s = Settings(_env_file=None)
-          SentenceTransformer(s.embedding_model, device="cpu")
-          CrossEncoder(s.nli_model, device="cpu")
+          snapshot_download(s.embedding_model, revision=s.embedding_model_revision)
+          snapshot_download(s.nli_model, revision=s.nli_model_revision)
           PY
 
       - name: Load the CI fixture
         run: scripts/load_ci_fixture.sh "$DATABASE_URL"
 
-      - name: Gate - look-alike (0 wrong-drug resolutions, frozen test set, resolver offline)
+      - name: Gate - look-alike (frozen test set, resolver offline, every row as in the reference)
+        env:
+          HF_HUB_OFFLINE: "1"
         run: >-
           uv run python -m pharmarag.eval.run lookalike
           --split test --mode system --resolver-only --offline --ci
           --out-dir "$REPORT_DIR/lookalike"
 
-      - name: Gate - grounding (AT-2 and AT-2b on the 40 frozen claims)
+      - name: Gate - grounding (AT-2, AT-2b and score drift on the 40 frozen claims)
+        env:
+          HF_HUB_OFFLINE: "1"
         run: >-
           uv run python -m pharmarag.eval.run grounding --score --ci
           --out-dir "$REPORT_DIR/grounding"
 
-      - name: Gate - latency (AT-3, replay, real verifier, 10 questions x 3 reps)
+      - name: Gate - latency overlap (replay, fixed-sleep verifier, 10 questions x 3 reps)
+        env:
+          HF_HUB_OFFLINE: "1"
         run: >-
           uv run python -m pharmarag.eval.run latency --ci
+          --verifier fake --questions 10 --reps 3
           --out-dir "$REPORT_DIR/latency"
 
       - name: Upload reports
@@ -98,5 +128,85 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: eval-reports
+          path: ${{ env.REPORT_DIR }}
+          if-no-files-found: ignore
+
+  at3-real:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.0-pg17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pharmarag_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies (CPU-only torch on Linux, see pyproject.toml)
+        run: uv sync --frozen
+
+      - name: Read the model pins from Settings
+        id: pins
+        run: |
+          uv run python - >> "$GITHUB_OUTPUT" <<'PY'
+          from pharmarag.app.settings import Settings
+
+          s = Settings(_env_file=None)
+          print(f"embedding={s.embedding_model_revision}")
+          print(f"nli={s.nli_model_revision}")
+          PY
+
+      - name: Cache Hugging Face models
+        id: hf
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.HF_HOME }}
+          key: hf-${{ steps.pins.outputs.embedding }}-${{ steps.pins.outputs.nli }}
+
+      - name: Download the pinned models (cache miss only)
+        if: steps.hf.outputs.cache-hit != 'true'
+        run: |
+          uv run python - <<'PY'
+          from huggingface_hub import snapshot_download
+
+          from pharmarag.app.settings import Settings
+
+          s = Settings(_env_file=None)
+          snapshot_download(s.embedding_model, revision=s.embedding_model_revision)
+          snapshot_download(s.nli_model, revision=s.nli_model_revision)
+          PY
+
+      - name: Load the CI fixture
+        run: scripts/load_ci_fixture.sh "$DATABASE_URL"
+
+      - name: AT-3 (replay, real NLI verifier, 30 questions x 5 reps, same limits)
+        env:
+          HF_HUB_OFFLINE: "1"
+        run: >-
+          uv run python -m pharmarag.eval.run latency --ci
+          --verifier real --questions 30 --reps 5
+          --out-dir "$REPORT_DIR/latency-real"
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: at3-real-report
           path: ${{ env.REPORT_DIR }}
           if-no-files-found: ignore

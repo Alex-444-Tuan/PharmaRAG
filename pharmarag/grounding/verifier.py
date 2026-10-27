@@ -72,11 +72,19 @@ def softmax(logits: np.ndarray) -> np.ndarray:
 class CrossEncoderNLI:
     """`sentence_transformers.CrossEncoder` NLI model, one batch per call, one caller at a time."""
 
-    def __init__(self, model_name: str, *, max_length: int = 512, model=None) -> None:
+    def __init__(
+        self,
+        model_name: str,
+        *,
+        max_length: int = 512,
+        model=None,
+        revision: str | None = None,
+    ) -> None:
         if model is None:
             from sentence_transformers import CrossEncoder
 
-            model = CrossEncoder(model_name, device="cpu", max_length=max_length)
+            # `revision` pins the Hugging Face commit, so a moved `main` cannot change scores.
+            model = CrossEncoder(model_name, device="cpu", max_length=max_length, revision=revision)
         self.model_name = model_name
         self._model = model
         self.entail_idx, self.contra_idx = resolve_label_indices(model.model.config.id2label)
