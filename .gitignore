@@ -1,4 +1,6 @@
-# Private project docs (resume / interview prep), local only
+# Private working docs, local only
+CLAUDE.md
+PharmaRAG-Project-Specification.md
 RESUME_NUMBERS.md
 INTERVIEW_DEFENSE.md
 PROJECT_NOTES.md
@@ -31,3 +33,4 @@ venv/
 
 # Agent worktrees
 .claude/worktrees/
+.claude/agents/
