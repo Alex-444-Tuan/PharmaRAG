@@ -1,11 +1,18 @@
-# NFR-3: `docker compose up` starts the API, PostgreSQL and Redis on a CPU-only machine.
-# Ingestion and evaluation are one-shot profiles (spec section 12):
+# `docker compose up` starts the API, PostgreSQL and Redis on a CPU-only machine.
+# Ingestion and evaluation are one-shot profiles:
 #   docker compose --profile ingest run --rm ingest
 #   docker compose --profile eval run --rm eval lookalike --split test --mode both --runs 3
 #
 # Settings come from `.env` (copy .env.example). The values under `environment:` below win over
 # `.env` on purpose: inside Compose the database and Redis are reachable at their service names,
 # whatever a developer's `.env` says for running the API on the host.
+#
+# File ownership. The image runs as uid 10001. Docker Desktop (macOS, Windows) maps bind mounts
+# to your user, so nothing to do. On Linux a bind-mounted ./data or ./reports owned by you is not
+# writable by uid 10001, so the one-shot services run as the uid in PHARMARAG_UID/PHARMARAG_GID:
+#   PHARMARAG_UID=$(id -u) PHARMARAG_GID=$(id -g) docker compose --profile eval run --rm eval ...
+# (`UID` itself is a shell variable that is not exported, so it cannot be used here.) The api
+# service writes nothing to the host.
 
 x-app-env: &app-env
   DATABASE_URL: postgresql://postgres:postgres@postgres:5432/pharmarag
@@ -20,6 +27,15 @@ x-app-common: &app-common
       required: false # a clean clone has none; the defaults and `environment:` apply
   environment: *app-env
 
+x-one-shot: &one-shot
+  <<: *app-common
+  user: "${PHARMARAG_UID:-10001}:${PHARMARAG_GID:-10001}"
+  depends_on:
+    migrate:
+      condition: service_completed_successfully
+    redis:
+      condition: service_healthy
+
 services:
   postgres:
     image: pgvector/pgvector:0.8.0-pg17
@@ -28,7 +44,8 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: pharmarag
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      # Loopback only: the database password above is a development default.
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -42,22 +59,32 @@ services:
     # A cache and a rate-limit counter: nothing here needs to survive a restart.
     command: ["redis-server", "--save", "", "--appendonly", "no"]
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      # Loopback only: this Redis has no password.
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 2s
       timeout: 3s
       retries: 30
 
-  api:
+  # Applies the schema once and exits. api, ingest and eval wait for it, so a fresh volume works
+  # whichever of them is started first, and none of them needs the API to be up.
+  migrate:
     <<: *app-common
-    # Migrations run before the server starts, so a fresh volume gets its schema.
-    command: ["sh", "-c", "alembic upgrade head && exec uvicorn pharmarag.app.main:app --host 0.0.0.0 --port 8000"]
-    ports:
-      - "${API_PORT:-8000}:8000"
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
     depends_on:
       postgres:
         condition: service_healthy
+
+  api:
+    <<: *app-common
+    # The command is the image's CMD: uvicorn with --no-proxy-headers and JSON logs.
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
     healthcheck:
@@ -70,25 +97,19 @@ services:
       start_period: 120s
 
   ingest:
-    <<: *app-common
+    <<: *one-shot
     profiles: ["ingest"]
     command: ["python", "-m", "pharmarag.ingest.run", "--seed", "data/seed_ingredients.csv"]
-    # The api service applies the migrations, so wait for it. Ingestion calls DailyMed and RxNav
-    # over the network. `data/` is mounted because the label pins are read and written there.
-    depends_on:
-      api:
-        condition: service_healthy
+    # Calls DailyMed and RxNav over the network. `data/` is mounted because the label pins are
+    # read and written there.
     volumes:
       - ./data:/app/data
 
   eval:
-    <<: *app-common
+    <<: *one-shot
     profiles: ["eval"]
     entrypoint: ["python", "-m", "pharmarag.eval.run"]
     command: ["--help"] # replaced by the arguments of `docker compose run eval <args>`
-    depends_on:
-      api:
-        condition: service_healthy
     volumes:
       - ./reports:/app/reports
 

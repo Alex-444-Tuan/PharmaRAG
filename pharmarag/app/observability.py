@@ -19,12 +19,15 @@ import time
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from pathlib import Path
 
 import numpy as np
 from prometheus_client import CollectorRegistry, Counter, Histogram
 
 EVENT_LOGGER = "pharmarag.events"
 RXNAV_LOGGER = "pharmarag.resolver.rxnav_client"
+FACTS_LOGGER = "pharmarag.resolver.facts"
+LOG_CONFIG_PATH = Path(__file__).with_name("log_config.json")
 
 # What a client may send as X-Request-ID. Anything else is replaced, so a header cannot inject
 # newlines or megabytes into the logs.
@@ -32,7 +35,7 @@ _REQUEST_ID = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
 
 
 def valid_request_id(value: str | None) -> str | None:
-    return value if value and _REQUEST_ID.match(value) else None
+    return value if value and _REQUEST_ID.fullmatch(value) else None
 
 
 def question_hash(question: str) -> str:
@@ -93,6 +96,8 @@ def log_event(event: str, **fields) -> None:
 # --- metrics ---------------------------------------------------------------------------------
 
 _NODE_BUCKETS = (0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30)
+# End to end. The NFR-1 targets (p50 4 s, p95 8 s) sit on bucket edges so they can be read off.
+_REQUEST_BUCKETS = (0.05, 0.1, 0.25, 0.5, 1, 2, 3, 4, 5, 6, 8, 10, 15, 30, 60)
 
 
 class Metrics:
@@ -116,6 +121,13 @@ class Metrics:
             "Wall time of one graph node run",
             ["node"],
             buckets=_NODE_BUCKETS,
+            registry=r,
+        )
+        self.request_duration = Histogram(
+            "pharmarag_request_duration_seconds",
+            "End-to-end HTTP request time (to the last byte) by route template",
+            ["path"],
+            buckets=_REQUEST_BUCKETS,
             registry=r,
         )
         self.rxnav_errors = Counter(
@@ -144,14 +156,52 @@ class Metrics:
         self.cache.labels(cache, "hit" if hit else "miss").inc()
 
 
-class RxNavErrorCounter(logging.Handler):
-    """Counts RxNav failures from the client's own log line.
+@dataclass
+class RxNavScope:
+    """RxNav failures seen while a block ran (see `watch_rxnav`)."""
 
-    The RxNav client (resolver/, not this lane's code) has no metrics hook. It logs one
-    "rxnav unavailable" warning each time its retries are spent, so counting that record is the
-    one place that sees every failure, including the ones the facts source and the cascade
-    swallow on purpose (NFR-4). A breaker-open short circuit does not log and is not counted: it
-    follows from failures that were.
+    errors: int = 0
+
+
+_rxnav_scope: contextvars.ContextVar[RxNavScope | None] = contextvars.ContextVar(
+    "rxnav_scope", default=None
+)
+
+
+@contextlib.contextmanager
+def watch_rxnav() -> Iterator[RxNavScope]:
+    """Within the block, RxNav failures logged by the resolver package are tallied on the scope.
+
+    The facts source swallows RxNav outages on purpose (NFR-4) and returns no lines, so the
+    `fetch_rx_facts` node cannot tell "no facts exist" from "RxNav was down". This is how it
+    learns. The scope is a mutable object in a ContextVar: tasks started inside the block (the
+    facts source gathers one per ingredient) copy the context but share the object, and two
+    requests in flight have separate scopes.
+    """
+    scope = RxNavScope()
+    token = _rxnav_scope.set(scope)
+    try:
+        yield scope
+    finally:
+        _rxnav_scope.reset(token)
+
+
+class RxNavErrorCounter(logging.Handler):
+    """Counts RxNav failures from the resolver package's own log lines.
+
+    Neither the RxNav client nor the facts source (resolver/, not this lane's code) has a metrics
+    hook, and both swallow outages by design (NFR-4), so their warnings are the one place that
+    sees every failure. Two lines matter:
+
+    * "rxnav unavailable": the client, once per call whose retries are spent. Feeds
+      `pharmarag_rxnav_errors_total` and the active `watch_rxnav` scope.
+    * "rx facts unavailable": the facts source, which also covers the circuit-breaker short
+      circuit that the client does not log. Feeds the scope only, so a breaker-open outage still
+      marks the answer as degraded without double counting the metric.
+
+    The wording is a coupling to Lane A's code. `test_ops_graph.py` runs the real client and facts
+    source against a 503, so a reworded message fails a test instead of silently zeroing the
+    metric.
     """
 
     def __init__(self, metrics: Metrics) -> None:
@@ -159,18 +209,26 @@ class RxNavErrorCounter(logging.Handler):
         self._metrics = metrics
 
     def emit(self, record: logging.LogRecord) -> None:
-        if record.getMessage().startswith("rxnav unavailable"):
+        message = record.getMessage()
+        counted = message.startswith("rxnav unavailable")
+        if counted:
             self._metrics.rxnav_errors.inc()
+        if counted or message.startswith("rx facts unavailable"):
+            scope = _rxnav_scope.get()
+            if scope is not None:
+                scope.errors += 1
 
 
 def attach_rxnav_error_counter(metrics: Metrics) -> logging.Handler:
     handler = RxNavErrorCounter(metrics)
-    logging.getLogger(RXNAV_LOGGER).addHandler(handler)
+    for name in (RXNAV_LOGGER, FACTS_LOGGER):
+        logging.getLogger(name).addHandler(handler)
     return handler
 
 
 def detach_rxnav_error_counter(handler: logging.Handler) -> None:
-    logging.getLogger(RXNAV_LOGGER).removeHandler(handler)
+    for name in (RXNAV_LOGGER, FACTS_LOGGER):
+        logging.getLogger(name).removeHandler(handler)
 
 
 # --- query-embedding cache hit detection -----------------------------------------------------

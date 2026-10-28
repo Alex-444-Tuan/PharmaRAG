@@ -5,6 +5,8 @@ import uuid
 from collections.abc import AsyncIterator
 
 from pharmarag.graph.deps import Deps
+from pharmarag.graph.health import KEY as HEALTH_KEY
+from pharmarag.graph.health import RequestHealth
 from pharmarag.graph.state import Flags, RAGState
 from pharmarag.grounding.stream import resolve_verify_mode
 
@@ -59,7 +61,10 @@ def _start(
 ) -> tuple[RAGState, dict]:
     flags = effective_flags(flags or Flags(), deps)
     state = initial_state(question, flags=flags, pinned_rxcuis=pinned_rxcuis, request_id=request_id)
-    return state, {"recursion_limit": deps.thresholds.graph.recursion_limit}
+    return state, {
+        "recursion_limit": deps.thresholds.graph.recursion_limit,
+        "configurable": {HEALTH_KEY: RequestHealth()},
+    }
 
 
 def _finish(final: dict, state: RAGState, t0: float, debug: bool) -> dict:
@@ -121,7 +126,7 @@ async def run_ask_stream(
     """
     t0 = time.perf_counter()
     state, config = _start(deps, question, pinned_rxcuis, flags, request_id)
-    config["configurable"] = {"sse": True}
+    config["configurable"]["sse"] = True
     last: dict = {}
     async for mode, chunk in graph.astream(state, config=config, stream_mode=["custom", "values"]):
         if mode == "custom":

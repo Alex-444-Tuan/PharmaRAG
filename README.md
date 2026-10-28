@@ -4,11 +4,11 @@ PharmaRAG answers questions about prescription drugs from FDA DailyMed labels. I
 
 It is a FastAPI service. A LangGraph state machine runs over PostgreSQL with pgvector, Redis caches and rate-limits, and two local SentenceTransformers models do the embedding and the grounding check (an NLI cross-encoder). A hosted LLM writes the answer.
 
-Three properties are enforced in code and measured by scripts in this repository:
+Three properties are enforced in code, and each has a script in this repository that measures it:
 
 1. **No look-alike mix-ups.** Every drug mention is resolved to an RxNorm ingredient key before retrieval. Retrieval is restricted to that key in SQL, before any similarity ranking, so a question about hydroxyzine cannot retrieve hydralazine text (FR-2, FR-3).
-2. **No unsupported sentences.** Each sentence the LLM writes is checked against the retrieved label spans by an NLI model and a number check. A sentence that is not supported never reaches the user, including over server-sent events (FR-6).
-3. **No added latency from the check.** The verifier runs while the LLM is still writing the next sentence (AT-3).
+2. **Unsupported sentences are withheld.** Each sentence the LLM writes is checked against the retrieved label spans by an NLI model and a number check. A sentence the verifier does not mark supported never reaches the user, including over server-sent events (FR-6). On the frozen test set it blocked 9 of 10 hallucinated claims (9 of the 10 are synthetic perturbations, 1 is natural) and wrongly rejected 3 of 30 supported claims (AT-2, AT-2b; see Measured results for the caveats).
+3. **The check adds little latency.** The verifier runs while the LLM is still writing the next sentence, and the result is within 5% p50 / 10% p95 of verifier-off (+3.8% / +3.1% measured in replay; the p50 confidence interval reaches +5.2%) (AT-3).
 
 **This is not medical advice.** The service reports what an FDA label says. It does not diagnose, recommend doses for a patient, or replace a pharmacist or physician. Patient-specific requests are declined. Every response carries the notice "From FDA drug labels via DailyMed. Not medical advice."
 
@@ -43,7 +43,7 @@ flowchart LR
     ingest --> rxnav
 ```
 
-Arrows point from caller to callee. The full design is in [PharmaRAG-Project-Specification.md](PharmaRAG-Project-Specification.md); requirement IDs (FR-x, NFR-x, AT-x) in this file refer to it.
+Arrows point from caller to callee. Requirement IDs in this file are the project's own labels: FR-n for functional requirements (for example FR-3, the hard ingredient filter), NFR-n for non-functional ones (NFR-4, degradation when RxNav is down) and AT-n for the acceptance targets that the three evaluations measure.
 
 ## Quickstart
 
@@ -59,8 +59,8 @@ LLM_MODEL=claude-sonnet-5-5
 LLM_API_KEY=<your key>
 EOF
 
-# 2. Start the API, PostgreSQL (pgvector 0.8) and Redis. The api container applies the
-#    database migrations before it starts.
+# 2. Start the API, PostgreSQL (pgvector 0.8) and Redis. A one-shot `migrate` service applies the
+#    database migrations first; the API waits for it.
 docker compose up -d --build
 curl http://localhost:8000/readyz        # 200 when the database, Redis and both models are ready
 
@@ -68,7 +68,11 @@ curl http://localhost:8000/readyz        # 200 when the database, Redis and both
 docker compose --profile ingest run --rm ingest
 ```
 
-Host ports can be changed with `API_PORT`, `POSTGRES_PORT` and `REDIS_PORT` if 8000, 5432 or 6379 are taken. `LLM_PROVIDER=fake` starts the stack without an API key, but answers nothing; CI uses it to check that the stack comes up.
+Host ports can be changed with `API_PORT`, `POSTGRES_PORT` and `REDIS_PORT` if 8000, 5432 or 6379 are taken. `LLM_PROVIDER=fake` starts the stack without an API key, but the fake LLM has no scripted replies, so every `/v1/ask` returns `500`. CI uses it only to check that the stack comes up (`/readyz`, `/healthz`, `/metrics`).
+
+PostgreSQL and Redis are published on `127.0.0.1` only. The API is published on all interfaces.
+
+**Client IPs behind Docker.** With Docker's default networking, requests from the host machine reach the container through the Docker gateway, so every such client has the same source address and shares one rate-limit bucket. That is fine for local use. For a real deployment put a reverse proxy in front, set `TRUST_FORWARDED_FOR=true`, and make sure the proxy overwrites `X-Forwarded-For` (the app keys the limit on the rightmost entry, which is the one the proxy appends). With the setting off, `X-Forwarded-For` is ignored entirely, and the image starts uvicorn with `--no-proxy-headers` so that uvicorn does not apply it either.
 
 The Swagger page is at `http://localhost:8000/docs`.
 
@@ -82,7 +86,8 @@ docker compose up -d postgres redis                      # or your own Postgres 
 export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/pharmarag
 uv run alembic upgrade head
 uv run python -m pharmarag.ingest.run --seed data/seed_ingredients.csv --limit 10   # smoke ingest
-uv run uvicorn pharmarag.app.main:app --port 8000
+uv run uvicorn pharmarag.app.main:app --port 8000 --no-proxy-headers --no-access-log \
+  --log-config pharmarag/app/log_config.json   # JSON logs, no per-request uvicorn line
 ```
 
 Tests: `uv run pytest -q` (tests that need PostgreSQL skip themselves when it is unreachable; `corpus` tests need the ingested dev corpus and skip without it). Lint: `uv run ruff check . && uv run ruff format --check .`.
@@ -100,7 +105,8 @@ Tests: `uv run pytest -q` (tests that need PostgreSQL skip themselves when it is
 | `RXNAV_BASE_URL` | `https://rxnav.nlm.nih.gov/REST` | Point at RxNav-in-a-Box to remove the external dependency |
 | `RATE_LIMIT_PER_MINUTE` | `30` | Per client IP, `/v1/*` only |
 | `ANSWER_CACHE` | `true` | Cache `answered` JSON responses for 24 h |
-| `TRUST_FORWARDED_FOR` | `false` | Key the rate limit on the rightmost `X-Forwarded-For` entry. Turn on only behind a proxy that sets it. |
+| `TRUST_FORWARDED_FOR` | `false` | Key the rate limit on the rightmost `X-Forwarded-For` entry. Turn on only behind a proxy that sets it, and run uvicorn with `--no-proxy-headers`. |
+| `EMBEDDING_MODEL_REVISION`, `NLI_MODEL_REVISION` | pinned commits | The Hugging Face commits of the two models. The image downloads exactly these. |
 | `EVAL_MODE` | `false` | Allows the `X-Eval-Flags` header and the baselines |
 | `LOG_QUESTIONS` | `false` | When false, logs hold a hash of the question only |
 
@@ -139,11 +145,14 @@ curl -s localhost:8000/v1/ask -H 'content-type: application/json' \
   ],
   "notice": "From FDA drug labels via DailyMed. Not medical advice.",
   "meta": {"corpus_version": "<hash>", "latency_ms": 0, "retrieval_attempts": 1,
-           "generation_attempts": 1, "removed_sentences": 0, "cache_hit": false}
+           "generation_attempts": 1, "removed_sentences": 0, "cache_hit": false,
+           "degraded": false, "facts_unavailable": false}
 }
 ```
 
-The resolved drug name is listed first in every response, because a valid name for the wrong drug cannot be detected (spec section 7, "Known limit").
+`meta.degraded` is true when a drug name was resolved from the local alias table because RxNav was down, and `meta.facts_unavailable` is true when the RxNorm facts could not be fetched for the same reason. The answer is still valid label text, but it is not what a healthy system would return, so these answers are never cached.
+
+The resolved drug name is listed first in every response, because a valid name for the wrong drug cannot be detected (the resolver can only check that a name exists, not that it is the drug the user meant).
 
 ### Statuses
 
@@ -157,6 +166,44 @@ Every outcome other than a fault is HTTP 200 with a `status` the client switches
 | `not_covered` | The drug resolved, but no label is in the corpus | Say so |
 | `insufficient_evidence` | Retrieval or grounding failed after the retries | Say the label does not answer this |
 | `declined` | Patient-specific advice or out of scope | Show the notice |
+
+### The `message` field
+
+Every response whose `status` is not `answered` carries a `message`: one or two plain-language sentences saying why there is no answer and what to do next. It is in the JSON response and in the `done` event of a stream. An `answered` response has no `message` key. `notice` (the not-medical-advice line) is separate and always present.
+
+| `status` | `message` says |
+| --- | --- |
+| `declined`, patient advice | It can't give personal medical advice, to ask a pharmacist or doctor, and that it can tell you what a drug's FDA label says |
+| `declined`, out of scope | The question is outside what FDA prescription labels answer, with an example label question |
+| `not_covered` | The resolved drug's name, and that its label isn't in the corpus (prescription labels only; over-the-counter drugs such as acetaminophen are not covered) |
+| `needs_clarification` | The candidate names with their ingredient keys, and to resend with `pinned_rxcuis` |
+| `drug_not_recognised` | The unrecognised name, and to check the spelling (or, if no drug was named, to name one) |
+| `insufficient_evidence` | The label doesn't answer this, or no answer could be checked against it |
+
+A declined request stops right after the question is analysed: nothing is resolved, searched or written, and RxNav is not called. If the question named a drug, `drugs` still lists it as typed, with `name`, `rxcui`, `ingredient_key` and `match` set to `null`, so the client can show that the name was understood without claiming it was looked up.
+
+```bash
+curl -s localhost:8000/v1/ask -H 'content-type: application/json' \
+  -d '{"question": "can i take tylenol when i have high fever?"}'
+```
+
+```json
+{
+  "status": "declined",
+  "drugs": [
+    {"mention": "tylenol", "name": null, "rxcui": null, "ingredient_key": null, "match": null}
+  ],
+  "answer": [],
+  "sources": [],
+  "notice": "From FDA drug labels via DailyMed. Not medical advice.",
+  "message": "I can't give personal medical advice — please ask a pharmacist or doctor. I can tell you what a drug's FDA label says, e.g. 'What does the acetaminophen label say about fever?'",
+  "meta": {"corpus_version": "<hash>", "latency_ms": 0, "retrieval_attempts": 0,
+           "generation_attempts": 0, "removed_sentences": 0, "cache_hit": false,
+           "degraded": false, "facts_unavailable": false}
+}
+```
+
+Asking what the acetaminophen label says returns `not_covered` instead, with a `message` naming acetaminophen and explaining that over-the-counter labels are not in the corpus.
 
 Faults: `422` invalid request, `429` over the rate limit (with `Retry-After`), `503` a dependency is down.
 
@@ -173,16 +220,27 @@ With `"stream": true` the response is server-sent events: `drugs`, then one `sen
 
 ### Operations
 
-- **Request IDs.** Every response has an `X-Request-ID` header. A client-supplied one (letters, digits, `.`, `_`, `-`, up to 64 characters) is echoed; otherwise one is generated.
+- **Request IDs.** Every response, including a `500`, has an `X-Request-ID` header. A client-supplied one (letters, digits, `.`, `_`, `-`, up to 64 characters) is echoed; otherwise one is generated.
 - **Rate limit.** Fixed one-minute window per client IP on `/v1/*`; `/healthz`, `/readyz`, `/metrics` and `/docs` are exempt. Over the limit: `429` with `Retry-After`. By default the client IP is the socket peer; `X-Forwarded-For` is ignored unless `TRUST_FORWARDED_FOR=true`, because otherwise a client could pick its own bucket.
-- **Answer cache.** Only `answered` JSON responses are cached, keyed on `corpus_version`, the effective flags, the question and the pinned RxCUIs, so a label update invalidates old answers. `meta.cache_hit` says which one you got. SSE and `debug` requests bypass it.
-- **Logs.** One JSON line per graph node and per request, with `request_id`, `node`, `duration_ms`, `status`, `retrieval_attempts`, `generation_attempts`, `removed_sentences` and `cache_hit`. The question appears only as `question_hash`, unless `LOG_QUESTIONS=true`.
-- **Metrics.** `pharmarag_http_requests_total{path,code}`, `pharmarag_ask_total{status}`, `pharmarag_node_duration_seconds{node}` (histogram), `pharmarag_cache_requests_total{cache,result}` (`answer` and `query_embedding`), `pharmarag_rxnav_errors_total` and `pharmarag_rate_limited_total`.
+- **Answer cache.** Only healthy `answered` JSON responses are cached for 24 hours (not `degraded` or `facts_unavailable` ones, so an RxNav outage is not pinned for a day). The key holds `corpus_version`, the effective flags, a short digest of the frozen thresholds, the LLM model ID and the model revisions, the question and the pinned RxCUIs. A label update, a retuned threshold or a model change therefore never serves an old answer. `meta.cache_hit` says which one you got. SSE and `debug` requests bypass it.
+- **Logs.** Every line on stdout is JSON, including uvicorn's own messages and exception tracebacks (a `exc` field). One line per graph node and per request carries `request_id`, `node`, `duration_ms`, `status`, `retrieval_attempts`, `generation_attempts`, `removed_sentences` and `cache_hit`. The question appears only as `question_hash`, unless `LOG_QUESTIONS=true`.
+- **Metrics.** `pharmarag_http_requests_total{path,code}`, `pharmarag_request_duration_seconds{path}` (end-to-end histogram with bucket edges at 4 s and 8 s, the latency targets), `pharmarag_ask_total{status}`, `pharmarag_node_duration_seconds{node}` (histogram), `pharmarag_cache_requests_total{cache,result}` (`answer` and `query_embedding`), `pharmarag_rxnav_errors_total` and `pharmarag_rate_limited_total`. Known gaps: hit rates for the RxNorm resolve and facts caches are not exported (they live inside the resolver package, which has no metrics hook), and `pharmarag_rxnav_errors_total` counts calls whose retries were exhausted, not calls short-circuited by the circuit breaker.
 - **Degradation.** If RxNav is down the resolver falls back to the local alias table, so exact-name queries still work (NFR-4). If Redis is down the caches act as misses and the rate limiter fails open; `/readyz` reports it.
+
+## Keeping the corpus fresh
+
+Labels change, so ingestion is a recurring operator task, not something the API does by itself. A weekly run picks up new label versions; `corpus_version` changes whenever any label does, which invalidates every cached answer.
+
+```bash
+# crontab: Sundays 03:00 (host time), from the directory that holds docker-compose.yml
+0 3 * * 0  cd /opt/pharmarag && PHARMARAG_UID=$(id -u) PHARMARAG_GID=$(id -g) docker compose --profile ingest run --rm ingest >> /var/log/pharmarag-ingest.log 2>&1
+```
+
+The ingest service needs only PostgreSQL and Redis (it applies the schema through the one-shot `migrate` service first); the API can stay up while it runs. It reads and rewrites `data/label_pins.csv`, which is bind-mounted from the host. On Linux, set `PHARMARAG_UID` and `PHARMARAG_GID` as above so the container can write the host directory.
 
 ## Evaluation
 
-Three scripted evaluations compare a switched-off baseline with the full system on a frozen test set (spec section 11). Each writes a JSON report and a Markdown summary to [`reports/`](reports/), recording the pinned model ID, the `corpus_version`, the git commit of `config/thresholds.yaml` and the number of runs. Thresholds are tuned on dev sets only and frozen by commit before a test-set run.
+Three scripted evaluations compare a switched-off baseline with the full system on a frozen test set. Each writes a JSON report and a Markdown summary to [`reports/`](reports/), recording the pinned model ID, the `corpus_version`, the git commit of `config/thresholds.yaml` and the number of runs. Thresholds are tuned on dev sets only and frozen by commit before a test-set run.
 
 ```bash
 # Look-alike misinterpretation (AT-1). Needs the ingested corpus and an LLM key.
@@ -199,7 +257,7 @@ uv run python -m pharmarag.eval.latency --replay --verifier real
 docker compose --profile eval run --rm eval lookalike --split test --mode both --runs 3 --resolver-only
 ```
 
-Run the evals from a checkout with `uv run` when the report must record the thresholds commit: the Docker image has no `.git`, so those fields are empty there.
+Run the evals from a checkout with `uv run` when the report must record the thresholds commit: the Docker image has no `.git`, so those fields are empty there. On Linux, prefix the Docker command with `PHARMARAG_UID=$(id -u) PHARMARAG_GID=$(id -g)` so the container can write `./reports`.
 
 ### Measured results
 
@@ -223,7 +281,7 @@ The reduction is 100% on the mean counts (1.6 falling to 0). In every run the sy
 
 Caveats. Only 1 of the 10 hallucinated claims is a natural hallucination; the other 9 are perturbed (changed dose, negation, a fact from another drug), because the top-up rule fired. The labels were drafted by an LLM judge (Claude Opus 5.5) and reviewed by a pharmacist, who approved all 40 unchanged. The AT-2b rate sits exactly on its limit, with 3 rejections in 30. The verifier is deterministic, so the report is one run; the claim set is small.
 
-**AT-3, no added latency** (target: stream p50 within 5% and p95 within 10% of verifier off). Report: [`reports/latency_replay_real_20261016T002648Z.md`](reports/latency_replay_real_20261016T002648Z.md). Replay mode: recorded `claude-sonnet-5-5` token timings, the real NLI verifier, 30 questions x 5 repetitions x 3 modes with the first repetition discarded, 0 errors. The headline set is the 80 paired requests (20 questions) that need no regeneration.
+**AT-3, latency overhead of the check** (target: stream p50 within 5% and p95 within 10% of verifier off). Report: [`reports/latency_replay_real_20261016T002648Z.md`](reports/latency_replay_real_20261016T002648Z.md). Replay mode: recorded `claude-sonnet-5-5` token timings, the real NLI verifier, 30 questions x 5 repetitions x 3 modes with the first repetition discarded, 0 errors. The headline set is the 80 paired requests (20 questions) that need no regeneration.
 
 | Mode | p50 | p95 |
 | --- | --- | --- |

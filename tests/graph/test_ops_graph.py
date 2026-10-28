@@ -15,12 +15,18 @@ from pharmarag.app.observability import (
     attach_rxnav_error_counter,
     detach_rxnav_error_counter,
 )
+from pharmarag.cache import InMemoryCache
 from pharmarag.graph.run import run_ask
+from pharmarag.resolver.facts import RxNavFactsSource
 from pharmarag.resolver.rxnav_client import RxNavClient, RxNavUnavailable
 from tests.graph.fakes import (
     DOSE_TEXT,
+    FakeAnswerCache,
     FakeQueryEmbeddingCache,
+    FakeResolver,
+    FakeRxFacts,
     analysis,
+    resolved,
 )
 
 pytestmark = pytest.mark.pg
@@ -258,3 +264,174 @@ async def test_the_answer_cache_key_follows_the_database_corpus_version(
     assert again["meta"]["cache_hit"] is True
     assert after["meta"]["cache_hit"] is False and after["meta"]["corpus_version"] == "corpus-NEW"
     assert sorted(k.split(":")[1] for k in cache.data) == ["corpus-NEW", "corpus-abc123"]
+
+
+# --- RxNav outage flags (meta.degraded, meta.facts_unavailable) ---------------------------------
+
+HYDROXYZINE = resolved("hydroxyzin", "1", "hydroxyzine", match="approximate")
+ASK = analysis(mentions=["hydroxyzin"])
+RX_URL = r"https://rx\.test/REST/.*"
+
+
+def rx_client(**kw) -> RxNavClient:
+    return RxNavClient("https://rx.test/REST", attempts=1, backoff_s=0.0, max_rps=1000, **kw)
+
+
+async def ask_once(make_deps, make_graph, llm, **deps_kw):
+    deps = make_deps(llm, **deps_kw)
+    deps.metrics = Metrics()
+    out = await run_ask(make_graph(deps), deps, question=QUESTION)
+    return out, deps
+
+
+async def test_a_healthy_request_reports_no_outage(make_fake_llm, make_deps, make_graph, corpus):
+    out, _ = await ask_once(
+        make_deps,
+        make_graph,
+        make_fake_llm([ASK, WRITER]),
+        resolver=FakeResolver({"hydroxyzin": HYDROXYZINE}),
+        rx_facts=FakeRxFacts({"1": ["RxNorm brand names for hydroxyzine: Atarax."]}),
+    )
+    assert out["status"] == "answered"
+    assert out["meta"]["degraded"] is False and out["meta"]["facts_unavailable"] is False
+
+
+async def test_a_resolver_that_fell_back_to_the_local_alias_table_marks_degraded(
+    make_fake_llm, make_deps, make_graph, corpus
+):
+    degraded = HYDROXYZINE.model_copy(update={"degraded": True})
+    out, _ = await ask_once(
+        make_deps,
+        make_graph,
+        make_fake_llm([ASK, WRITER]),
+        resolver=FakeResolver({"hydroxyzin": degraded}),
+    )
+    assert out["status"] == "answered" and out["meta"]["degraded"] is True
+
+
+async def test_a_facts_source_that_raises_marks_facts_unavailable(
+    make_fake_llm, make_deps, make_graph, corpus
+):
+    out, _ = await ask_once(
+        make_deps,
+        make_graph,
+        make_fake_llm([ASK, WRITER]),
+        resolver=FakeResolver({"hydroxyzin": HYDROXYZINE}),
+        rx_facts=FakeRxFacts(error=RuntimeError("down")),
+    )
+    assert out["status"] == "answered" and out["meta"]["facts_unavailable"] is True
+
+
+@respx.mock
+async def test_rxnav_down_under_the_real_facts_source_marks_the_answer_and_counts_errors(
+    make_fake_llm, make_deps, make_graph, corpus
+):
+    """The real client and facts source against a 503. The source swallows the outage and returns
+    no lines, so the only signal is its log line: this is the guard for that coupling."""
+    respx.get(url__regex=RX_URL).mock(return_value=Response(503))
+    client = rx_client()
+    facts = RxNavFactsSource(client, InMemoryCache(), 5)
+    metrics = Metrics()
+    handler = attach_rxnav_error_counter(metrics)
+    try:
+        deps = make_deps(
+            make_fake_llm([ASK, WRITER]),
+            resolver=FakeResolver({"hydroxyzin": HYDROXYZINE}),
+            rx_facts=facts,
+        )
+        out = await run_ask(make_graph(deps), deps, question=QUESTION)
+    finally:
+        detach_rxnav_error_counter(handler)
+        await client.aclose()
+    assert out["status"] == "answered"  # NFR-4: the answer is still given, from label text
+    assert out["meta"]["facts_unavailable"] is True
+    assert metrics.registry.get_sample_value("pharmarag_rxnav_errors_total") >= 1.0
+
+
+@respx.mock
+async def test_a_tripped_circuit_breaker_still_marks_facts_unavailable(
+    make_fake_llm, make_deps, make_graph, corpus
+):
+    """Breaker open means the client raises without logging "rxnav unavailable"; the facts
+    source's own line covers that case."""
+    respx.get(url__regex=RX_URL).mock(return_value=Response(503))
+    client = rx_client(breaker_threshold=1)
+    with pytest.raises(RxNavUnavailable):
+        await client.find_rxcuis("x")  # one failed call trips the breaker
+    assert client.breaker_open
+    handler = attach_rxnav_error_counter(Metrics())
+    try:
+        deps = make_deps(
+            make_fake_llm([ASK, WRITER]),
+            resolver=FakeResolver({"hydroxyzin": HYDROXYZINE}),
+            rx_facts=RxNavFactsSource(client, InMemoryCache(), 5),
+        )
+        out = await run_ask(make_graph(deps), deps, question=QUESTION)
+    finally:
+        detach_rxnav_error_counter(handler)
+        await client.aclose()
+    assert out["meta"]["facts_unavailable"] is True
+
+
+async def test_concurrent_requests_do_not_share_an_outage_flag(
+    make_fake_llm, make_deps, make_graph, corpus
+):
+    """One request sees an RxNav outage while another, in flight at the same time, does not."""
+    import asyncio
+
+    class SlowFlaky:
+        async def facts(self, rxcuis):
+            await asyncio.sleep(0.05)
+            raise RuntimeError("down")
+
+    class SlowOk:
+        async def facts(self, rxcuis):
+            await asyncio.sleep(0.05)
+            return []
+
+    async def run(rx):
+        deps = make_deps(
+            make_fake_llm([ASK, WRITER]),
+            resolver=FakeResolver({"hydroxyzin": HYDROXYZINE}),
+            rx_facts=rx,
+        )
+        return await run_ask(make_graph(deps), deps, question=QUESTION)
+
+    bad, good = await asyncio.gather(run(SlowFlaky()), run(SlowOk()))
+    assert (bad["meta"]["facts_unavailable"], good["meta"]["facts_unavailable"]) == (True, False)
+
+
+async def test_an_outage_answer_is_not_cached_and_the_recovered_request_is_a_miss(
+    make_fake_llm, make_deps, make_graph, corpus, settings
+):
+    """The reviewer's scenario end to end: real graph, real finalize, real answer-cache path."""
+    import httpx
+
+    from pharmarag.app.main import create_app
+    from pharmarag.app.runtime import Runtime
+
+    facts = FakeRxFacts(error=RuntimeError("RxNav down"))
+    llm = make_fake_llm([ASK, WRITER] * 3)
+    deps = make_deps(llm, resolver=FakeResolver({"hydroxyzin": HYDROXYZINE}), rx_facts=facts)
+    deps.settings = settings.model_copy(update={"cache_backend": "memory", "answer_cache": True})
+    cache = FakeAnswerCache()
+    app = create_app(deps.settings)
+    app.state.runtime = Runtime(deps=deps, graph=make_graph(deps), answer_cache=cache)
+    transport = httpx.ASGITransport(app=app)
+
+    async def post(client):
+        return (await client.post("/v1/ask", json={"question": QUESTION})).json()
+
+    async with httpx.AsyncClient(transport=transport, base_url="http://t") as client:
+        outage = await post(client)
+        assert cache.puts == []  # not stored while RxNav is down
+        facts.error = None  # RxNav recovers
+        recovered = await post(client)
+        again = await post(client)
+
+    assert outage["status"] == "answered" and outage["meta"]["facts_unavailable"] is True
+    assert (
+        recovered["meta"]["cache_hit"] is False and recovered["meta"]["facts_unavailable"] is False
+    )
+    assert again["meta"]["cache_hit"] is True
+    assert len(cache.puts) == 1

@@ -6,6 +6,8 @@ on a request that has the verifier switched off (the AT-2 baseline).
 """
 
 from pharmarag.graph.deps import Deps
+from pharmarag.graph.health import request_health
+from pharmarag.graph.messages import status_message
 from pharmarag.graph.state import (
     Chunk,
     Fact,
@@ -87,6 +89,23 @@ def drug_entries(resolutions: list[Resolution]) -> list[dict]:
     ]
 
 
+def declined_drug_entries(mentions: list[str]) -> list[dict]:
+    """The `drugs` list of a declined response: the drug names the user typed, unresolved.
+
+    SPEC: a declined request (patient advice, out of scope) ends before `resolve`, so no ingredient
+    was looked up. Section 10 puts no drug in a declined response, but a person who asked about
+    "tylenol" should see that the service understood the name. The simplest correct way is to echo
+    the mention as typed, with `name`, `rxcui`, `ingredient_key` and `match` null: it needs no
+    RxNav call and no database read, and it cannot make a declined request run retrieval or
+    resolution. Resolving first would also name the ingredient, at the cost of an RxNav round
+    trip for a request that is never answered.
+    """
+    return [
+        {"mention": m, "name": None, "rxcui": None, "ingredient_key": None, "match": None}
+        for m in mentions
+    ]
+
+
 def answer_item(s: Sentence) -> dict:
     """One entry of the response `answer` list, also the payload of an SSE `sentence` event."""
     return {
@@ -143,7 +162,11 @@ async def finalize(state: RAGState, deps: Deps) -> dict:
     # facts could have been cited.
     attempt = state.get("retrieval_attempt", 1)
     facts = [f for f in state.get("rx_facts", []) if f.retrieval_attempt == attempt]
-    drugs = drug_entries(state.get("resolutions", []))
+    resolutions = state.get("resolutions", [])
+    health = request_health()
+    drugs = drug_entries(resolutions)
+    if status == "declined" and not resolutions:
+        drugs = declined_drug_entries(state.get("mentions", []))
     answer = [answer_item(s) for s in shown]
     response = {
         "status": status,
@@ -165,8 +188,16 @@ async def finalize(state: RAGState, deps: Deps) -> dict:
             # stages this build does not have. Lets a client tell a verified answer from not.
             "verified": flags.verifier,
             "resolver": flags.resolver,
+            # RxNav was down for this request (NFR-4): a mention was resolved from the local alias
+            # table, or the RxNorm facts are missing. The answer is valid but not the one a
+            # healthy system would give, and the answer cache must not keep it.
+            "degraded": any(r.degraded for r in resolutions),
+            "facts_unavailable": bool(health and health.facts_unavailable),
         },
     }
+    message = status_message(status, intent=state.get("intent"), resolutions=resolutions)
+    if message is not None:
+        response["message"] = message  # only on non-answered statuses
     if status == "needs_clarification":
         mention, candidates = _candidates(state.get("resolutions", []))
         response["candidates"] = candidates

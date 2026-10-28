@@ -6,9 +6,9 @@ path goes through the answer cache (spec section 5); the SSE path never does."""
 
 import asyncio
 import copy
+import hashlib
 import json
 import logging
-import os
 import time
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
@@ -129,15 +129,29 @@ def get_runtime(request: Request) -> Runtime:
     return runtime
 
 
-def _env_flag(name: str) -> bool:
-    return os.environ.get(name, "").strip().lower() in _ON
+def config_digest(deps) -> str:
+    """A short digest of everything besides the question that shapes an answer: the frozen
+    thresholds in effect, the LLM model ID, and the embedding and NLI models with their pinned
+    revisions. Computed from the loaded objects, not from the files, so it is exactly what this
+    process runs with. A retuned threshold or a model change therefore never serves an answer
+    produced under the old settings."""
+    s = deps.settings
+    payload = {
+        "thresholds": deps.thresholds.model_dump(mode="json"),
+        "llm": s.llm_model,
+        "embedding": [s.embedding_model, s.embedding_model_revision],
+        "nli": [s.nli_model, s.nli_model_revision],
+    }
+    return hashlib.sha1(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:10]
 
 
-def flags_key(flags: Flags, verify_mode: str) -> str:
+def flags_key(flags: Flags, verify_mode: str, config: str = "") -> str:
     """The canonical flags part of an answer-cache key (spec section 5): what the request really
-    runs with, so an eval-mode request with the verifier off never reads a verified answer."""
+    runs with, so an eval-mode request with the verifier off never reads a verified answer.
+    `config` is `config_digest`."""
     resolver, verifier = ("on" if b else "off" for b in (flags.resolver, flags.verifier))
-    return f"resolver={resolver},verifier={verifier},verify={verify_mode}"
+    key = f"resolver={resolver},verifier={verifier},verify={verify_mode}"
+    return f"{key},cfg={config}" if config else key
 
 
 def ask_log_fields(response: dict, *, cache_hit: bool) -> dict:
@@ -190,7 +204,10 @@ async def _ask_json(
     The key holds `corpus_version`, the flags the request really runs with, the question and the
     pinned RxCUIs. Only `answered` responses are stored: a refusal, a clarification or an
     `insufficient_evidence` may come from a transient fault (RxNav down, a weak retrieval that a
-    reworded index would fix) and must be recomputed next time. `debug` requests bypass the cache
+    reworded index would fix) and must be recomputed next time. For the same reason an answer
+    produced while RxNav was down (`meta.degraded`, `meta.facts_unavailable`) is not stored: it
+    is valid, but it is not the answer a healthy system gives, and it would be served for 24 h
+    after RxNav recovered. `debug` requests bypass the cache
     because their payload is per request. The cache is consulted here and not in `run_ask`, so
     the eval harness, which calls `run_ask`, never sees it.
     """
@@ -201,7 +218,11 @@ async def _ask_json(
         version = await corpus_version(deps)
         key = answer_key(
             version,
-            flags_key(effective_flags(flags, deps), resolve_verify_mode(deps.settings)),
+            flags_key(
+                effective_flags(flags, deps),
+                resolve_verify_mode(deps.settings),
+                config_digest(deps),
+            ),
             body.question,
             body.pinned_rxcuis,
         )
@@ -227,7 +248,9 @@ async def _ask_json(
             deps.metrics.cache_result("answer", hit=False)
         # The version guard: a corpus refresh between the key lookup and the graph's own read
         # would file a newer answer under the older key.
-        if result["status"] == "answered" and result["meta"]["corpus_version"] == version:
+        meta = result["meta"]
+        healthy = not meta.get("degraded") and not meta.get("facts_unavailable")
+        if result["status"] == "answered" and meta["corpus_version"] == version and healthy:
             await runtime.answer_cache.put(key, copy.deepcopy(result))
     result["meta"]["cache_hit"] = False
     return result
@@ -239,12 +262,10 @@ def create_app(
     *,
     trust_forwarded_for: bool | None = None,
 ) -> FastAPI:
-    """`trust_forwarded_for` defaults to the TRUST_FORWARDED_FOR environment variable (off)."""
+    """`trust_forwarded_for` defaults to `settings.trust_forwarded_for` (off)."""
     settings = settings or get_settings()
     if trust_forwarded_for is None:
-        # SPEC: read straight from the environment because Settings is a contract file. See the
-        # report: the contract change is one `trust_forwarded_for: bool = False` field.
-        trust_forwarded_for = _env_flag("TRUST_FORWARDED_FOR")
+        trust_forwarded_for = settings.trust_forwarded_for
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -264,6 +285,17 @@ def create_app(
         lifespan=lifespan,
     )
     app.add_middleware(OpsMiddleware, trust_forwarded_for=trust_forwarded_for)
+
+    @app.exception_handler(Exception)
+    async def unhandled(request: Request, exc: Exception) -> JSONResponse:
+        """A 500 is built by Starlette's outermost middleware, outside `OpsMiddleware`, so the
+        middleware cannot add the request ID to it. This handler runs in that outer layer. Starlette
+        re-raises after sending it, so the server still logs the traceback (as JSON, through the
+        uvicorn log config) and a test client still sees the exception."""
+        request_id = getattr(request.state, "request_id", None) or uuid.uuid4().hex
+        return JSONResponse(
+            {"detail": "internal error"}, status_code=500, headers={"X-Request-ID": request_id}
+        )
 
     @app.get("/healthz")
     async def healthz() -> dict:
