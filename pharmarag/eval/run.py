@@ -8,11 +8,12 @@ whole graph runs through `run_ask` with EVAL_MODE on and needs the LLM_* setting
 
 The `grounding` eval (hallucinated claims, spec 11.2) has its own actions; see grounding_cli.py.
 
-CI gates (spec section 13, "Eval in CI"; rules in ci_gates.py). Each exits non-zero below target:
+CI gates (spec section 13; rules in ci_gates.py). Each exits non-zero below target:
 
     ... lookalike --split test --mode system --resolver-only --offline --ci
     ... grounding --score --ci
-    ... latency --ci                    # replay, real verifier, 10 questions x 3 reps
+    ... latency --ci                    # PR gate: replay, fixed-sleep verifier, 10 x 3
+    ... latency --ci --verifier real --questions 30 --reps 5    # nightly AT-3, real NLI verifier
 
 Reports go to reports/lookalike_<split>_<timestamp>.json with a .md summary beside it.
 The database is DATABASE_URL (use .../pharmarag_dev for the ingested corpus).
@@ -70,7 +71,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     lat.add_argument("--ci", action="store_true", required=True)
     lat.add_argument("--questions", type=int, default=10)
     lat.add_argument("--reps", type=int, default=3)
-    lat.add_argument("--verifier", choices=["fake", "real"], default="real")
+    lat.add_argument("--verifier", choices=["fake", "real"], default="fake")
     lat.add_argument("--out-dir", type=Path, default=REPO_ROOT / "reports")
     args = p.parse_args(argv)
     if args.eval in ("grounding", "latency"):
@@ -100,7 +101,10 @@ async def _resolver_only(args: argparse.Namespace, settings: Settings) -> dict:
     embedder = None
     if args.mode in ("baseline", "both"):
         embedder = await asyncio.to_thread(
-            SentenceTransformerEmbedder, settings.embedding_model, settings.embedding_dim
+            SentenceTransformerEmbedder,
+            settings.embedding_model,
+            settings.embedding_dim,
+            settings.embedding_model_revision or None,
         )
     try:
         return await lookalike_run.run_resolver_only(
@@ -185,7 +189,10 @@ async def main_async(args: argparse.Namespace) -> int:
     print(f"wrote {json_path}\nwrote {md_path}")
     if args.ci:
         rows = len(lookalike.load_dataset(args.split))
-        return _gate_result("lookalike", ci_gates.lookalike_failures(report, dataset_rows=rows))
+        failures = ci_gates.lookalike_failures(
+            report, dataset_rows=rows, expected=ci_gates.load_lookalike_expected()
+        )
+        return _gate_result("lookalike", failures)
     return 0
 
 

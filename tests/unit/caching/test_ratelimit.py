@@ -1,4 +1,4 @@
-"""Fixed-window rate limiter (spec 10, 12): window, limit edge, rollover, fail-open."""
+"""Fixed-window rate limiter (spec 10, 12) over any Cache: edge, rollover, fail-open."""
 
 import logging
 
@@ -8,7 +8,7 @@ import pytest
 from pharmarag.app.settings import Settings
 from pharmarag.cache import InMemoryCache, RedisCache
 from pharmarag.caching.factory import build_rate_limiter
-from pharmarag.caching.ratelimit import LocalRateLimiter, RedisRateLimiter
+from pharmarag.caching.ratelimit import FixedWindowRateLimiter
 from pharmarag.ops import RATE_WINDOW_S, rate_key
 
 
@@ -30,13 +30,14 @@ def redis_client(server):
     return fakeredis.FakeAsyncRedis(server=server)
 
 
-@pytest.fixture(params=["redis", "local"])
+@pytest.fixture(params=["redis", "memory"])
 def make_limiter(request, redis_client):
     def make(limit: int, clock: Clock):
         if request.param == "redis":
             cache = RedisCache("redis://unused", client=redis_client)
-            return RedisRateLimiter(cache, limit, clock=clock)
-        return LocalRateLimiter(limit, clock=clock)
+        else:
+            cache = InMemoryCache()
+        return FixedWindowRateLimiter(cache, limit, clock=clock)
 
     return make
 
@@ -84,32 +85,33 @@ async def test_limit_zero_disables_the_limiter(make_limiter):
 
 
 async def test_redis_counter_uses_the_spec_key_and_sets_a_ttl_once(redis_client):
-    lim = RedisRateLimiter(
-        RedisCache("redis://unused", client=redis_client), 10, clock=Clock(6000.0)
-    )
+    cache = RedisCache("redis://unused", client=redis_client)
+    lim = FixedWindowRateLimiter(cache, 10, clock=Clock(6000.0))
     await lim.hit("9.9.9.9")
     key = rate_key("9.9.9.9", 100)  # 6000 // 60
     assert await redis_client.get(key) == b"1"
-    assert 0 < await redis_client.ttl(key) <= 60
-    # A later hit in the same window must not extend the TTL (EXPIRE NX: first hit only).
+    assert 0 < await redis_client.ttl(key) <= RATE_WINDOW_S
+    # A later hit in the same window must not extend the TTL (only creation sets it).
     await redis_client.expire(key, 5)
     await lim.hit("9.9.9.9")
     assert await redis_client.get(key) == b"2"
     assert await redis_client.ttl(key) <= 5
 
 
-async def test_redis_counter_is_shared_between_two_limiters(redis_client):
+async def test_counter_is_shared_between_two_limiters_on_one_redis(redis_client):
     cache = RedisCache("redis://unused", client=redis_client)
     clock = Clock()
-    a = RedisRateLimiter(cache, 2, clock=clock)
-    b = RedisRateLimiter(cache, 2, clock=clock)  # a second API process
+    a = FixedWindowRateLimiter(cache, 2, clock=clock)
+    b = FixedWindowRateLimiter(cache, 2, clock=clock)  # a second API process
     assert (await a.hit("c")).allowed
     assert (await b.hit("c")).allowed
     assert not (await a.hit("c")).allowed
 
 
 async def test_redis_down_fails_open_and_logs(server, redis_client, caplog):
-    lim = RedisRateLimiter(RedisCache("redis://unused", client=redis_client), 1, clock=Clock())
+    now = [0.0]
+    cache = RedisCache("redis://unused", client=redis_client, clock=lambda: now[0])
+    lim = FixedWindowRateLimiter(cache, 1, clock=Clock())
     assert (await lim.hit("secret-client")).allowed
     assert not (await lim.hit("secret-client")).allowed
     server.connected = False  # every command now raises ConnectionError
@@ -118,12 +120,23 @@ async def test_redis_down_fails_open_and_logs(server, redis_client, caplog):
     assert d.allowed and d.retry_after_s == 0
     assert any("failing open" in r.message for r in caplog.records)
     assert "secret-client" not in caplog.text  # the client id (an IP) is not logged
-    server.connected = True  # Redis is back: the old counter still applies
+    server.connected = True  # Redis is back; wait out the cooldown: the old counter applies
+    now[0] += RedisCache.COOLDOWN_S
     assert not (await lim.hit("secret-client")).allowed
 
 
-def test_factory_picks_redis_or_local_by_cache_type(redis_client):
+async def test_any_cache_whose_incr_returns_none_fails_open():
+    class Faulty(InMemoryCache):
+        async def incr(self, key, ttl_s):
+            return None
+
+    lim = FixedWindowRateLimiter(Faulty(), 1, clock=Clock())
+    assert all([(await lim.hit("c")).allowed for _ in range(5)])
+
+
+def test_factory_builds_one_limiter_for_any_cache(redis_client):
     s = Settings(_env_file=None, rate_limit_per_minute=7)
-    redis_cache = RedisCache("redis://unused", client=redis_client)
-    assert isinstance(build_rate_limiter(s, redis_cache), RedisRateLimiter)
-    assert isinstance(build_rate_limiter(s, InMemoryCache()), LocalRateLimiter)
+    for cache in (RedisCache("redis://unused", client=redis_client), InMemoryCache()):
+        lim = build_rate_limiter(s, cache)
+        assert isinstance(lim, FixedWindowRateLimiter)
+        assert lim._limit == 7

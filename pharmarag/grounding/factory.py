@@ -26,7 +26,7 @@ def build_verifier(settings: Settings, thresholds: Thresholds, embedder: Embedde
     The warm-up pushes a real sentence through the whole path (span embeddings, candidate
     selection, NLI batches), so the first user request does not pay one-off setup costs.
     """
-    nli = CrossEncoderNLI(settings.nli_model)
+    nli = CrossEncoderNLI(settings.nli_model, revision=settings.nli_model_revision or None)
     verifier = GroundingVerifier(embedder, nli, thresholds.grounding)
 
     chunk = Chunk(

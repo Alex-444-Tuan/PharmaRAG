@@ -12,7 +12,7 @@ import json
 import statistics
 from pathlib import Path
 
-from pharmarag.app.settings import load_thresholds
+from pharmarag.app.settings import get_settings, load_thresholds
 from pharmarag.db import connect
 from pharmarag.models.embedder import SentenceTransformerEmbedder
 from pharmarag.retrieval.dense import dense_search
@@ -55,7 +55,9 @@ UNANSWERABLE = [
 
 async def main() -> None:
     th = load_thresholds()
-    emb = SentenceTransformerEmbedder("BAAI/bge-small-en-v1.5")
+    emb = SentenceTransformerEmbedder(
+        "BAAI/bge-small-en-v1.5", revision=get_settings().embedding_model_revision or None
+    )
     conn = await connect(URL)
     rows = []
     for d in DRUGS:

@@ -14,9 +14,10 @@ def fake_nli_class(monkeypatch):
     """Replace the real cross-encoder with a scripted one; record how it was built."""
     built = []
 
-    def make(model_name):
+    def make(model_name, revision=None):
         nli = FakeNLI(lambda p, h: (0.9, 0.0))
         nli.model_name = model_name
+        nli.revision = revision
         built.append(nli)
         return nli
 

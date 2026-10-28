@@ -3,7 +3,7 @@
     uv run python scripts/export_ci_fixture.py                       # data/ci_fixture.sql.gz
     uv run python scripts/export_ci_fixture.py --latency-questions 10 --out /tmp/small.sql.gz
 
-CI has no DailyMed, no RxNav and no ingested corpus (spec section 13, "Eval in CI"). The three
+CI has no DailyMed, no RxNav and no ingested corpus (spec section 13). The three
 gates need only a small slice of it:
 
 * look-alike (test split): the gold drug of each row, its look-alike partner, and every

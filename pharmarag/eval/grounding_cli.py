@@ -74,8 +74,15 @@ def _load_verifier(args: argparse.Namespace, settings: Settings, thresholds: Thr
         torch.set_num_threads(args.torch_threads)
 
     if args.nli_model:
-        settings = settings.model_copy(update={"nli_model": args.nli_model})
-    embedder = SentenceTransformerEmbedder(settings.embedding_model, settings.embedding_dim)
+        # A pinned commit belongs to the pinned model: another model loads at its default branch.
+        settings = settings.model_copy(
+            update={"nli_model": args.nli_model, "nli_model_revision": ""}
+        )
+    embedder = SentenceTransformerEmbedder(
+        settings.embedding_model,
+        settings.embedding_dim,
+        revision=settings.embedding_model_revision or None,
+    )
     verifier = build_verifier(settings, thresholds, embedder)
     assert isinstance(verifier, GroundingVerifier)
     if args.context:
@@ -295,7 +302,9 @@ async def _score(args, settings) -> int:
     print(f"wrote {j}\nwrote {m}")
     print(md)
     if args.ci:
-        failures = ci_gates.grounding_failures(report)
+        failures = ci_gates.grounding_failures(
+            report, reference=ci_gates.load_grounding_reference()
+        )
         for f in failures:
             print(f"CI GATE FAILED (grounding): {f}")
         return 1 if failures else 0
