@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://postgres:postgres@localhost:5432/pharmarag"
     redis_url: str = "redis://localhost:6379/0"
 
-    llm_provider: Literal["anthropic", "fake"] = "anthropic"
+    llm_provider: Literal["anthropic", "gemini", "fake"] = "anthropic"
     llm_model: str = ""  # pinned model ID, never an alias
     llm_api_key: str = ""
     llm_temperature: float = 0.0
