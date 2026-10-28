@@ -167,6 +167,44 @@ Every outcome other than a fault is HTTP 200 with a `status` the client switches
 | `insufficient_evidence` | Retrieval or grounding failed after the retries | Say the label does not answer this |
 | `declined` | Patient-specific advice or out of scope | Show the notice |
 
+### The `message` field
+
+Every response whose `status` is not `answered` carries a `message`: one or two plain-language sentences saying why there is no answer and what to do next. It is in the JSON response and in the `done` event of a stream. An `answered` response has no `message` key. `notice` (the not-medical-advice line) is separate and always present.
+
+| `status` | `message` says |
+| --- | --- |
+| `declined`, patient advice | It can't give personal medical advice, to ask a pharmacist or doctor, and that it can tell you what a drug's FDA label says |
+| `declined`, out of scope | The question is outside what FDA prescription labels answer, with an example label question |
+| `not_covered` | The resolved drug's name, and that its label isn't in the corpus (prescription labels only; over-the-counter drugs such as acetaminophen are not covered) |
+| `needs_clarification` | The candidate names with their ingredient keys, and to resend with `pinned_rxcuis` |
+| `drug_not_recognised` | The unrecognised name, and to check the spelling (or, if no drug was named, to name one) |
+| `insufficient_evidence` | The label doesn't answer this, or no answer could be checked against it |
+
+A declined request stops right after the question is analysed: nothing is resolved, searched or written, and RxNav is not called. If the question named a drug, `drugs` still lists it as typed, with `name`, `rxcui`, `ingredient_key` and `match` set to `null`, so the client can show that the name was understood without claiming it was looked up.
+
+```bash
+curl -s localhost:8000/v1/ask -H 'content-type: application/json' \
+  -d '{"question": "can i take tylenol when i have high fever?"}'
+```
+
+```json
+{
+  "status": "declined",
+  "drugs": [
+    {"mention": "tylenol", "name": null, "rxcui": null, "ingredient_key": null, "match": null}
+  ],
+  "answer": [],
+  "sources": [],
+  "notice": "From FDA drug labels via DailyMed. Not medical advice.",
+  "message": "I can't give personal medical advice — please ask a pharmacist or doctor. I can tell you what a drug's FDA label says, e.g. 'What does the acetaminophen label say about fever?'",
+  "meta": {"corpus_version": "<hash>", "latency_ms": 0, "retrieval_attempts": 0,
+           "generation_attempts": 0, "removed_sentences": 0, "cache_hit": false,
+           "degraded": false, "facts_unavailable": false}
+}
+```
+
+Asking what the acetaminophen label says returns `not_covered` instead, with a `message` naming acetaminophen and explaining that over-the-counter labels are not in the corpus.
+
 Faults: `422` invalid request, `429` over the rate limit (with `Retry-After`), `503` a dependency is down.
 
 ### Clarification
