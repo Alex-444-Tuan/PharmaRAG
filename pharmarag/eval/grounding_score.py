@@ -343,8 +343,9 @@ async def run_score(
     if topup:
         extra[gd.TEST_TOPUP.name] = gd.sha256_file(gd.TEST_TOPUP)
     note = (
-        "Labels: a human marked each natural claim S or H against the cited evidence shown in "
-        "the worksheet (rubric at the top of reports/grounding_label_worksheet.md). "
+        "Labels: each natural claim was marked S or H against the cited evidence shown in the "
+        "worksheet (rubric and labelling provenance at the top of "
+        "reports/grounding_label_worksheet.md: LLM-drafted, reviewed by a pharmacist). "
         + (
             f"Top-up fired: {len(topup)} supported claims were replaced by perturbed claims "
             "labelled H by construction. "
