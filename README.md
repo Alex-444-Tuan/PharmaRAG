@@ -20,7 +20,7 @@ flowchart LR
     evalh["Eval harness<br/>scripted evals"]
 
     subgraph api["FastAPI service"]
-        graph["LangGraph state machine<br/>agent nodes, parallel branches, retry edges"]
+        lg["LangGraph state machine<br/>agent nodes, parallel branches, retry edges"]
         emb["Embedding model<br/>SentenceTransformers"]
         nli["NLI cross-encoder<br/>grounding verifier"]
     end
@@ -32,12 +32,12 @@ flowchart LR
     ingest["Ingestion CLI<br/>parse, chunk, embed"]
     dm["DailyMed<br/>label XML, mappings"]
 
-    client --> graph
-    evalh --> graph
-    graph --> llm
-    graph --> rxnav
-    graph --> pg
-    graph --> redis
+    client --> lg
+    evalh --> lg
+    lg --> llm
+    lg --> rxnav
+    lg --> pg
+    lg --> redis
     ingest --> pg
     ingest --> dm
     ingest --> rxnav
